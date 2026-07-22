@@ -42,7 +42,7 @@
       }
     },
     "is-fleet": 29999,
-    "is-tempo": 21015
+    "is-tempo": 29996
   },
   "ranges": {
     "gateway_host_ports": {
@@ -67,7 +67,7 @@
   "_comment": "Port allocation scheme per ADR 0014. Internal ports are Docker overlay only (no host mapping). Host ports are published to the Docker host. The gateway_host_ports range (20100-39900) is consumed by 1Install.ps1 for the Windows Firewall rule. Retired ports are never reassigned ÔÇö see ADR 0014 ┬º4. Gateway keys are lowercase role codes (base, orch, veri, work) matching Get-AgentHostPort's .ToLower() lookup ÔÇö each role gets a non-overlapping /24 block (base=20300, orch=20400, veri=20500, work=20600) with max 9 instances per role.",
   "_notes": {
     "mcp_browserless (3003)": "Intentionally in the upstream_internal range (3000-3999) rather than mcp_sidecar_internal (21000-21999) because Browserless uses its native port 3003. Port 21006 is skipped in the registry to avoid confusion with the old stale documentation value.",
-    "is-tempo host (21015)": "Published to host for operational access. Internal port 21015. Port assignments documented in ADR-0042 ┬º Port assignments.",
+    "is-tempo host (29996)": "Published to host for operational access via port 29996. Internal port 21015. Port assignments documented in ADR-0042 ┬º Port assignments.",
     "is-audio (21016)": "Audio analysis container — Demucs/Essentia/Librosa/Basic Pitch/AudioSep. Internal port 21016."
   }
 }
