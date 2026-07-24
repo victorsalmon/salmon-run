@@ -15,13 +15,7 @@
     "is-monitoring": 21010,
     "is-fleet-mcp": 21014,
     "is-tempo": 21015,
-    "is-audio": 21016,
-    "daemon_coder_control": 21100,
-    "daemon_reviewer_control": 21101,
-    "daemon_coder_health": 21102,
-    "daemon_reviewer_health": 21103,
-    "daemon_coder_2_control": 21110,
-    "daemon_coder_2_health": 21112
+    "is-audio": 21016
   },
   "host": {
     "gateway": {
@@ -63,6 +57,30 @@
     "21006": {
       "date": "2026-05-25",
       "reason": "Retired — never assigned; skipped to avoid confusion with stale 21006 documentation value"
+    },
+    "21100": {
+      "date": "2026-07-23",
+      "reason": "daemon_coder_control — daemon worker architecture removed"
+    },
+    "21101": {
+      "date": "2026-07-23",
+      "reason": "daemon_reviewer_control — daemon worker architecture removed"
+    },
+    "21102": {
+      "date": "2026-07-23",
+      "reason": "daemon_coder_health — daemon worker architecture removed"
+    },
+    "21103": {
+      "date": "2026-07-23",
+      "reason": "daemon_reviewer_health — daemon worker architecture removed"
+    },
+    "21110": {
+      "date": "2026-07-23",
+      "reason": "daemon_coder_2_control — daemon worker architecture removed"
+    },
+    "21112": {
+      "date": "2026-07-23",
+      "reason": "daemon_coder_2_health — daemon worker architecture removed"
     }
   },
   "_comment": "Port allocation scheme per ADR 0014. Internal ports are Docker overlay only (no host mapping). Host ports are published to the Docker host. The gateway_host_ports range (20100-39900) is consumed by 1Install.ps1 for the Windows Firewall rule. Retired ports are never reassigned ÔÇö see ADR 0014 ┬º4. Gateway keys are lowercase role codes (base, orch, veri, work) matching Get-AgentHostPort's .ToLower() lookup ÔÇö each role gets a non-overlapping /24 block (base=20300, orch=20400, veri=20500, work=20600) with max 9 instances per role.",
