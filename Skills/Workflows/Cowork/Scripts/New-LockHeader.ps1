@@ -72,9 +72,21 @@ elseif ($OutputPath) {
             $relSpec = try { [System.IO.Path]::GetRelativePath((Get-Location).Path, $OutputPath) } catch { $OutputPath }
             $restored = git show "HEAD:$relSpec" 2>$null
             if (-not $restored) { $restored = git show "HEAD:$OutputPath" 2>$null }
+            if (-not $restored) {
+                # History fallback: the tracked copy may have been moved or displaced by a
+                # concurrent safe-pull — search all refs before giving up (orchestrator-tooling-2).
+                $candidate = git log --all --format='%H' -1 -- "$relSpec" 2>$null
+                if (-not $candidate) { $candidate = git log --all --format='%H' -1 -- "$OutputPath" 2>$null }
+                if ($candidate) { $restored = git show "$candidate`:$relSpec" 2>$null }
+            }
             if ($restored) {
                 $restored | Set-Content -Path $OutputPath -NoNewline -Encoding utf8
                 Write-Host "LOCK_WRITE_RESTORED path='$OutputPath' from git HEAD" -ForegroundColor Yellow
+            } else {
+                # No canonical blob exists anywhere in history — a header-only file is worse
+                # than no file (it can be committed by a concurrent safe-pull checkpoint).
+                Write-Host "LOCK_WRITE_UNRESTORABLE path='$OutputPath' — deleting truncated file and aborting lock" -ForegroundColor Red
+                Remove-Item -LiteralPath $OutputPath -Force -ErrorAction SilentlyContinue
             }
         } catch { }
         exit 3
