@@ -69,15 +69,25 @@ elseif ($OutputPath) {
     if (-not $bodySurvived) {
         Write-Host "LOCK_WRITE_TRUNCATION path='$OutputPath' len=$($written.Length) originalLen=$($ExistingContent.Length) — restoring from git" -ForegroundColor Red
         try {
-            $relSpec = try { [System.IO.Path]::GetRelativePath((Get-Location).Path, $OutputPath) } catch { $OutputPath }
-            $restored = git show "HEAD:$relSpec" 2>$null
-            if (-not $restored) { $restored = git show "HEAD:$OutputPath" 2>$null }
-            if (-not $restored) {
-                # History fallback: the tracked copy may have been moved or displaced by a
-                # concurrent safe-pull — search all refs before giving up (orchestrator-tooling-2).
-                $candidate = git log --all --format='%H' -1 -- "$relSpec" 2>$null
-                if (-not $candidate) { $candidate = git log --all --format='%H' -1 -- "$OutputPath" 2>$null }
-                if ($candidate) { $restored = git show "$candidate`:$relSpec" 2>$null }
+            # Directory-agnostic git resolution: locate the work tree from the file's own
+            # location (git -C walks up from $OutputPath's parent), never from the caller's
+            # cwd — restore must work from any working directory (orchestrator-tooling-2 feedback).
+            $repoRoot = git -C (Split-Path -Parent $OutputPath) rev-parse --show-toplevel 2>$null
+            if ($repoRoot) {
+                $relSpec = try { [System.IO.Path]::GetRelativePath($repoRoot, $OutputPath).Replace('\', '/') } catch { $OutputPath }
+                $restored = git -C $repoRoot show "HEAD:$relSpec" 2>$null
+                if (-not $restored) {
+                    # History fallback: the tracked copy may have been moved or displaced by a
+                    # concurrent safe-pull — search all refs before giving up (orchestrator-tooling-2).
+                    # The newest commit touching the path may be its deletion commit, so walk
+                    # candidates newest→oldest and take the first commit where the path resolves.
+                    $candidates = git -C $repoRoot log --all --format='%H' -- "$relSpec" 2>$null
+                    foreach ($candidate in $candidates) {
+                        if (-not $candidate) { continue }
+                        $restored = git -C $repoRoot show "$candidate`:$relSpec" 2>$null
+                        if ($restored) { break }
+                    }
+                }
             }
             if ($restored) {
                 $restored | Set-Content -Path $OutputPath -NoNewline -Encoding utf8
