@@ -10,7 +10,7 @@ function ConvertTo-LockHeader {
     }
     $now = [datetime]::UtcNow.ToString('o')
     if ([string]::IsNullOrWhiteSpace($AgentId)) {
-        $AgentId = "batch-0-$(Get-Random -Minimum 100000000 -Maximum 999999999)"
+        throw "AgentId cannot be empty — a Lock Header with a blank Agent: is invalid."
     }
     $newBlock = @"
 - Agent: $AgentId
