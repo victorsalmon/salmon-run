@@ -61,9 +61,9 @@ elseif ($OutputPath) {
     $bodySurvived = $false
     if ($written) {
         if ($ExistingContent) {
-            $bodySurvived = $written.Length -ge $ExistingContent.Length -and $written -match '# Session Plan:'
+            $bodySurvived = $written.Length -ge $ExistingContent.Length -and $written -match '(?m)^\s*#\s+(?:Session\s+Plan|Session|Plan):\s+.+$'
         } else {
-            $bodySurvived = $written -match '# Session Plan:'
+            $bodySurvived = $written -match '(?m)^\s*#\s+(?:Session\s+Plan|Session|Plan):\s+.+$'
         }
     }
     if (-not $bodySurvived) {
