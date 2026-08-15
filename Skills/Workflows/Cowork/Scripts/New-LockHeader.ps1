@@ -1,3 +1,18 @@
+function Test-PlanHeaderContent {
+    param([AllowEmptyString()][string]$Content)
+    if (-not $Content) { return $false }
+    if ($Content -match '(?m)^\s*#\s+(?:Session\s+Plan|Session|Plan):\s+.+$') { return $true }
+    $plainTitle = $Content -match '(?m)^\s*#\s+[^#\r\n].+$'
+    if (-not $plainTitle) { return $false }
+    $metadataSignals = @(
+        ($Content -match '(?m)^\s*\*\*Repo:?\*\*:?\s*.+$'),
+        ($Content -match '(?m)^\s*\*\*Date:?\*\*:?\s*.+$'),
+        ($Content -match '(?m)^\s*\*\*Origin:?\*\*:?\s*Plan-mode session\b'),
+        ($Content -match '(?m)^\s*##\s+(?:Context|Overview|Task(?:s)?)\b')
+    ) | Where-Object { $_ }
+    return $metadataSignals.Count -ge 2
+}
+
 function ConvertTo-LockHeader {
     param(
         [string]$AgentId,
@@ -61,9 +76,9 @@ elseif ($OutputPath) {
     $bodySurvived = $false
     if ($written) {
         if ($ExistingContent) {
-            $bodySurvived = $written.Length -ge $ExistingContent.Length -and $written -match '(?m)^\s*#\s+(?:Session\s+Plan|Session|Plan):\s+.+$'
+            $bodySurvived = $written.Length -ge $ExistingContent.Length -and (Test-PlanHeaderContent -Content $written)
         } else {
-            $bodySurvived = $written -match '(?m)^\s*#\s+(?:Session\s+Plan|Session|Plan):\s+.+$'
+            $bodySurvived = Test-PlanHeaderContent -Content $written
         }
     }
     if (-not $bodySurvived) {
