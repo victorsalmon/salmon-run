@@ -1,21 +1,22 @@
 {
   "version": "2.0",
   "internal": {
-    "mcp_opencode_health": 21000,
-    "mcp_opencode_server": 21001,
+    "agent-control-plane": 21017,
+    "agent-credential-broker": 21016,
+    "is-accountant": 21008,
     "is-fleet": 21002,
+    "is-fleet-mcp": 21014,
+    "is-hermes": 21012,
+    "is-marketer": 21011,
+    "is-monitoring": 21010,
+    "is-tempo": 21015,
     "aqe": 21004,
-    "web": 21005,
     "mcp_browserless": 3003,
     "mcp_docusign": 21007,
-    "is-accountant": 21008,
-    "ops-funnel-proxy": 21009,
-    "is-marketer": 21011,
-    "is-hermes": 21012,
-    "is-monitoring": 21010,
-    "is-fleet-mcp": 21014,
-    "is-tempo": 21015,
-    "agent-credential-broker": 21016
+    "mcp_opencode_health": 21000,
+    "mcp_opencode_server": 21001,
+    "web": 21005,
+    "ops-funnel-proxy": 21009
   },
   "host": {
     "gateway": {
