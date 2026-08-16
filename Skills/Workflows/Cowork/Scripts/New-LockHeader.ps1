@@ -2,6 +2,9 @@ function Test-PlanHeaderContent {
     param([AllowEmptyString()][string]$Content)
     if (-not $Content) { return $false }
     if ($Content -match '(?m)^\s*#\s+(?:Session\s+Plan|Session|Plan):\s+.+$') { return $true }
+    if ($Content -match '(?m)^\s*#\s+Scheduled Task:\s+.+$' -and
+        $Content -match '(?m)^\s*\*\*Type\*\*:\s*scheduled-task\b' -and
+        $Content -match '(?m)^\s*\*\*Schedule ID\*\*:\s*\S+') { return $true }
     $plainTitle = $Content -match '(?m)^\s*#\s+[^#\r\n].+$'
     if (-not $plainTitle) { return $false }
     $metadataSignals = @(
