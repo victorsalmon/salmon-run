@@ -3,7 +3,6 @@
   "internal": {
     "agent-control-plane": 21017,
     "agent-credential-broker": 21016,
-    "is-bookkeeping": 21008,
     "is-fleet": 21002,
     "is-fleet-mcp": 21014,
     "is-hermes": 21012,
@@ -90,6 +89,10 @@
     "21112": {
       "date": "2026-07-23",
       "reason": "daemon_coder_2_health — daemon worker architecture removed"
+    },
+    "21008": {
+      "date": "2026-08-18",
+      "reason": "is-bookkeeping deprecated — domain functionality moved to the reconcile-account Devin plugin; no longer deployed as a service"
     }
   },
   "_comment": "Port allocation scheme per ADR 0014. Internal ports are Docker overlay only (no host mapping). Where a host mapping is needed for an internal service it MUST be loopback-only (127.0.0.1:<port>:<port>) — never a bare <port>:<port> mapping, which publishes to all host interfaces. Only the explicitly listed host ports are published to all interfaces: gateway range (20100-39900), is-fleet (29999), and is-tempo (29996). The gateway_host_ports range (20100-39900) is consumed by 1Install.ps1 for the Windows Firewall rule. Retired ports are never reassigned — see ADR 0014 §4. Gateway keys are lowercase role codes (base, orch, veri, work) matching Get-AgentHostPort's .ToLower() lookup — each role gets a non-overlapping /24 block (base=20300, orch=20400, veri=20500, work=20600) with max 9 instances per role.",
@@ -97,7 +100,7 @@
     "mcp_browserless (3003)": "Intentionally in the upstream_internal range (3000-3999) rather than mcp_sidecar_internal (21000-21999) because Browserless uses its native port 3003. Port 21006 is skipped in the registry to avoid confusion with the old stale documentation value.",
     "is-tempo host (29996)": "Published to host for operational access via port 29996. Internal port 21015. Port assignments documented in ADR-0042 § Port assignments.",
     "is-hermes (21012)": "Hermes — official Nous Research Hermes Agent (v2). Internal port 21012 retained for compatibility, but no host publishing; gateway-out (Telegram/Discord/CLI) + CLI-in.",
-    "is-bookkeeping (21008), is-marketer (21011), is-monitoring (21010), mcp_docusign (21007), is-tempo (21015)": "Loopback-host-reachable (127.0.0.1) for operational access (tooling/health) only — the compose generator binds these to 127.0.0.1, never to all host interfaces. The public ingress for DocuSign is via the funnel-proxy/cloudflared tunnel only (funnel-entrypoint.sh listens on 21009 and proxies to mcp_docusign over the overlay).",
+    "is-marketer (21011), is-monitoring (21010), mcp_docusign (21007), is-tempo (21015)": "Loopback-host-reachable (127.0.0.1) for operational access (tooling/health) only — the compose generator binds these to 127.0.0.1, never to all host interfaces. The public ingress for DocuSign is via the funnel-proxy/cloudflared tunnel only (funnel-entrypoint.sh listens on 21009 and proxies to mcp_docusign over the overlay).",
     "agent-credential-broker (21016)": "Internal overlay only, never host-published. Broker listens on the agent-broker-net overlay; workers reach it by service name. Registered 2026-08-14 with ADR 0047 swarm wave (plan swarmcredentials-1)."
   }
 }
