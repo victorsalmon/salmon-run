@@ -9,7 +9,6 @@
     "is-marketer": 21011,
     "is-monitoring": 21010,
     "is-tempo": 21015,
-    "aqe": 21004,
     "mcp_browserless": 3003,
     "mcp_opencode_health": 21000,
     "mcp_opencode_server": 21001,
@@ -56,6 +55,10 @@
     "21003": {
       "date": "2026-07-22",
       "reason": "is-api capability gate retired — decentralized to is-marketer/is-bookkeeping per ADR-0011"
+    },
+    "21004": {
+      "date": "2026-08-21",
+      "reason": "aqe retired — replaced by the cross-harness /aqe skill and local quality scripts per ADR-0014"
     },
     "21006": {
       "date": "2026-05-25",
@@ -104,7 +107,8 @@
     "is-tempo host (29996)": "Published to host for operational access via port 29996. Internal port 21015. Port assignments documented in ADR-0042 § Port assignments.",
     "is-hermes (21012)": "Hermes — official Nous Research Hermes Agent (v2). Internal port 21012 retained for compatibility, but no host publishing; gateway-out (Telegram/Discord/CLI) + CLI-in.",
     "is-marketer (21011), is-monitoring (21010), is-tempo (21015)": "Loopback-host-reachable (127.0.0.1) for operational access (tooling/health) only — the compose generator binds these to 127.0.0.1, never to all host interfaces. DocuSign public ingress (port 21007) is retired; signing is handled by the self-hosted Upscale Havens backend.",
-    "aqe (21004), web (21005)": "Ports are deprecated 2026-08-20 in favor of the cross-harness /aqe and /web-research skills. The container endpoints remain available for legacy callers (e.g. aqe-bridge) until those callers are redirected to local scripts or the plugin.",
+    "aqe (21004)": "Retired 2026-08-21; port 21004 is unassigned. Callers now use the cross-harness /aqe skill or local quality scripts.",
+    "web (21005)": "Deprecated 2026-08-20 in favor of the cross-harness /web-research skill and direct bookkeeping/upscale-havens routes. Port 21005 remains reserved until rent tracking is fully migrated.",
     "agent-credential-broker (21016)": "Internal overlay only, never host-published. Broker listens on the agent-broker-net overlay; workers reach it by service name. Registered 2026-08-14 with ADR 0047 swarm wave (plan swarmcredentials-1)."
   }
 }
