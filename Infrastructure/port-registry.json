@@ -4,36 +4,10 @@
     "agent-control-plane": 21017,
     "agent-credential-broker": 21016,
     "is-fleet": 21002,
-    "is-fleet-mcp": 21014,
-    "is-hermes": 21012,
-    "is-marketer": 21011,
     "is-monitoring": 21010,
-    "is-tempo": 21015,
-    "mcp_browserless": 3003,
-    "mcp_opencode_health": 21000,
-    "mcp_opencode_server": 21001,
-    "web": 21005,
-    "ops-funnel-proxy": 21009
+    "is-tempo": 21015
   },
   "host": {
-    "gateway": {
-      "base": {
-        "base": 20300,
-        "max": 9
-      },
-      "orch": {
-        "base": 20400,
-        "max": 9
-      },
-      "veri": {
-        "base": 20500,
-        "max": 9
-      },
-      "work": {
-        "base": 20600,
-        "max": 9
-      }
-    },
     "is-fleet": 29999,
     "is-tempo": 29996
   },
@@ -99,16 +73,44 @@
     "21008": {
       "date": "2026-08-18",
       "reason": "is-bookkeeping deprecated — domain functionality moved to the reconcile-account Devin plugin; no longer deployed as a service"
+    },
+    "21000": {
+      "date": "2026-08-21",
+      "reason": "mcp_opencode_health retired — mcp_opencode container removed; is-tempo dispatches plans to Tasks/Code/ for the host orchestrator"
+    },
+    "21001": {
+      "date": "2026-08-21",
+      "reason": "mcp_opencode_server retired — mcp_opencode container removed; opencode sessions no longer run in-container"
+    },
+    "21005": {
+      "date": "2026-08-21",
+      "reason": "web retired — web research via cross-harness /web-research skill"
+    },
+    "21009": {
+      "date": "2026-08-21",
+      "reason": "ops-funnel-proxy retired — no public HTTPS ingress; cloudflared/tailscale funnel removed"
+    },
+    "21011": {
+      "date": "2026-08-21",
+      "reason": "is-marketer retired — marketing via cross-harness /marketing-outreach skill"
+    },
+    "21012": {
+      "date": "2026-08-21",
+      "reason": "is-hermes retired — image retained as hermes-retained:latest for future experimentation"
+    },
+    "21014": {
+      "date": "2026-08-21",
+      "reason": "is-fleet-mcp retired — MCP sidecar endpoints removed from is-fleet"
+    },
+    "3003": {
+      "date": "2026-08-21",
+      "reason": "mcp_browserless retired — browser automation via cross-harness /browser-web-ops skill"
     }
   },
-  "_comment": "Port allocation scheme per ADR 0014. Internal ports are Docker overlay only (no host mapping). Where a host mapping is needed for an internal service it MUST be loopback-only (127.0.0.1:<port>:<port>) — never a bare <port>:<port> mapping, which publishes to all host interfaces. Only the explicitly listed host ports are published to all interfaces: gateway range (20100-39900), is-fleet (29999), and is-tempo (29996). The gateway_host_ports range (20100-39900) is consumed by 1Install.ps1 for the Windows Firewall rule. Retired ports are never reassigned — see ADR 0014 §4. Gateway keys are lowercase role codes (base, orch, veri, work) matching Get-AgentHostPort's .ToLower() lookup — each role gets a non-overlapping /24 block (base=20300, orch=20400, veri=20500, work=20600) with max 9 instances per role.",
+  "_comment": "Port allocation scheme per ADR 0014. Internal ports are Docker overlay only (no host mapping). Where a host mapping is needed for an internal service it MUST be loopback-only (127.0.0.1:<port>:<port>) — never a bare <port>:<port> mapping, which publishes to all host interfaces. Only the explicitly listed host ports are published to all interfaces: is-fleet (29999) and is-tempo (29996). Retired ports are never reassigned — see ADR 0014 §4. The gateway_host_ports range and agent role blocks (base/orch/veri/work) were retired 2026-08-21 with the openclaw agent layer.",
   "_notes": {
-    "mcp_browserless (3003)": "Intentionally in the upstream_internal range (3000-3999) rather than mcp_sidecar_internal (21000-21999) because Browserless uses its native port 3003. Port 21006 is skipped in the registry to avoid confusion with the old stale documentation value.",
     "is-tempo host (29996)": "Published to host for operational access via port 29996. Internal port 21015. Port assignments documented in ADR-0042 § Port assignments.",
-    "is-hermes (21012)": "Hermes — official Nous Research Hermes Agent (v2). Internal port 21012 retained for compatibility, but no host publishing; gateway-out (Telegram/Discord/CLI) + CLI-in.",
-    "is-marketer (21011), is-monitoring (21010), is-tempo (21015)": "Loopback-host-reachable (127.0.0.1) for operational access (tooling/health) only — the compose generator binds these to 127.0.0.1, never to all host interfaces. DocuSign public ingress (port 21007) is retired; signing is handled by the self-hosted Upscale Havens backend.",
-    "aqe (21004)": "Retired 2026-08-21; port 21004 is unassigned. Callers now use the cross-harness /aqe skill or local quality scripts.",
-    "web (21005)": "Deprecated 2026-08-20 in favor of the cross-harness /web-research skill and direct bookkeeping/upscale-havens routes. Port 21005 remains reserved until rent tracking is fully migrated.",
+    "is-fleet host (29999)": "Published to host for operational access via port 29999. Internal port 21002.",
     "agent-credential-broker (21016)": "Internal overlay only, never host-published. Broker listens on the agent-broker-net overlay; workers reach it by service name. Registered 2026-08-14 with ADR 0047 swarm wave (plan swarmcredentials-1)."
   }
 }
