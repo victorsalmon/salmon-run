@@ -120,12 +120,12 @@ function New-BoundaryIntGenerator {
     )
     {
         param([int]$seed)
-        
+
         # Set default boundaries if not provided
         if ($null -eq $Boundaries) {
             $Boundaries = @(0, 1, -1, $Min, $Max, ($Min + 1), ($Max - 1))
         }
-        
+
         $rng = [System.Random]::new($seed)
         # 50% chance to use a boundary value
         if ($rng.Next(2) -eq 0) {
