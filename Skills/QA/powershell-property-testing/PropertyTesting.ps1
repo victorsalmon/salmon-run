@@ -100,8 +100,10 @@ function New-StringGenerator {
             return $Boundaries[$rng.Next($Boundaries.Count)]
         }
         $len = $rng.Next($MinLength, $MaxLength + 1)
+        if ($len -eq 0) { return "" }
         $chars = @()
         $charArray = $CharSet.ToCharArray()
+        if ($charArray.Length -eq 0) { return "" }
         for ($i = 0; $i -lt $len; $i++) {
             $chars += $charArray[$rng.Next($charArray.Length)]
         }
@@ -114,10 +116,16 @@ function New-BoundaryIntGenerator {
     param(
         [int]$Min = 0,
         [int]$Max = 100,
-        [int[]]$Boundaries = @(0, 1, -1, $Min, $Max, $Min + 1, $Max - 1)
+        [int[]]$Boundaries = $null
     )
     {
         param([int]$seed)
+        
+        # Set default boundaries if not provided
+        if ($null -eq $Boundaries) {
+            $Boundaries = @(0, 1, -1, $Min, $Max, ($Min + 1), ($Max - 1))
+        }
+        
         $rng = [System.Random]::new($seed)
         # 50% chance to use a boundary value
         if ($rng.Next(2) -eq 0) {
@@ -156,6 +164,119 @@ function New-ArrayGenerator {
             $result += & $ElementGenerator ($seed + $i * 1000)
         }
         return $result
+    }
+}
+
+function Invoke-Shrink {
+    <#
+    .SYNOPSIS
+        Shrinks a failing seed to find a minimal counterexample.
+
+    .DESCRIPTION
+        Uses delta-debugging to minimize the failing seed while preserving
+        the failure. Returns the smallest seed that still triggers the failure.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][scriptblock]$Predicate,
+        [Parameter(Mandatory)][int]$FailingSeed,
+        [string]$Description = "property"
+    )
+
+    $bestSeed = $FailingSeed
+    $bestInput = $null
+
+    # Try to capture the failing input for reporting
+    try {
+        & $Predicate $FailingSeed
+    } catch {
+        $bestInput = $_.Exception.Message
+    }
+
+    # Delta-debugging: try smaller seeds around the failing seed
+    $delta = 1
+    $maxAttempts = 20
+    $attempt = 0
+
+    while ($attempt -lt $maxAttempts) {
+        $attempt++
+        $candidateSeed = $bestSeed - $delta
+
+        # Don't go below 0
+        if ($candidateSeed -lt 0) { break }
+
+        try {
+            & $Predicate $candidateSeed
+            # Predicate passed — this seed is not a counterexample
+            # Try a smaller delta or stop
+            $delta = [math]::Max(1, $delta / 2)
+            if ($delta -lt 1) { break }
+        } catch {
+            # Predicate still fails — this is a smaller counterexample
+            $bestSeed = $candidateSeed
+            $bestInput = $_.Exception.Message
+            # Try an even smaller seed
+            $delta = $delta * 2
+        }
+    }
+
+    return [pscustomobject]@{
+        Seed = $bestSeed
+        Input = $bestInput
+        OriginalSeed = $FailingSeed
+        ShrinkAttempts = $attempt
+    }
+}
+
+function Invoke-Property {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][scriptblock]$Predicate,
+        [int]$Seed = $script:DefaultSeed,
+        [int]$NumRuns = $script:DefaultNumRuns,
+        [string]$Description = "property",
+        [switch]$Shrink
+    )
+
+    $failures = @()
+    $passed = $true
+
+    for ($i = 0; $i -lt $NumRuns; $i++) {
+        $runSeed = $Seed + $i
+        try {
+            & $Predicate $runSeed
+        } catch {
+            $passed = $false
+            $failures += [pscustomobject]@{
+                RunIndex = $i
+                Seed = $runSeed
+                Error = $_.Exception.Message
+            }
+        }
+    }
+
+    if (-not $passed) {
+        $firstFailure = $failures[0]
+        Write-Warning "Property '$Description' FAILED at run $($firstFailure.RunIndex) (seed $($firstFailure.Seed)): $($firstFailure.Error)"
+        Write-Warning "Replay with: Invoke-Property -Seed $($firstFailure.Seed) -NumRuns 1"
+
+        # Shrink to find minimal counterexample
+        if ($Shrink) {
+            $shrinkResult = Invoke-Shrink -Predicate $Predicate -FailingSeed $firstFailure.Seed -Description $Description
+            if ($shrinkResult.Seed -ne $firstFailure.Seed) {
+                Write-Warning "Shrunk to seed $($shrinkResult.Seed) (original: $($shrinkResult.OriginalSeed), attempts: $($shrinkResult.ShrinkAttempts))"
+                Write-Warning "Minimal replay with: Invoke-Property -Seed $($shrinkResult.Seed) -NumRuns 1"
+            }
+            $firstFailure.ShrunkSeed = $shrinkResult.Seed
+            $firstFailure.ShrunkInput = $shrinkResult.Input
+        }
+    }
+
+    return [pscustomobject]@{
+        Passed = $passed
+        NumRuns = $NumRuns
+        Seed = $Seed
+        Failures = $failures
     }
 }
 

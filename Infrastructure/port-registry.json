@@ -3,6 +3,7 @@
   "internal": {
     "agent-control-plane": 21017,
     "agent-credential-broker": 21016,
+    "llm-audit-proxy": 21018,
     "is-fleet": 21002,
     "is-monitoring": 21010,
     "is-tempo": 21015
@@ -111,6 +112,7 @@
   "_notes": {
     "is-tempo host (29996)": "Published to host for operational access via port 29996. Internal port 21015. Port assignments documented in ADR-0042 § Port assignments.",
     "is-fleet host (29999)": "Published to host for operational access via port 29999. Internal port 21002.",
-    "agent-credential-broker (21016)": "Internal overlay only, never host-published. Broker listens on the agent-broker-net overlay; workers reach it by service name. Registered 2026-08-14 with ADR 0047 swarm wave (plan swarmcredentials-1)."
+    "agent-credential-broker (21016)": "Internal overlay only, never host-published. Broker listens on the agent-broker-net overlay; workers reach it by service name. Registered 2026-08-14 with ADR 0047 swarm wave (plan swarmcredentials-1).",
+    "llm-audit-proxy (21018)": "Internal overlay only, never host-published. One instance is deployed per fixed inference upstream; it writes redacted per-request telemetry to Tasks/Logs/LLM."
   }
 }
