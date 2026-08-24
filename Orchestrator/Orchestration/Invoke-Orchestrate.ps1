@@ -105,6 +105,40 @@ function Get-OpencodePath {
     return $opencodeCmd.Source
 }
 
+function Initialize-OpenCodeEnvironment {
+    <#
+    .SYNOPSIS
+        Gives a standalone OpenCode installation writable, isolated XDG state.
+
+    OpenCode's worker is launched from a hidden PowerShell process.  When the
+    CLI is installed under Tools/opencode-standalone, its default state path
+    can resolve into a locked profile directory instead of the installation's
+    writable runtime area.  That produces an apparently valid model selection
+    followed by an executor failure before a request can complete.
+    #>
+    if ($Harness -ne 'opencode') { return }
+    $configured = [string]$env:OPENCODE_CLI_PATH
+    if ([string]::IsNullOrWhiteSpace($configured)) { return }
+    try { $resolved = (Resolve-Path -LiteralPath $configured -ErrorAction Stop).Path } catch { return }
+    if ($resolved -notmatch '\\node_modules\\\.bin\\opencode\.(ps1|cmd)$') { return }
+
+    $standaloneRoot = Split-Path (Split-Path (Split-Path $resolved -Parent) -Parent) -Parent
+    $toolsRoot = Split-Path $standaloneRoot -Parent
+    $xdgRoots = @{
+        XDG_CONFIG_HOME = Join-Path $toolsRoot 'opencode-config'
+        XDG_DATA_HOME   = Join-Path $toolsRoot 'opencode-data'
+        XDG_STATE_HOME  = Join-Path $toolsRoot 'opencode-state'
+        XDG_CACHE_HOME  = Join-Path $toolsRoot 'opencode-cache'
+    }
+    foreach ($entry in $xdgRoots.GetEnumerator()) {
+        $null = New-Item -ItemType Directory -Path $entry.Value -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $entry.Value) {
+            Set-Item -Path "Env:$($entry.Key)" -Value $entry.Value
+        }
+    }
+    Write-WatchdogLog "OPENCODE_ENV_READY cli='$resolved' config='$($env:XDG_CONFIG_HOME)' data='$($env:XDG_DATA_HOME)' state='$($env:XDG_STATE_HOME)'"
+}
+
 function Start-CompleteAudit {
     param([string]$RepoDir, [string]$LogDir)
     $opencodePath = Get-OpencodePath
@@ -429,11 +463,17 @@ function Write-WatchdogLog {
 # Clear-StaleAgentFiles function.
 $skillsRoot = Join-Path $RepoDir "Skills"
 if (-not (Test-Path $skillsRoot)) { $skillsRoot = Join-Path (Split-Path $RepoDir -Parent) "Skills" }
-$orchestratorModules = Join-Path $RepoDir "Orchestrator/Modules"
-if (-not (Test-Path $orchestratorModules)) { $orchestratorModules = Join-Path $skillsRoot "Docker/Modules" }
-if ($env:PSModulePath -notlike "*$orchestratorModules*") {
-    $env:PSModulePath = "$orchestratorModules$([System.IO.Path]::PathSeparator)$env:PSModulePath"
+$moduleRoots = @(
+    (Join-Path $RepoDir "Orchestrator/Modules"),
+    (Join-Path $skillsRoot "Docker/Modules")
+) | Where-Object { Test-Path -LiteralPath $_ }
+$orchestratorModules = $moduleRoots | Select-Object -First 1
+foreach ($moduleRoot in $moduleRoots) {
+    if ($env:PSModulePath -notlike "*$moduleRoot*") {
+        $env:PSModulePath = "$moduleRoot$([System.IO.Path]::PathSeparator)$env:PSModulePath"
+    }
 }
+Initialize-OpenCodeEnvironment
 if (-not (Get-Command Clear-StaleAgentFiles -ErrorAction SilentlyContinue)) {
     try {
         $env:REPO_ROOT = $RepoDir
