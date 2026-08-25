@@ -327,7 +327,7 @@ trap {
     $null = New-Item -ItemType Directory -Path (Split-Path $initErrFile -Parent) -Force
     "$(Get-Date -Format 'o'): Unhandled exception in orchestrator startup`n$($_.Exception.Message)`n$($_.ScriptStackTrace)" | Out-File $initErrFile -Encoding utf8
     Write-Host "[FATAL] Orchestrator startup failed: $($_.Exception.Message)" -ForegroundColor Red
-    break
+    exit 1
 }
 
 # Ensure ORCHESTRATOR module path is in PSModulePath so .psd1 RequiredModules resolve
