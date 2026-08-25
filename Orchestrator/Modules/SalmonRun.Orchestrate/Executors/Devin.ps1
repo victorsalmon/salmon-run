@@ -180,6 +180,9 @@ function Start-StreamCoder {
     $inFile = Join-Path $agentDir "${StreamId}.stdin"
 
     $prompt = Build-DevinPrompt -Role $Role -StreamDir $StreamDir -Namespace $Namespace -RepoDir $RepoDir
+    if (Test-IsDeepSeekV4Model -Model $model) {
+        $prompt = Invoke-DeepSeekPromptFilter -Prompt $prompt -Role $Role
+    }
 
     $startRecord = @{
         v = 1
@@ -192,22 +195,22 @@ function Start-StreamCoder {
         effort = $effort
         cwd = $targetDir
         transport = 'acp'
-    } | ConvertTo-Json -Compress
+    }
 
     $promptRecord = @{
         v = 1
         type = 'prompt'
         id = 'p-1'
         text = $prompt
-    } | ConvertTo-Json -Compress
+    }
 
     $shutdownRecord = @{
         v = 1
         type = 'shutdown'
-    } | ConvertTo-Json -Compress
+    }
 
     # dsh-adapter expects newline-delimited JSON records on stdin.
-    $inputLines = "$startRecord`n$promptRecord`n$shutdownRecord"
+    $inputLines = Invoke-DeepSeekJsonLFilter -Records @($startRecord, $promptRecord, $shutdownRecord) -Model $model
     $inputLines | Out-File -FilePath $inFile -Encoding utf8 -NoNewline
 
     $env:DSO_DSH_ACP_COMMAND = "devin acp --model $model"

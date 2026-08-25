@@ -67,10 +67,10 @@ function Build-DshPrompt {
 
 function New-DshInput {
     param([string]$TaskId, [string]$Lane, [string]$Model, [string]$Effort, [string]$Cwd, [string]$Prompt)
-    $start = @{ v = 1; type = 'start'; runId = "salmon-dsh-$TaskId"; taskId = $TaskId; lane = $Lane; profile = 'dsh'; model = $Model; effort = $Effort; cwd = $Cwd; transport = 'acp' } | ConvertTo-Json -Compress
-    $promptRecord = @{ v = 1; type = 'prompt'; id = 'p-1'; text = $Prompt } | ConvertTo-Json -Compress
-    $shutdown = @{ v = 1; type = 'shutdown' } | ConvertTo-Json -Compress
-    return "$start`n$promptRecord`n$shutdown"
+    $start = @{ v = 1; type = 'start'; runId = "salmon-dsh-$TaskId"; taskId = $TaskId; lane = $Lane; profile = 'dsh'; model = $Model; effort = $Effort; cwd = $Cwd; transport = 'acp' }
+    $promptRecord = @{ v = 1; type = 'prompt'; id = 'p-1'; text = $Prompt }
+    $shutdown = @{ v = 1; type = 'shutdown' }
+    return Invoke-DeepSeekJsonLFilter -Records @($start, $promptRecord, $shutdown) -Model $Model
 }
 
 function Start-DshProcess {
@@ -109,6 +109,10 @@ function Start-StreamCoder {
     $env:OC_PROJECT_ROOT = $target
     $env:OC_CANONICAL_TASK_ROOT = Join-Path $RepoDir 'Tasks\Code'
     $prompt = Build-DshPrompt -Role $Role -StreamDir $StreamDir -Namespace $Namespace -RepoDir $target
+    $model = Get-DshModel
+    if (Test-IsDeepSeekV4Model -Model $model) {
+        $prompt = Invoke-DeepSeekPromptFilter -Prompt $prompt -Role $Role
+    }
     $proc = Start-DshProcess -TaskId $StreamId -Lane $Role -Cwd $target -Prompt $prompt -RepoDir $RepoDir
     $files = @(Get-ChildItem -LiteralPath $StreamDir -Filter '*.md' -File -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name)
     Write-OrchestratorLog "DSH_STREAM_SPAWN stream=$StreamId pid=$($proc.Id) role=$Role files=$($files.Count) model=$(Get-DshModel) effort=$(Get-DshEffort) ns=$Namespace"

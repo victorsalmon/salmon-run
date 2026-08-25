@@ -293,8 +293,13 @@ function Start-StreamCoder {
                 "Stop-Process*" = "deny"
             }
         }
-    } | ConvertTo-Json -Compress
-    $env:OPENCODE_CONFIG_CONTENT = $policy
+    }
+    $policyJson = if (Test-IsDeepSeekV4Model -Model $harnessModel) {
+        Invoke-DeepSeekPolicyFilter -Policy $policy -Model $harnessModel
+    } else {
+        $policy | ConvertTo-Json -Compress
+    }
+    $env:OPENCODE_CONFIG_CONTENT = $policyJson
 
     $lastTask = $null
     for ($i = 0; $i -lt $fallbacks.Count; $i++) {

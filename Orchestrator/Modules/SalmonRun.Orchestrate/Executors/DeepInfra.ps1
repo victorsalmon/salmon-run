@@ -166,7 +166,8 @@ function Start-DeepInfraProcess {
     $inFile = Join-Path $agentDir "$TaskId.stdin"
     $configFile = Join-Path $codexHome 'config.toml'
     New-DeepInfraCodexConfig -Model $Model -Effort $Effort -RelayUrl $script:DeepInfraRelayUrl | Set-Content -LiteralPath $configFile -Encoding utf8
-    $Prompt | Set-Content -LiteralPath $inFile -Encoding utf8 -NoNewline
+    $filteredPrompt = if (Test-IsDeepSeekV4Model -Model $Model) { Invoke-DeepSeekPromptFilter -Prompt $Prompt -Role $Lane } else { $Prompt }
+    $filteredPrompt | Set-Content -LiteralPath $inFile -Encoding utf8 -NoNewline
     $previousCodexHome = [Environment]::GetEnvironmentVariable('CODEX_HOME', 'Process')
     [Environment]::SetEnvironmentVariable('CODEX_HOME', $codexHome, 'Process')
     try {
