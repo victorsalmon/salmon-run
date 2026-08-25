@@ -1,7 +1,7 @@
 {
   "harnesses": {
     "opencode": {
-      "description": "OpenCode Go CLI and compatible providers",
+      "description": "OpenCode CLI and compatible providers",
       "defaultProvider": "opencode-go"
     },
     "devin": {
@@ -37,6 +37,17 @@
         "opencode/x-preview-f-free": { "defaultEffort": "max" },
         "opencode-go/deepseek-v4-pro": { "defaultEffort": "max" },
         "opencode-go/mimo-v2.5": { "defaultEffort": "default" }
+      }
+    },
+    "opencode": {
+      "cli": "opencode",
+      "defaultModel": "opencode/hy3-free",
+      "defaultEffort": "max",
+      "acceptedEfforts": ["max", "default"],
+      "executorFile": "Opencode",
+      "models": {
+        "opencode/hy3-free": { "defaultEffort": "max" },
+        "opencode/mimo-v2.5-free": { "defaultEffort": "default" }
       }
     },
     "devin": {

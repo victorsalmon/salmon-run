@@ -1,0 +1,128 @@
+{
+  "routerVersion": 1,
+  "lastUpdated": "2026-08-25",
+  "benchmarkUrl": "https://example.com/api/llm-models.json",
+  "ttlHours": 168,
+  "tierThresholds": {
+    "Flash": 0,
+    "Daily": 45,
+    "Complex": 70,
+    "Frontier": 90
+  },
+  "costRules": {
+    "free": {
+      "description": "No API cost. Used for OCG/Ox-Alpha.",
+      "multiplier": 0.0
+    },
+    "one-sixth": {
+      "description": "OCG models are billed at one-sixth of their normal API cost.",
+      "multiplier": 0.16666666666666666
+    },
+    "normal": {
+      "description": "Standard API cost.",
+      "multiplier": 1.0
+    }
+  },
+  "models": [
+    {
+      "canonicalName": "OCG/Ox-Alpha",
+      "harness": "opencode",
+      "provider": "opencode-go",
+      "model": "opencode-go/ox-alpha-free",
+      "effort": "max",
+      "tier": "Flash",
+      "costRule": "free",
+      "apiCostPer1KTokens": 0.0,
+      "effectiveCostPer1KTokens": 0.0,
+      "capabilityScore": 35,
+      "benchmarks": {
+        "sweBench": 35.0,
+        "aime2024": 35.0,
+        "terminalBench21": 32.0,
+        "mmlu": 50.0
+      },
+      "cacheContract": "none",
+      "notes": "Free OCG model. Intended for Flash-tier plans. Replace benchmark values when the weekly Clock Lobster feed is available."
+    },
+    {
+      "canonicalName": "OCG/Hy3",
+      "harness": "opencode",
+      "provider": "opencode",
+      "model": "opencode/hy3-free",
+      "effort": "max",
+      "tier": "Daily",
+      "costRule": "one-sixth",
+      "apiCostPer1KTokens": 0.6,
+      "effectiveCostPer1KTokens": 0.1,
+      "capabilityScore": 55,
+      "benchmarks": {
+        "sweBench": 55.0,
+        "aime2024": 55.0,
+        "terminalBench21": 52.0,
+        "mmlu": 70.0
+      },
+      "cacheContract": "none",
+      "notes": "OCG model billed at one-sixth normal cost. Daily-tier candidate."
+    },
+    {
+      "canonicalName": "OCG/Mimo-V2.5",
+      "harness": "opencode",
+      "provider": "opencode-go",
+      "model": "opencode-go/mimo-v2.5",
+      "effort": "default",
+      "tier": "Daily",
+      "costRule": "one-sixth",
+      "apiCostPer1KTokens": 0.3,
+      "effectiveCostPer1KTokens": 0.05,
+      "capabilityScore": 60,
+      "benchmarks": {
+        "sweBench": 60.0,
+        "aime2024": 60.0,
+        "terminalBench21": 58.0,
+        "mmlu": 75.0
+      },
+      "cacheContract": "none",
+      "notes": "Current OpenCode Go default for non-DSO harnesses. Good value for Daily-tier work."
+    },
+    {
+      "canonicalName": "DSO/Deepseekv4-flash",
+      "harness": "deepseek",
+      "provider": "dsh",
+      "model": "deepseek-v4-flash",
+      "effort": "max",
+      "tier": "Complex",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 0.28,
+      "effectiveCostPer1KTokens": 0.28,
+      "capabilityScore": 85,
+      "benchmarks": {
+        "sweBench": 80.0,
+        "aime2024": 85.0,
+        "terminalBench21": 82.7,
+        "mmlu": 88.0
+      },
+      "cacheContract": "deepseek-v4",
+      "notes": "Best value in the budget tier. Selected when the challenge is Complex or higher and an OCG model is not capable enough."
+    },
+    {
+      "canonicalName": "DSO/Deepseekv4-pro",
+      "harness": "deepseek",
+      "provider": "dsh",
+      "model": "deepseek-v4-pro",
+      "effort": "max",
+      "tier": "Frontier",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 0.87,
+      "effectiveCostPer1KTokens": 0.87,
+      "capabilityScore": 95,
+      "benchmarks": {
+        "sweBench": 88.0,
+        "aime2024": 95.0,
+        "terminalBench21": 87.9,
+        "mmlu": 92.0
+      },
+      "cacheContract": "deepseek-v4",
+      "notes": "Strongest reasoning model. Reserved for Frontier-tier plans."
+    }
+  ]
+}
