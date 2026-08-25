@@ -26,7 +26,7 @@ Describe "SalmonRun.Core Module" -Tag "Core" {
         $configPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Config\SalmonRun.Config.ps1'
         if (Test-Path $configPath) { . $configPath }
 
-        $processPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.Process\Interclaw.Process.ps1'
+        $processPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Process\SalmonRun.Process.ps1'
         if (Test-Path $processPath) { . $processPath }
 
         $deployStatePath = Join-Path $PSScriptRoot '..\..\Skills\Docker\Modules\SalmonRun.DeployState\SalmonRun.DeployState.ps1'
@@ -263,7 +263,7 @@ Describe "Checkpoint system and CredentialSwap" -Tag "Core", "Regression-Only" {
         . $helpersPath
         $deployStatePath = Join-Path $PSScriptRoot '..\..\Skills\Docker\Modules\SalmonRun.DeployState\SalmonRun.DeployState.ps1'
         if (Test-Path $deployStatePath) { . $deployStatePath }
-        $processPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.Process\Interclaw.Process.ps1'
+        $processPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Process\SalmonRun.Process.ps1'
         if (Test-Path $processPath) { . $processPath }
     }
     Context "Checkpoint system" -Tag "Core", "Regression-Only" {
