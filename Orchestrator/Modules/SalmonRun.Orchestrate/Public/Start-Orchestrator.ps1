@@ -640,8 +640,6 @@ Write-OrchestratorLog "ORCHESTRATOR_START InstanceId=$InstanceId PID=$PID parall
 Write-FleetStatusTable
 
 if ($SpawnMode -eq "Container") {
-    $opencodePath = "docker"
-
     $container = Get-AvailableContainerAgent
     if (-not $container) {
         Write-Host "  ⚠ No running container agents found — check: docker ps | Select-String mcp_opencode" -ForegroundColor Red
@@ -1423,10 +1421,10 @@ try {
                 if ($script:useWorktrees) {
                     $branchName = if ($moduleId -ne 'main') { "wt/$moduleId" } else { 'main' }
                 }
-                $profile = Get-PlanExecutionProfile -PlanPath @($planFilesStaged.FullName) -DefaultConfig $script:DefaultHarnessConfig
-                $agentPath = Use-PlanExecutorProfile -Config $profile.Config -Initialize
-                Write-OrchestratorLog "PLAN_PROFILE_RESOLVED stream=$streamId ns=$ns override=$($profile.HasOverride) harness=$($profile.Config.Harness) provider=$($profile.Config.Provider) model=$($profile.Config.Model) effort=$($profile.Config.Effort)"
-                $proc = Start-StreamCoder -StreamId $streamId -StreamDir $streamDir -RepoDir $RepoDir -AgentPath $agentPath -InstanceId $InstanceId -Role $role -UseWorktrees:$script:useWorktrees -Namespace $ns -BranchName $branchName -HarnessConfig $profile.Config -PlanProfileOverride:$profile.HasOverride
+                $planProfile = Get-PlanExecutionProfile -PlanPath @($planFilesStaged.FullName) -DefaultConfig $script:DefaultHarnessConfig
+                $agentPath = Use-PlanExecutorProfile -Config $planProfile.Config -Initialize
+                Write-OrchestratorLog "PLAN_PROFILE_RESOLVED stream=$streamId ns=$ns override=$($planProfile.HasOverride) harness=$($planProfile.Config.Harness) provider=$($planProfile.Config.Provider) model=$($planProfile.Config.Model) effort=$($planProfile.Config.Effort)"
+                $proc = Start-StreamCoder -StreamId $streamId -StreamDir $streamDir -RepoDir $RepoDir -AgentPath $agentPath -InstanceId $InstanceId -Role $role -UseWorktrees:$script:useWorktrees -Namespace $ns -BranchName $branchName -HarnessConfig $planProfile.Config -PlanProfileOverride:$planProfile.HasOverride
                 if ($null -eq $proc) {
                     throw "STREAM_SPAWN_FAILED: Start-StreamCoder returned no process for lane=$streamId namespace=$ns"
                 }

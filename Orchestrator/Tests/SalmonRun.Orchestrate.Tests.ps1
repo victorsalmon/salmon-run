@@ -2,6 +2,9 @@
 
 #Requires -Version 7.0
 
+[System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
+param()
+
 BeforeAll {
     $__repoRoot = (Get-Item $PSCommandPath).Directory.Parent.Parent.FullName
     $__modulesDir = [System.IO.Path]::Combine($__repoRoot, "Orchestrator", "Modules")
@@ -18,7 +21,10 @@ BeforeAll {
     function Write-OrchestratorLog { param([string]$Message, [string]$Level) }
     function Write-OrchestratorLogSafe { param([string]$Message, [string]$Level) }
     function Write-OrchestratorHeartbeat { param([string]$HeartbeatFile) }
-    function Prepend-StreamLog { param([string]$StreamDir, [string]$Entry) }
+    function Prepend-StreamLog {
+        [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseApprovedVerbs', '')]
+        param([string]$StreamDir, [string]$Entry)
+    }
     function Write-OrchestratorError { param([string]$Op, [string]$Message, [string]$Stack, [int]$Iteration) }
     function Write-FleetStatusTable { }
     function Write-IterationStatus { param($Counts, [int]$Iteration, [int]$MaxIterations, [int]$TotalProcessed, [int]$TotalCrashed, $SessionStart) }
@@ -42,14 +48,23 @@ BeforeAll {
     function Write-AtomicJson { param([string]$Path, [object]$InputObject) }
     function Start-StreamCoder { param([string]$StreamId, [string]$StreamDir, [string]$RepoDir, [string]$OpencodePath, [int]$InstanceId, [string]$Role, [switch]$UseWorktrees, [string]$Namespace) }
     function Remove-Stream { param([string]$StreamDir, [string]$AgentId) }
-    function Rescue-OrphanedLocks { param([string]$RepoDir) }
+    function Rescue-OrphanedLocks {
+        [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseApprovedVerbs', '')]
+        param([string]$RepoDir)
+    }
     function Get-ExecutorTaskStatus { param($Task) }
     function Stop-ExecutorTask { param($Task) }
     function Test-IsFatalError { param($Counts, $CgResult); return $false }
     function Invoke-QuarantineFile { param([string]$FilePath, [string]$RepoDir, [string]$Reason) }
-    function Handle-OrphanStatus { param($File, $Agent, [string]$RepoDir, [string]$RescueKind) }
+    function Handle-OrphanStatus {
+        [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseApprovedVerbs', '')]
+        param($File, $Agent, [string]$RepoDir, [string]$RescueKind)
+    }
     function Get-FileRetryBudget { return $null }
-    function Increment-FileRetry { param([string]$FileName, [string]$StreamId, [int]$ExitCode); return 1 }
+    function Increment-FileRetry {
+        [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseApprovedVerbs', '')]
+        param([string]$FileName, [string]$StreamId, [int]$ExitCode); return 1
+    }
     function Test-FileExceededRetryBudget { param([string]$FileName); return $false }
     function Reset-FileRetry { param([string]$FileName) }
     function Stop-ProcessTree { param([int]$ProcessId, [switch]$Force) }
@@ -481,7 +496,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
                     Id = 1; Path = $streamDir; Namespace = "recover-ns"; Role = "coder"
                 }
             }
-            $result = Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{}
+            Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{} | Out-Null
             Test-Path (Join-Path $streamDir "stream.json") | Should -Be $true
             $content = Get-Content (Join-Path $streamDir "stream.json") -Raw | ConvertFrom-Json
             $content.Id | Should -Be 1
@@ -495,7 +510,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
             $null = New-Item (Join-Path $streamDir "plan.md") -ItemType File -Force
 
             $activeStreams = @{}
-            $result = Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{}
+            Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{} | Out-Null
             $activeStreams.ContainsKey("disk-only|reviewer") | Should -Be $true
             $activeStreams["disk-only|reviewer"].Id | Should -Be 2
             $activeStreams["disk-only|reviewer"].Status | Should -Be "recovered"
@@ -688,7 +703,6 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
 
         It "kills registered parent and its child processes" {
             # Spawn a parent PowerShell that spawns a child PowerShell
-            $childScript = 'Start-Sleep -Seconds 60'
             $parentScript = "Start-Process -FilePath powershell -ArgumentList 'Start-Sleep -Seconds 60' -PassThru | Out-Null; Start-Sleep -Seconds 60"
             $parent = Start-Process -FilePath "powershell" -ArgumentList "-Command `"$parentScript`"" -PassThru
             Start-Sleep -Seconds 2
@@ -771,7 +785,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
                     Id = "lane-coder-2"; Path = $laneDir; Namespace = "lane-recover"; Role = "coder"
                 }
             }
-            $result = Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{}
+            Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{} | Out-Null
             Test-Path (Join-Path $laneDir "stream.json") | Should -Be $true
             $content = Get-Content (Join-Path $laneDir "stream.json") -Raw | ConvertFrom-Json
             $content.Id | Should -Be "lane-coder-2"
@@ -786,7 +800,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
             $null = New-Item (Join-Path $laneDir "plan.md") -ItemType File -Force
 
             $activeStreams = @{}
-            $result = Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{}
+            Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{} | Out-Null
             $activeStreams.ContainsKey("lane-disk|reviewer") | Should -Be $true
             $activeStreams["lane-disk|reviewer"].Id | Should -Be "lane-reviewer-1"
         }
@@ -816,7 +830,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
             '{"exitCode":0}' | Set-Content (Join-Path $laneDir ".complete") -Encoding utf8 -NoNewline
 
             $activeStreams = @{}
-            $result = Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{}
+            Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{} | Out-Null
             $activeStreams.ContainsKey("zombie-ns|coder") | Should -Be $false
             Test-Path (Join-Path $laneDir "stream.json") | Should -Be $false
         }
@@ -830,7 +844,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
             # No plan files, no .complete — just a stale stream.json
 
             $activeStreams = @{}
-            $result = Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{}
+            Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{} | Out-Null
             $activeStreams.ContainsKey("empty-ns|coder") | Should -Be $false
             Test-Path (Join-Path $laneDir "stream.json") | Should -Be $false
         }
@@ -844,7 +858,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
             $null = New-Item (Join-Path $laneDir "plan.md") -ItemType File -Force
 
             $activeStreams = @{}
-            $result = Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{}
+            Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{} | Out-Null
             $activeStreams.ContainsKey("active-ns|coder") | Should -Be $true
             $activeStreams["active-ns|coder"].Status | Should -Be "recovered"
         }

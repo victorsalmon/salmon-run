@@ -3,7 +3,6 @@
 BeforeAll {
     $repoRoot = (Get-Item $PSCommandPath).Directory.Parent.Parent.FullName
     $salmonModules = Join-Path $repoRoot "Orchestrator\Modules"
-    $dockerModules = Join-Path $repoRoot "Skills\Docker\Modules"
 
     . (Join-Path $salmonModules "SalmonRun.Core\SalmonRun.Core.ps1")
     function Write-SetupLog { param($Message, $Level) }
