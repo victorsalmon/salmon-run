@@ -68,15 +68,15 @@ function Get-NamespaceGroups {
 }
 
 # ==============================================================================
-# FILE LOCK PRIMITIVES — REMOVED: migrated to Interclaw.Core/Public/Lock-File.ps1
+# FILE LOCK PRIMITIVES — REMOVED: migrated to SalmonRun.Core/Public/Lock-File.ps1
 # ==============================================================================
-# Lock-File, Unlock-File, and aliases were consolidated into the Interclaw.Core
+# Lock-File, Unlock-File, and aliases were consolidated into the SalmonRun.Core
 # module to eliminate the duplicate implementation (Core's version had a
 # partial-claim deadlock bug). The Core version is now the canonical ADR-compliant
 # all-or-nothing batch lock.
 #
 # Test-FileLock is preserved here as a lightweight read-only helper.
-# LockDir helpers are handled by Interclaw.Core internally.
+# LockDir helpers are handled by SalmonRun.Core internally.
 # ==============================================================================
 
 <#

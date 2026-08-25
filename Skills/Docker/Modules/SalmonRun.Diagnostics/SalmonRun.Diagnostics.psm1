@@ -7,7 +7,7 @@ $script:Results = @()
 <#
 .SYNOPSIS
     Appends a timestamped entry to the setup log file.
-    The log path is determined by INTERCLAW_SETUP_LOG env var (set by 0setup.ps1).
+    The log path is determined by SALMONRUN_SETUP_LOG env var (INTERCLAW_SETUP_LOG as fallback).
     If the env var is not set, logging is silently skipped.
     Each 0setup.ps1 run creates one log file stamped with the start time.
     All downstream scripts inherit the same log path via the env var.
@@ -27,10 +27,13 @@ function Write-SetupLog {
         [string]$Phase = "",
         [string]$RunId = $env:INTERCLAW_RUN_ID
     )
-    $LogPath = $env:INTERCLAW_SETUP_LOG
+    $LogPath = $env:SALMONRUN_SETUP_LOG
+    if ([string]::IsNullOrWhiteSpace($LogPath)) {
+        $LogPath = $env:INTERCLAW_SETUP_LOG
+    }
     if ([string]::IsNullOrWhiteSpace($LogPath)) {
         $LogPath = Join-Path $env:TEMP "salmonrun-setup-fallback.log"
-        Write-Warning "INTERCLAW_SETUP_LOG not set — falling back to temp path: $LogPath"
+        Write-Warning "SALMONRUN_SETUP_LOG or INTERCLAW_SETUP_LOG not set — falling back to temp path: $LogPath"
     }
     $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
