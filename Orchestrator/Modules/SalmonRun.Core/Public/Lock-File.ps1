@@ -16,7 +16,7 @@ LOCKING CONVENTION
     Without the Global\ prefix, the mutex/semaphore is session-scoped
     and will silently fail under non-interactive sessions (scheduled
     tasks, service accounts, containers running under different session
-    affinity). See Interclaw.DeployState.ps1 and Interclaw.Secrets.psm1
+    affinity). See SalmonRun.DeployState.ps1 and Interclaw.Secrets.psm1
     for correct examples.
 
     File-based locks (this function) do not need the Global\ prefix as

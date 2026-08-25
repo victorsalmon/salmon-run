@@ -93,7 +93,7 @@ Export-ModuleMember -Function @(
     loading, and Docker Swarm secret rotation. The log path is configured via the
     SALMONRUN_SETUP_LOG environment variable.
 #>
-# Error accumulator and checkpoints are in Interclaw.DeployState (forwarded via aliases)
+# Error accumulator and checkpoints are in SalmonRun.DeployState (forwarded via aliases)
 
 # Backward-compat aliases — defined in Interclaw.Locking now; these ensure
 # the aliases are still available when importing Core without explicit Locking import.

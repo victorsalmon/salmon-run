@@ -29,7 +29,7 @@ Describe "SalmonRun.Core Module" -Tag "Core" {
         $processPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.Process\Interclaw.Process.ps1'
         if (Test-Path $processPath) { . $processPath }
 
-        $deployStatePath = Join-Path $PSScriptRoot '..\..\Skills\Docker\Modules\Interclaw.DeployState\Interclaw.DeployState.ps1'
+        $deployStatePath = Join-Path $PSScriptRoot '..\..\Skills\Docker\Modules\SalmonRun.DeployState\SalmonRun.DeployState.ps1'
         if (Test-Path $deployStatePath) { . $deployStatePath }
 
         $wfPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.WorkflowEvents\Public\Write-WorkflowEvent.ps1'
@@ -261,7 +261,7 @@ Describe "Checkpoint system and CredentialSwap" -Tag "Core", "Regression-Only" {
         if (Test-Path $diagnosticsPath) { . $diagnosticsPath }
         $helpersPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Core\SalmonRun.Core.ps1'
         . $helpersPath
-        $deployStatePath = Join-Path $PSScriptRoot '..\..\Skills\Docker\Modules\Interclaw.DeployState\Interclaw.DeployState.ps1'
+        $deployStatePath = Join-Path $PSScriptRoot '..\..\Skills\Docker\Modules\SalmonRun.DeployState\SalmonRun.DeployState.ps1'
         if (Test-Path $deployStatePath) { . $deployStatePath }
         $processPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.Process\Interclaw.Process.ps1'
         if (Test-Path $processPath) { . $processPath }
@@ -579,7 +579,7 @@ Describe "Agent PID / Heartbeat Helpers" -Tag "Core" {
             $helpersPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Core\SalmonRun.Core.ps1'
             . $helpersPath
 
-            $deployStatePath = Join-Path $PSScriptRoot '..\..\Skills\Docker\Modules\Interclaw.DeployState\Interclaw.DeployState.ps1'
+            $deployStatePath = Join-Path $PSScriptRoot '..\..\Skills\Docker\Modules\SalmonRun.DeployState\SalmonRun.DeployState.ps1'
             if (Test-Path $deployStatePath) { . $deployStatePath }
 
             $wfPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.WorkflowEvents\Public\Write-WorkflowEvent.ps1'
