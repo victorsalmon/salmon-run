@@ -18,7 +18,7 @@ BeforeAll {
     $script:WfPsd1 = Join-Path $script:WfModuleDir "SalmonRun.WorkflowEvents.psd1"
     $script:WfPublic = Join-Path $script:WfModuleDir "Public"
 
-    function Get-InterclawRepoRoot { return $script:WfTestDir }
+    function Get-SalmonRunRepoRoot { return $script:WfTestDir }
     function Write-Debug { param([string]$Message) }
 
     $script:WfTestDir = Join-Path $env:TEMP "Interclaw-WFMutationTest-$(Get-Random)"
