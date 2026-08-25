@@ -477,7 +477,7 @@ Initialize-OpenCodeEnvironment
 if (-not (Get-Command Clear-StaleAgentFiles -ErrorAction SilentlyContinue)) {
     try {
         $env:REPO_ROOT = $RepoDir
-        Import-Module (Join-Path $orchestratorModules "Interclaw.AgentLifecycle/Interclaw.AgentLifecycle.psd1") -Force -DisableNameChecking -ErrorAction Stop
+        Import-Module (Join-Path $orchestratorModules "SalmonRun.AgentLifecycle/SalmonRun.AgentLifecycle.psd1") -Force -DisableNameChecking -ErrorAction Stop
     } catch {
         Write-WatchdogLog "AGENT_LIFECYCLE_IMPORT_FAILED error='$($_.Exception.Message)'" -Level WARN
     }

@@ -422,7 +422,7 @@ Describe "Agent PID / Heartbeat Helpers" -Tag "Core" {
             . (Join-Path $corePublic 'Write-AtomicFile.ps1')
         }
 
-        $agentLifecyclePublic = Join-Path $PSScriptRoot '..\Modules\Interclaw.AgentLifecycle\Public'
+        $agentLifecyclePublic = Join-Path $PSScriptRoot '..\Modules\SalmonRun.AgentLifecycle\Public'
         if (Test-Path $agentLifecyclePublic) {
             Get-ChildItem -Path $agentLifecyclePublic -Filter '*.ps1' | ForEach-Object { . $_.FullName }
         }
