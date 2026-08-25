@@ -32,10 +32,10 @@ Describe "SalmonRun.Core Module" -Tag "Core" {
         $deployStatePath = Join-Path $PSScriptRoot '..\..\Skills\Docker\Modules\SalmonRun.DeployState\SalmonRun.DeployState.ps1'
         if (Test-Path $deployStatePath) { . $deployStatePath }
 
-        $wfPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.WorkflowEvents\Public\Write-WorkflowEvent.ps1'
+        $wfPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.WorkflowEvents\Public\Write-WorkflowEvent.ps1'
         if (Test-Path $wfPath) { . $wfPath }
 
-        $gwfPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.WorkflowEvents\Public\Get-WorkflowEvents.ps1'
+        $gwfPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.WorkflowEvents\Public\Get-WorkflowEvents.ps1'
         if (Test-Path $gwfPath) { . $gwfPath }
 
         if (-not (Get-Command 'Invoke-WithCredentialSwap' -ErrorAction SilentlyContinue)) {
@@ -121,9 +121,9 @@ Describe "WorkflowEvents" -Tag "Core" {
         if (Test-Path $diagnosticsPath) { . $diagnosticsPath }
         $helpersPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Core\SalmonRun.Core.ps1'
         try { . $helpersPath } catch { Write-Debug "Core module load skipped: $_" }
-        $wfPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.WorkflowEvents\Public\Write-WorkflowEvent.ps1'
+        $wfPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.WorkflowEvents\Public\Write-WorkflowEvent.ps1'
         if (Test-Path $wfPath) { . $wfPath }
-        $gwfPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.WorkflowEvents\Public\Get-WorkflowEvents.ps1'
+        $gwfPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.WorkflowEvents\Public\Get-WorkflowEvents.ps1'
         if (Test-Path $gwfPath) { . $gwfPath }
         if (-not (Test-Path function:Get-SalmonRunRepoRoot)) {
             Set-Content -Path function:Get-SalmonRunRepoRoot -Value { param() $script:TestEventsDir } -Force
@@ -582,9 +582,9 @@ Describe "Agent PID / Heartbeat Helpers" -Tag "Core" {
             $deployStatePath = Join-Path $PSScriptRoot '..\..\Skills\Docker\Modules\SalmonRun.DeployState\SalmonRun.DeployState.ps1'
             if (Test-Path $deployStatePath) { . $deployStatePath }
 
-            $wfPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.WorkflowEvents\Public\Write-WorkflowEvent.ps1'
+            $wfPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.WorkflowEvents\Public\Write-WorkflowEvent.ps1'
             if (Test-Path $wfPath) { . $wfPath }
-            $gwfPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.WorkflowEvents\Public\Get-WorkflowEvents.ps1'
+            $gwfPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.WorkflowEvents\Public\Get-WorkflowEvents.ps1'
             if (Test-Path $gwfPath) { . $gwfPath }
         }
         AfterAll {
