@@ -70,8 +70,11 @@ BeforeAll {
     function Stop-ProcessTree { param([int]$ProcessId, [switch]$Force) }
     function Write-AgentPidFile { param([string]$AgentId) }
     function Write-AgentHeartbeat { param([string]$AgentId) }
-    function Get-BackoffDelay { param([int]$Attempt = 0, [int]$BaseMs = 1000, [int]$CapMs = 60000); return $BaseMs }
-    function Write-AtomicFile { param([string]$Path, [object]$Content) }
+    function Get-BackoffDelay { param([int]$Attempt = 0, [int[]]$Schedule = @(), [double]$JitterFraction = 0, [int]$MaxDelay = 3600); if ($Schedule.Count -gt 0 -and $Attempt -le $Schedule.Count) { return $Schedule[$Attempt - 1] } else { return 0 } }
+    function Write-AtomicFile {
+        param([string]$Path, [Parameter(ValueFromPipeline)]$Value, [string]$Encoding = 'UTF8')
+        process { $Value | Set-Content -Path $Path -Encoding $Encoding -NoNewline -Force }
+    }
     function Clear-StaleRetryBudgetEntries { param([string]$RepoDir) }
     function Get-AvailableContainerAgent { return $null }
     function Initialize-Executor { }
