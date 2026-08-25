@@ -40,7 +40,8 @@ Describe "SalmonRun.Process Module" -Tag "Process", "Regression-Only" {
     }
 
     Context "Invoke-Docker" {
-        $script:DockerAvailable = $null -ne (Get-Command docker -ErrorAction SilentlyContinue)
+        $script:DockerAvailable = $null -ne (Get-Command docker -ErrorAction SilentlyContinue) -and
+            ((docker version 2>&1 | Select-String -Pattern 'Server:\s+') -ne $null)
 
         It "runs docker version successfully" -Skip:(-not $script:DockerAvailable) {
             $result = Invoke-Docker version --format "{{.Server.Version}}" 2>&1
