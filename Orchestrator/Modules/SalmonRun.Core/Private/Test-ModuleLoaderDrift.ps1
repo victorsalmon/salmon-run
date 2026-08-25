@@ -14,7 +14,7 @@ function Test-ModuleLoaderDrift {
     }
 
     $results = @()
-    $wrapperPatterns = @('Interclaw.Constants', 'Interclaw.DeployState', 'SalmonRun.Diagnostics',
+    $wrapperPatterns = @('Interclaw.Constants', 'Interclaw.Config', 'Interclaw.DeployState', 'SalmonRun.Diagnostics',
                          'SalmonRun.Paths', 'Interclaw.Ports', 'Interclaw.Process')
 
     foreach ($dir in $moduleDirs) {

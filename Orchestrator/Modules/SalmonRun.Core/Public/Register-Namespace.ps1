@@ -4,7 +4,7 @@
 .DESCRIPTION
     Creates or checks a reservation file under Tasks/Locks/ namespace-<Prefix>.reserved.
     If the file is held by a different agent whose heartbeat is stale (beyond
-    NamespaceReclaimThresholdSeconds in Interclaw.Constants), the reservation is
+    NamespaceReclaimThresholdSeconds in SalmonRun.Constants), the reservation is
     reclaimed. Returns $true if acquired, $false otherwise.
     Aliases: Acquire-NamespaceReservation, Reserve-Namespace
 .PARAMETER NamespacePrefix
