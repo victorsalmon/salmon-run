@@ -25,8 +25,8 @@ BeforeAll {
     function Get-InterclawRepoRoot { return $script:repoRoot }
     function Write-AtomicJson { param([string]$Path, [object]$InputObject) }
 
-    . $script:capacityPath
     . $script:loopPath
+    . $script:capacityPath
 
     $script:tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "dispatch-prop-test-$(Get-Random)"
     $null = New-Item -ItemType Directory -Path $script:tempDir -Force
