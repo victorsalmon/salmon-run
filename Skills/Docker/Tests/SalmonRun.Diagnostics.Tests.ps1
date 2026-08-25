@@ -21,9 +21,9 @@ Describe "SalmonRun.Diagnostics Module" -Tag "Diagnostics" {
         $pathsPsd1 = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Paths\SalmonRun.Paths.psd1'
         try { Import-Module -Name $pathsPsd1 -Force -ErrorAction Stop } catch { try { . (Join-Path $PSScriptRoot '..\Modules\SalmonRun.Paths\SalmonRun.Paths.ps1') } catch { } }
 
-        $corePath = Join-Path $PSScriptRoot '..\Modules\Interclaw.Core\Interclaw.Core.ps1'
+        $corePath = Join-Path $PSScriptRoot '..\..\..\Orchestrator\Modules\SalmonRun.Core\SalmonRun.Core.ps1'
         try { . $corePath } catch { Write-Debug "Core module load skipped: $_" }
-        $statePath = Join-Path $PSScriptRoot '..\Modules\Interclaw.Core\Interclaw.State.ps1'
+        $statePath = Join-Path $PSScriptRoot '..\..\..\Orchestrator\Modules\SalmonRun.Core\SalmonRun.Core.State.ps1'
         try { . $statePath } catch { Write-Debug "Core state load skipped: $_" }
 
         $script:TestTempDir = Join-Path $env:TEMP "SalmonRun-DiagnosticsTests-$(Get-Random)"
