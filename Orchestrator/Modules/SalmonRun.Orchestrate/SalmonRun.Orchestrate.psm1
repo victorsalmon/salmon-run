@@ -27,7 +27,9 @@ $script:PrivateOrder = @(
     'Stream.ps1',
     'Container.ps1',
     'OpenCodeKey.ps1',
-    'HarnessConfig.ps1'
+    'HarnessConfig.ps1',
+    'ModelRouter.ps1',
+    'DeepSeekCacheFilter.ps1'
 )
 foreach ($__f in $script:PrivateOrder) {
     $__path = Join-Path $PSScriptRoot "Private/$__f"
