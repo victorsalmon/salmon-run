@@ -88,6 +88,30 @@ $script:NetworkNames = [ordered]@{
 
 <#
 .SYNOPSIS
+    Returns the canonical salmon-run pond/queue folder configuration.
+.OUTPUTS
+    PSCustomObject
+#>
+function Get-TaskQueueConfig {
+    return [PSCustomObject]@{
+        Primary = @('Code', 'Review', 'Working', 'Complete', 'Failed')
+        Secondary = @('Manual', 'Handoffs', 'Project', 'ProjectReview', 'Schedules', 'Temp', 'ToDo', 'Paused', 'AQE')
+        Ponds = [ordered]@{
+            Intake  = @{ Role = 'planner';  Description = 'Interactive intake and feature discovery' }
+            Code    = @{ Role = 'coder';    Description = 'Ready for coder implementation' }
+            Review  = @{ Role = 'reviewer'; Description = 'Ready for reviewer verification' }
+            QA      = @{ Role = 'qa';       Description = 'Property and mutation test maturation' }
+            Audit   = @{ Role = 'auditor';  Description = 'Best-practice, safety, and code-smell audit' }
+            Working = @{ Role = 'working';  Description = 'In-progress plans and lock files' }
+            Failed  = @{ Role = 'failed';   Description = 'Failed or blocked plans' }
+            Complete = @{ Role = 'complete'; Description = 'Completed plans awaiting archival' }
+            Archive = @{ Role = 'archive';  Description = 'Archived plans' }
+        }
+    }
+}
+
+<#
+.SYNOPSIS
     Returns the default AWS region for a given region type (secrets or compute).
 .PARAMETER RegionType
     AWS_SECRETS_REGION or AWS_REGION.
@@ -148,7 +172,8 @@ Export-ModuleMember -Function @(
     'Get-DefaultRegion',
     'Get-NetworkNames',
     'Get-SalmonRunConstants',
-    'Get-ProjectCode'
+    'Get-ProjectCode',
+    'Get-TaskQueueConfig'
 )
 
 # Backward-compatibility alias for the previous Interclaw-prefixed constants accessor

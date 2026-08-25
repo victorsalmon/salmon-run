@@ -7,7 +7,7 @@
     Description = 'Fleet-wide constants, network names, default region, and coding key priority for SalmonRun. Retains SalmonRun.Constants compatibility aliases.'
     PowerShellVersion = '7.0'
     RequiredModules = @('SalmonRun.Ports', 'SalmonRun.Config', 'SalmonRun.Diagnostics')
-    FunctionsToExport = @('Get-SalmonRunConstants','Get-NetworkNames','Get-DefaultRegion','Get-CodingKeyPriority','Get-ProjectCode')
+    FunctionsToExport = @('Get-SalmonRunConstants','Get-NetworkNames','Get-DefaultRegion','Get-CodingKeyPriority','Get-ProjectCode','Get-TaskQueueConfig')
     AliasesToExport = @('Get-InterclawConstants')
     PrivateData = @{ PSData = @{ } }
 }

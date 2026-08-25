@@ -32,7 +32,7 @@ here after a full leak-clean pass.
 
 | Data | Location |
 |------|----------|
-| Task queues (Code, Review, Working, Complete, Failed, Manual, Handoffs, Temp, Logs) | `~/.salmon/Tasks/*` |
+| Task queues (Intake, Code, Review, QA, Audit, Working, Complete, Archive, Failed, Manual, Handoffs, Temp, Logs) | `~/.salmon/Tasks/*` |
 | Runtime cache | `~/.salmon/cache` |
 | User/runtime secrets | `~/.salmon/secrets` |
 | Local config | `~/.salmon/config.json` (copied from `config.example.json`) |

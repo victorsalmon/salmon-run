@@ -273,17 +273,40 @@ Describe "Get-ProjectCode" -Tag "Constants", "Regression-Only" {
     }
 }
 
+Describe "Get-TaskQueueConfig" -Tag "Constants", "Regression-Only" {
+
+    It "returns a PSCustomObject with expected pond/queue sections" {
+        $c = Get-TaskQueueConfig
+        $c | Should -BeOfType [PSCustomObject]
+        $c.Primary | Should -Contain "Code"
+        $c.Primary | Should -Contain "Review"
+        $c.Ponds | Should -Not -BeNullOrEmpty
+        $c.Ponds.Keys | Should -Contain "Intake"
+        $c.Ponds.Keys | Should -Contain "QA"
+        $c.Ponds.Keys | Should -Contain "Audit"
+        $c.Ponds.Keys | Should -Contain "Archive"
+    }
+
+    It "assigns a role to every pond" {
+        $c = Get-TaskQueueConfig
+        foreach ($key in $c.Ponds.Keys) {
+            $c.Ponds[$key].Role | Should -Not -BeNullOrEmpty -Because "pond '$key' should have a role"
+        }
+    }
+}
+
 Describe "SalmonRun.Constants Module Manifest" -Tag "Constants", "Regression-Only" {
 
-    It "exports exactly 5 functions" {
+    It "exports exactly 6 functions" {
         $manifest = Import-PowerShellDataFile -Path $script:ConstantsPsd1
         $exports = $manifest.FunctionsToExport
-        $exports.Count | Should -Be 5
+        $exports.Count | Should -Be 6
         $exports | Should -Contain "Get-SalmonRunConstants"
         $exports | Should -Contain "Get-NetworkNames"
         $exports | Should -Contain "Get-DefaultRegion"
         $exports | Should -Contain "Get-CodingKeyPriority"
         $exports | Should -Contain "Get-ProjectCode"
+        $exports | Should -Contain "Get-TaskQueueConfig"
     }
 
     It "exports the legacy Get-InterclawConstants alias" {

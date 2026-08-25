@@ -156,6 +156,10 @@ function Get-TaskCounts {
     $rootCoder = $rootCoderFiles.Count
     $reviewFiles = @(Get-ChildItem "$RepoDir/Tasks/Review/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' })
     $review = $reviewFiles.Count
+    $intake = @(Get-ChildItem "$RepoDir/Tasks/Intake/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' }).Count
+    $qa = @(Get-ChildItem "$RepoDir/Tasks/QA/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' }).Count
+    $audit = @(Get-ChildItem "$RepoDir/Tasks/Audit/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' }).Count
+    $archive = @(Get-ChildItem "$RepoDir/Tasks/Archive/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' }).Count
     $handoff = @(Get-ChildItem "$RepoDir/Tasks/Handoff/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' }).Count
     $failed = @(Get-ChildItem "$RepoDir/Tasks/Failed/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' }).Count
     $todo = @(Get-ChildItem "$RepoDir/Tasks/ToDo/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' }).Count
@@ -177,7 +181,8 @@ function Get-TaskCounts {
         if ($agentId -match 'reviewer-(\d+-\d+)') { $lockedReviewer++; $reviewerAgents[$Matches[1]] = $true }
     }
     return [PSCustomObject]@{
-        RootCoder = $rootCoder; Review = $review; Handoff = $handoff; Working = $working.Count; Failed = $failed
+        RootCoder = $rootCoder; Review = $review; Intake = $intake; QA = $qa; Audit = $audit; Archive = $archive
+        Handoff = $handoff; Working = $working.Count; Failed = $failed
         ToDo = $todo; Manual = $manual; Paused = $paused; CompleteFiles = $completeFiles; CompleteDirs = $completeDirs
         LockedCoder = $lockedCoder; LockedReviewer = $lockedReviewer
         Blocked = $blocked

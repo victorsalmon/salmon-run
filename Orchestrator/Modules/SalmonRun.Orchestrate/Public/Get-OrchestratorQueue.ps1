@@ -19,7 +19,7 @@ function Get-OrchestratorQueue {
     [CmdletBinding()]
     [OutputType([void])]
     param(
-        [ValidateSet("Code", "Review", "Working", "Handoff", "Failed", "ToDo", "Manual", "Paused", "Complete", "All")]
+        [ValidateSet("Code", "Review", "Working", "Handoff", "Failed", "ToDo", "Manual", "Paused", "Complete", "Intake", "QA", "Audit", "Archive", "All")]
         [string]$Queue = "All",
         [switch]$AsTable
     )
@@ -83,6 +83,10 @@ function Get-OrchestratorQueue {
     if ($Queue -in @("All", "Manual")) { $dirs += @{ Path = Join-Path $RepoDir "Tasks/Manual"; Name = "Manual" } }
     if ($Queue -in @("All", "Paused")) { $dirs += @{ Path = Join-Path $RepoDir "Tasks/Paused"; Name = "Paused" } }
     if ($Queue -in @("All", "Failed")) { $dirs += @{ Path = Join-Path $RepoDir "Tasks/Failed"; Name = "Failed" } }
+    if ($Queue -in @("All", "Intake")) { $dirs += @{ Path = Join-Path $RepoDir "Tasks/Intake"; Name = "Intake" } }
+    if ($Queue -in @("All", "QA")) { $dirs += @{ Path = Join-Path $RepoDir "Tasks/QA"; Name = "QA" } }
+    if ($Queue -in @("All", "Audit")) { $dirs += @{ Path = Join-Path $RepoDir "Tasks/Audit"; Name = "Audit" } }
+    if ($Queue -in @("All", "Archive")) { $dirs += @{ Path = Join-Path $RepoDir "Tasks/Archive"; Name = "Archive" } }
     if ($Queue -in @("All", "Complete")) {
         $completeDir = Join-Path $RepoDir "Tasks/Complete"
         if (Test-Path $completeDir) {

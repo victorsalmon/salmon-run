@@ -25,10 +25,14 @@ if (-not (Test-Path $RuntimeHome)) {
 }
 
 $taskDirs = @(
+    'Tasks/Intake',
     'Tasks/Code',
     'Tasks/Review',
+    'Tasks/QA',
+    'Tasks/Audit',
     'Tasks/Working',
     'Tasks/Complete',
+    'Tasks/Archive',
     'Tasks/Failed',
     'Tasks/Manual',
     'Tasks/Handoffs',
