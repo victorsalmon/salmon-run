@@ -23,7 +23,7 @@ Describe "SalmonRun.Core Module" -Tag "Core" {
         $helpersPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Core\SalmonRun.Core.ps1'
         . $helpersPath
 
-        $configPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.Config\Interclaw.Config.ps1'
+        $configPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Config\SalmonRun.Config.ps1'
         if (Test-Path $configPath) { . $configPath }
 
         $processPath = Join-Path $PSScriptRoot '..\Modules\Interclaw.Process\Interclaw.Process.ps1'
@@ -766,7 +766,7 @@ Describe "Register-Namespace / Remove-NamespaceReservation" -Tag "Core", "Regres
         $publicDir = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Core\Public'
         Get-ChildItem -Path $publicDir -Filter '*.ps1' | ForEach-Object { . $_.FullName }
 
-        # Stub Get-InterclawConstants (from Interclaw.Constants) — Register-Namespace calls it
+        # Stub Get-InterclawConstants (from SalmonRun.Constants) — Register-Namespace calls it
         if (-not (Get-Command Get-InterclawConstants -ErrorAction SilentlyContinue)) {
             function global:Get-InterclawConstants { @{ NamespaceReclaimThresholdSeconds = 120 } }
         }
