@@ -663,8 +663,8 @@ Describe "Lock-File / Unlock-File" -Tag "Core", "Regression-Only" {
         $publicDir = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Core\Public'
         Get-ChildItem -Path $publicDir -Filter '*.ps1' | ForEach-Object { . $_.FullName }
 
-        # Load Interclaw.Locking for Lock-File/Unlock-File (moved from Core)
-        $lockingDir = Join-Path $PSScriptRoot '..\Modules\Interclaw.Locking\Public'
+        # Load SalmonRun.Locking for Lock-File/Unlock-File (moved from Core)
+        $lockingDir = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Locking\Public'
         if (Test-Path $lockingDir) {
             Get-ChildItem -Path $lockingDir -Filter '*.ps1' | ForEach-Object { . $_.FullName }
         }
@@ -771,12 +771,12 @@ Describe "Register-Namespace / Remove-NamespaceReservation" -Tag "Core", "Regres
             function global:Get-InterclawConstants { @{ NamespaceReclaimThresholdSeconds = 120 } }
         }
 
-        # Load Interclaw.Locking for Register-Namespace/Remove-NamespaceReservation (moved from Core)
-        $lockingDir = Join-Path $PSScriptRoot '..\Modules\Interclaw.Locking\Public'
+        # Load SalmonRun.Locking for Register-Namespace/Remove-NamespaceReservation (moved from Core)
+        $lockingDir = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Locking\Public'
         if (Test-Path $lockingDir) {
             Get-ChildItem -Path $lockingDir -Filter '*.ps1' | ForEach-Object { . $_.FullName }
         }
-        $lockingPrivateDir = Join-Path $PSScriptRoot '..\Modules\Interclaw.Locking\Private'
+        $lockingPrivateDir = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Locking\Private'
         if (Test-Path $lockingPrivateDir) {
             Get-ChildItem -Path $lockingPrivateDir -Filter '*.ps1' | ForEach-Object { . $_.FullName }
         }
@@ -856,11 +856,11 @@ Describe "AliasesToExport" -Tag "Core", "Regression-Only" {
         $publicDir = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Core\Public'
         Get-ChildItem -Path $publicDir -Filter '*.ps1' | ForEach-Object { . $_.FullName }
         # Locking module provides the aliases now
-        $lockingDir = Join-Path $PSScriptRoot '..\Modules\Interclaw.Locking\Public'
+        $lockingDir = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Locking\Public'
         if (Test-Path $lockingDir) {
             Get-ChildItem -Path $lockingDir -Filter '*.ps1' | ForEach-Object { . $_.FullName }
         }
-        $lockingPrivateDir = Join-Path $PSScriptRoot '..\Modules\Interclaw.Locking\Private'
+        $lockingPrivateDir = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Locking\Private'
         if (Test-Path $lockingPrivateDir) {
             Get-ChildItem -Path $lockingPrivateDir -Filter '*.ps1' | ForEach-Object { . $_.FullName }
         }

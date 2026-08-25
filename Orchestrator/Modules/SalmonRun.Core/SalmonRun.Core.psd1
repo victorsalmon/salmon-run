@@ -9,7 +9,7 @@
     Description       = 'SalmonRun core module: minimal functions that remain in Core (agent polling loop, dockerfile validation).'
     PowerShellVersion = '5.1'
     # Core is a facade re-exporting Paths, Ports, Diagnostics — see SalmonRun.Core.ps1 for loading logic
-    RequiredModules = @('SalmonRun.Paths', 'SalmonRun.Ports', 'SalmonRun.Diagnostics', 'Interclaw.Locking')
+    RequiredModules = @('SalmonRun.Paths', 'SalmonRun.Ports', 'SalmonRun.Diagnostics', 'SalmonRun.Locking')
     FunctionsToExport = @(
         'Convert-PidSafe',
         'Invoke-AgentPollingLoop',

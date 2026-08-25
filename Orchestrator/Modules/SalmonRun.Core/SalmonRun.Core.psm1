@@ -54,9 +54,9 @@ if (Test-Path $__corePrivatePath) {
     }
 }
 
-# Load Interclaw.Locking so its functions are available through Core's facade
-if (-not (Get-Module Interclaw.Locking)) {
-    Import-Module -Name (Find-SalmonRunModuleData -Name 'Interclaw.Locking') -Force -DisableNameChecking -Scope Global
+# Load SalmonRun.Locking so its functions are available through Core's facade
+if (-not (Get-Module SalmonRun.Locking)) {
+    Import-Module -Name (Find-SalmonRunModuleData -Name 'SalmonRun.Locking') -Force -DisableNameChecking -Scope Global
 }
 
 # Source Public/*.ps1 files so declared FunctionsToExport are actually loaded when
@@ -95,7 +95,7 @@ Export-ModuleMember -Function @(
 #>
 # Error accumulator and checkpoints are in SalmonRun.DeployState (forwarded via aliases)
 
-# Backward-compat aliases — defined in Interclaw.Locking now; these ensure
+# Backward-compat aliases — defined in SalmonRun.Locking now; these ensure
 # the aliases are still available when importing Core without explicit Locking import.
 # (Locking is loaded via RequiredModules above, so its aliases are in scope.)
 
