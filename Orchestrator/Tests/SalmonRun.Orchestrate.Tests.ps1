@@ -454,7 +454,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
             $null = New-Item (Join-Path $streamDir "plan.md") -ItemType File -Force
 
             $existingStreams = @{
-                "dup-ns|coder" = @{ Id = 1; Path = $streamDir; Namespace = "dup-ns"; Role = "coder" }
+                "main|dup-ns|coder" = @{ Id = 1; Path = $streamDir; Namespace = "dup-ns"; Role = "coder" }
             }
             Mock Write-OrchestratorLog { }
         }
@@ -467,7 +467,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
         It "recovers streams not tracked in memory" {
             $result = Invoke-ReadFilesystemState -RepoDir $testDir
             $result.activeStreams.Count | Should -Be 1
-            $result.activeStreams["dup-ns|coder"].Id | Should -Be 1
+            $result.activeStreams["main|dup-ns|coder"].Id | Should -Be 1
         }
     }
 
@@ -492,7 +492,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
             $null = New-Item (Join-Path $streamDir "plan.md") -ItemType File -Force
 
             $activeStreams = @{
-                "recover-ns|coder" = @{
+                "main|recover-ns|coder" = @{
                     Id = 1; Path = $streamDir; Namespace = "recover-ns"; Role = "coder"
                 }
             }
@@ -511,9 +511,9 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
 
             $activeStreams = @{}
             Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{} | Out-Null
-            $activeStreams.ContainsKey("disk-only|reviewer") | Should -Be $true
-            $activeStreams["disk-only|reviewer"].Id | Should -Be 2
-            $activeStreams["disk-only|reviewer"].Status | Should -Be "recovered"
+            $activeStreams.ContainsKey("main|disk-only|reviewer") | Should -Be $true
+            $activeStreams["main|disk-only|reviewer"].Id | Should -Be 2
+            $activeStreams["main|disk-only|reviewer"].Status | Should -Be "recovered"
         }
     }
 
@@ -748,13 +748,13 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
         It "recovers lane-* directories not tracked in memory" {
             $result = Invoke-ReadFilesystemState -RepoDir $testDir
             $result.activeStreams.Count | Should -Be 1
-            $result.activeStreams.ContainsKey("lane-ns|coder") | Should -Be $true
-            $result.activeStreams["lane-ns|coder"].Id | Should -Be "lane-coder-1"
+            $result.activeStreams.ContainsKey("main|lane-ns|coder") | Should -Be $true
+            $result.activeStreams["main|lane-ns|coder"].Id | Should -Be "lane-coder-1"
         }
 
         It "skips lane-* directories already tracked in memory" {
             $existing = @{
-                "lane-ns|coder" = @{ Id = "lane-coder-1"; Path = (Join-Path $testDir "Tasks/Working/lane-coder-1"); Namespace = "lane-ns"; Role = "coder" }
+                "main|lane-ns|coder" = @{ Id = "lane-coder-1"; Path = (Join-Path $testDir "Tasks/Working/lane-coder-1"); Namespace = "lane-ns"; Role = "coder" }
             }
             $result = Invoke-ReadFilesystemState -RepoDir $testDir -ExistingActiveStreams $existing
             $result.activeStreams.Count | Should -Be 0
@@ -781,7 +781,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
             $null = New-Item (Join-Path $laneDir "plan.md") -ItemType File -Force
 
             $activeStreams = @{
-                "lane-recover|coder" = @{
+                "main|lane-recover|coder" = @{
                     Id = "lane-coder-2"; Path = $laneDir; Namespace = "lane-recover"; Role = "coder"
                 }
             }
@@ -801,8 +801,8 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
 
             $activeStreams = @{}
             Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{} | Out-Null
-            $activeStreams.ContainsKey("lane-disk|reviewer") | Should -Be $true
-            $activeStreams["lane-disk|reviewer"].Id | Should -Be "lane-reviewer-1"
+            $activeStreams.ContainsKey("main|lane-disk|reviewer") | Should -Be $true
+            $activeStreams["main|lane-disk|reviewer"].Id | Should -Be "lane-reviewer-1"
         }
     }
 
@@ -831,7 +831,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
 
             $activeStreams = @{}
             Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{} | Out-Null
-            $activeStreams.ContainsKey("zombie-ns|coder") | Should -Be $false
+            $activeStreams.ContainsKey("main|zombie-ns|coder") | Should -Be $false
             Test-Path (Join-Path $laneDir "stream.json") | Should -Be $false
         }
 
@@ -845,7 +845,7 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
 
             $activeStreams = @{}
             Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{} | Out-Null
-            $activeStreams.ContainsKey("empty-ns|coder") | Should -Be $false
+            $activeStreams.ContainsKey("main|empty-ns|coder") | Should -Be $false
             Test-Path (Join-Path $laneDir "stream.json") | Should -Be $false
         }
 
@@ -859,8 +859,8 @@ Describe "Spawned PID registry" -Tag "Orchestrate", "Process", "Regression" {
 
             $activeStreams = @{}
             Invoke-ReconcileState -RepoDir $testDir -ActiveStreams $activeStreams -BusyNamespaces @{} -UsedNamespaces @{} | Out-Null
-            $activeStreams.ContainsKey("active-ns|coder") | Should -Be $true
-            $activeStreams["active-ns|coder"].Status | Should -Be "recovered"
+            $activeStreams.ContainsKey("main|active-ns|coder") | Should -Be $true
+            $activeStreams["main|active-ns|coder"].Status | Should -Be "recovered"
         }
     }
 
