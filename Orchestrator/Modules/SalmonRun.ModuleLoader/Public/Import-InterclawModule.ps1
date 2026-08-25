@@ -1,13 +1,14 @@
 <#
 .SYNOPSIS
-    Imports an Interclaw module by name, discovering it from the Modules directory.
+    Imports a SalmonRun module by name, discovering it from the Modules directory.
 .DESCRIPTION
-    Resolves the module path under Skills/Docker/Modules/Interclaw.<Name> and
-    imports via the .psd1 manifest if found, or dot-sources the .ps1 file as
-    a fallback. Appends the Modules directory to PSModulePath if not already
-    present. Throws if neither file exists.
+    Resolves the module path under Skills/Docker/Modules/SalmonRun.<Name> and
+    imports via the .psd1 manifest if found, falling back to the legacy
+    Skills/Docker/Modules/Interclaw.<Name> shim when the canonical module does not
+    exist. Dot-sources the .ps1 file as a last resort. Appends the Modules
+    directory to PSModulePath if not already present. Throws if neither file exists.
 .PARAMETER Name
-    The module name segment after Interclaw. (e.g. "Core", "Config", "Deploy").
+    The module name segment after SalmonRun. (e.g. "Core", "Config", "Deploy").
 .OUTPUTS
     None. The module functions are imported into the Global scope.
 #>
@@ -18,7 +19,8 @@ function Import-InterclawModule {
         [string]$Name,
         [string]$ModulesDir
     )
-    $moduleName = "Interclaw.$Name"
+    $moduleName = "SalmonRun.$Name"
+    $legacyModuleName = "Interclaw.$Name"
 
     # Resolve module roots: an explicit -ModulesDir wins; otherwise search the
     # orchestrator-core root first, then the Docker-infrastructure root, so
@@ -29,7 +31,8 @@ function Import-InterclawModule {
     } else {
         $repoRoot = Get-InterclawRepoRoot
         $moduleRoots = @(
-            (Join-Path $repoRoot "Skills" "Orchestrator" "Salmon" "Modules"),
+            (Join-Path $repoRoot "Orchestrator" "Modules"),
+            (Join-Path $repoRoot "Skills" "Bookkeeping" "handlers"),
             (Join-Path $repoRoot "Skills" "Docker" "Modules")
         )
     }
@@ -44,20 +47,24 @@ function Import-InterclawModule {
     foreach ($__root in $moduleRoots) {
         $__candidate = Join-Path $__root $moduleName
         if (Test-Path $__candidate) { $moduleDir = $__candidate; break }
+        $__legacyCandidate = Join-Path $__root $legacyModuleName
+        if (Test-Path $__legacyCandidate) { $moduleDir = $__legacyCandidate; break }
     }
     if (-not $moduleDir) {
-        throw "Module $moduleName not found under: $($moduleRoots -join ', ')"
+        throw "Module $moduleName (or legacy $legacyModuleName) not found under: $($moduleRoots -join ', ')"
     }
 
-    $psd1 = Join-Path $moduleDir "$moduleName.psd1"
+    # The on-disk manifest name must match the directory name we found.
+    $resolvedName = Split-Path -Leaf $moduleDir
+    $psd1 = Join-Path $moduleDir "$resolvedName.psd1"
     if (Test-Path $psd1) {
         Import-Module -Name $psd1 -Force -DisableNameChecking -Scope Global
     } else {
-        $ps1 = Join-Path $moduleDir "$moduleName.ps1"
+        $ps1 = Join-Path $moduleDir "$resolvedName.ps1"
         if (Test-Path $ps1) {
             . $ps1
         } else {
-            throw "Module $moduleName not found at $moduleDir"
+            throw "Module $resolvedName not found at $moduleDir"
         }
     }
 }

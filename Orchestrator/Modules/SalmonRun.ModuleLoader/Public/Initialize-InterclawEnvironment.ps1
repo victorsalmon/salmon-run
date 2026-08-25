@@ -44,7 +44,8 @@ function Initialize-InterclawEnvironment {
     # Docker-infrastructure modules remain under Skills/Docker/Modules. Both roots
     # are registered so cross-root dependencies (e.g. Core -> Paths) still resolve.
     $__moduleRoots = @(
-        (Join-Path $RepoRoot "Skills" "Orchestrator" "Salmon" "Modules"),
+        (Join-Path $RepoRoot "Orchestrator" "Modules"),
+        (Join-Path $RepoRoot "Skills" "Bookkeeping" "handlers"),
         (Join-Path $RepoRoot "Skills" "Docker" "Modules")
     )
     foreach ($__root in $__moduleRoots) {
