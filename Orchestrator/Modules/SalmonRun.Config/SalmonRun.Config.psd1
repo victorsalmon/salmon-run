@@ -4,7 +4,7 @@
     ModuleVersion        = '1.0.0'
     GUID                 = '1d23b4ff-4e36-45b0-8d73-cfe0ac78fc73'
     Author               = 'Salmon Run'
-    Description          = 'Configuration resolution module for SalmonRun fleet management. Retains Interclaw.Config compatibility aliases.'
+    Description          = 'Configuration resolution module for SalmonRun fleet management. Retains SalmonRun.Config compatibility aliases.'
     PowerShellVersion    = '7.0'
     # Uses: Core (Write-AtomicJson), Paths (Get-SalmonRunRepoRoot), Diagnostics (Write-SetupLog)
     RequiredModules      = @('SalmonRun.Core')
