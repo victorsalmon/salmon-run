@@ -1,0 +1,95 @@
+{
+  "harnesses": {
+    "opencode": {
+      "description": "OpenCode Go CLI and compatible providers",
+      "defaultProvider": "opencode-go"
+    },
+    "devin": {
+      "description": "Devin CLI ACP (SWE-1.7)",
+      "defaultProvider": "devin"
+    },
+    "deepseek": {
+      "description": "DeepSeek models through the Salmon-owned ACP-first DSH executor",
+      "defaultProvider": "dsh"
+    },
+    "codex": {
+      "description": "Codex CLI sessions through configured external model providers",
+      "defaultProvider": "deepinfra"
+    }
+  },
+  "providers": {
+    "modelFailover": [
+      { "model": "openrouter/stealth/ox-alpha", "variant": "max" },
+      { "model": "opencode-go/ox-alpha-free", "variant": "max" },
+      { "model": "opencode/x-preview-f-free", "variant": "max" },
+      { "model": "opencode-go/mimo-v2.5", "variant": "default" },
+      { "harness": "codex", "provider": "deepinfra", "model": "deepseek-ai/DeepSeek-V4-Flash-0731", "effort": "medium", "variant": "medium", "probe": "deepinfra" }
+    ],
+    "opencode-go": {
+      "cli": "opencode",
+      "defaultModel": "opencode-go/ox-alpha-free",
+      "defaultEffort": "max",
+      "acceptedEfforts": ["max", "default", "high"],
+      "executorFile": "Opencode",
+      "models": {
+        "opencode-go/ox-alpha-free": { "defaultEffort": "max" },
+        "openrouter/stealth/ox-alpha": { "defaultEffort": "max" },
+        "opencode/x-preview-f-free": { "defaultEffort": "max" },
+        "opencode-go/deepseek-v4-pro": { "defaultEffort": "max" },
+        "opencode-go/mimo-v2.5": { "defaultEffort": "default" }
+      }
+    },
+    "devin": {
+      "cli": "devin",
+      "defaultModel": "swe-1-7",
+      "defaultEffort": "medium",
+      "acceptedEfforts": ["medium", "max"],
+      "executorFile": "Devin",
+      "models": {
+        "swe-1-7": { "defaultEffort": "medium" }
+      }
+    },
+    "dsh": {
+      "cli": "dsh",
+      "defaultModel": "deepseek-v4-flash",
+      "defaultEffort": "max",
+      "acceptedEfforts": ["medium", "high", "max"],
+      "executorFile": "Dsh",
+      "models": {
+        "deepseek-v4-flash": { "defaultEffort": "max" },
+        "deepseek-v4-pro": { "defaultEffort": "max" }
+      }
+    },
+    "openrouter": {
+      "cli": "openrouter",
+      "defaultModel": "deepseek/deepseek-v4-flash",
+      "defaultEffort": "max",
+      "acceptedEfforts": ["max", "default"],
+      "executorFile": "OpenRouter",
+      "models": {
+        "deepseek/deepseek-v4-flash": { "defaultEffort": "max" },
+        "deepseek/deepseek-v4-pro": { "defaultEffort": "max" }
+      }
+    },
+    "deepinfra": {
+      "cli": "codex",
+      "defaultModel": "deepseek-ai/DeepSeek-V4-Flash-0731",
+      "defaultEffort": "medium",
+      "acceptedEfforts": ["low", "medium", "high", "xhigh"],
+      "executorFile": "DeepInfra",
+      "models": {
+        "deepseek-ai/DeepSeek-V4-Flash-0731": { "defaultEffort": "medium" }
+      }
+    }
+  },
+  "legacyExecutorMap": {
+    "local": { "harness": "opencode", "provider": "opencode-go" },
+    "local-platform": { "harness": "opencode", "provider": "opencode-go" },
+    "platform": { "harness": "opencode", "provider": "opencode-go" },
+    "devin": { "harness": "devin", "provider": "devin" },
+    "dsh": { "harness": "deepseek", "provider": "dsh" }
+  },
+  "skillSearch": {
+    "directories": ["Skills", "../Skills"]
+  }
+}

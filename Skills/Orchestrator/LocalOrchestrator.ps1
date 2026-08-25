@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
-    Thin wrapper around the Interclaw.Orchestrate module for backward compatibility.
-    Actual logic moved to Start-Orchestrator in Orchestrator/Modules/Interclaw.Orchestrate/.
+    Thin wrapper around the SalmonRun.Orchestrate module for backward compatibility.
+    Actual logic moved to Start-Orchestrator in Orchestrator/Modules/SalmonRun.Orchestrate/.
 
 .DESCRIPTION
     On startup, Clear-StaleOrchestratorFiles performs a stale-process sweep scoped to
@@ -341,11 +341,11 @@ if ($DockerModulePath -and $env:PSModulePath -notlike "*$DockerModulePath*") {
 }
 
 # Load the module using .psd1 to get FunctionsToExport applied correctly
-$modulePath = Join-Path $PSScriptRoot "..\Modules\Interclaw.Orchestrate\Interclaw.Orchestrate.psd1"
+$modulePath = Join-Path $PSScriptRoot "..\Modules\SalmonRun.Orchestrate\SalmonRun.Orchestrate.psd1"
 $modulePath = Resolve-Path $modulePath -ErrorAction Stop
 if (-not (Test-Path $modulePath)) {
     Write-Error "Module not found at expected path: $modulePath"
-    Write-Error "Expected location relative to script: $PSScriptRoot\..\Docker\Modules\Interclaw.Orchestrate\Interclaw.Orchestrate.psd1"
+    Write-Error "Expected location relative to script: $PSScriptRoot\..\Docker\Modules\SalmonRun.Orchestrate\SalmonRun.Orchestrate.psd1"
     exit 1
 }
 Import-Module $modulePath -Force -ErrorAction Stop

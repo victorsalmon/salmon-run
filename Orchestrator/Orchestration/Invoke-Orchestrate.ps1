@@ -597,10 +597,10 @@ if ($orchErrors) {
 }
 Write-WatchdogLog "ORCHESTRATOR_PARSE_OK script='$orchScript'"
 
-# ─── Module preflight: verify the Interclaw.Orchestrate module loads correctly ──
-$orchModulePath = Join-Path $PSScriptRoot "..\Modules\Interclaw.Orchestrate\Interclaw.Orchestrate.psd1"
+# ─── Module preflight: verify the SalmonRun.Orchestrate module loads correctly ──
+$orchModulePath = Join-Path $PSScriptRoot "..\Modules\SalmonRun.Orchestrate\SalmonRun.Orchestrate.psd1"
 if (-not (Test-Path $orchModulePath)) {
-    Write-Host "  ⚠ Interclaw.Orchestrate module not found at $orchModulePath" -ForegroundColor Red
+    Write-Host "  ⚠ SalmonRun.Orchestrate module not found at $orchModulePath" -ForegroundColor Red
     exit 1
 }
 Write-WatchdogLog "MODULE_PREFLIGHT_OK module='$orchModulePath'"
