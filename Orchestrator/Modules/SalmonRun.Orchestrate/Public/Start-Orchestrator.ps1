@@ -1421,9 +1421,9 @@ try {
                 if ($script:useWorktrees) {
                     $branchName = if ($moduleId -ne 'main') { "wt/$moduleId" } else { 'main' }
                 }
-                $planProfile = Get-PlanExecutionProfile -PlanPath @($planFilesStaged.FullName) -DefaultConfig $script:DefaultHarnessConfig
+                $planProfile = Resolve-ModelRoutedProfile -PlanPath @($planFilesStaged.FullName) -DefaultConfig $script:DefaultHarnessConfig
                 $agentPath = Use-PlanExecutorProfile -Config $planProfile.Config -Initialize
-                Write-OrchestratorLog "PLAN_PROFILE_RESOLVED stream=$streamId ns=$ns override=$($planProfile.HasOverride) harness=$($planProfile.Config.Harness) provider=$($planProfile.Config.Provider) model=$($planProfile.Config.Model) effort=$($planProfile.Config.Effort)"
+                Write-OrchestratorLog "PLAN_PROFILE_RESOLVED stream=$streamId ns=$ns override=$($planProfile.HasOverride) routed=$($planProfile.Routed) tier=$($planProfile.Tier) routedModel=$($planProfile.RoutedModel) harness=$($planProfile.Config.Harness) provider=$($planProfile.Config.Provider) model=$($planProfile.Config.Model) effort=$($planProfile.Config.Effort)"
                 $proc = Start-StreamCoder -StreamId $streamId -StreamDir $streamDir -RepoDir $RepoDir -AgentPath $agentPath -InstanceId $InstanceId -Role $role -UseWorktrees:$script:useWorktrees -Namespace $ns -BranchName $branchName -HarnessConfig $planProfile.Config -PlanProfileOverride:$planProfile.HasOverride
                 if ($null -eq $proc) {
                     throw "STREAM_SPAWN_FAILED: Start-StreamCoder returned no process for lane=$streamId namespace=$ns"
@@ -1679,7 +1679,7 @@ try {
                         $null = Test-LanePlanFileIntegrity -RepoDir $RepoDir -FilePath $lf.FullName -LaneId $streamId
                     }
                     try {
-                        $nextProfile = Get-PlanExecutionProfile -PlanPath @($reDispatchDest) -DefaultConfig $script:DefaultHarnessConfig
+                        $nextProfile = Resolve-ModelRoutedProfile -PlanPath @($reDispatchDest) -DefaultConfig $script:DefaultHarnessConfig
                         $nextAgentPath = Use-PlanExecutorProfile -Config $nextProfile.Config -Initialize
                         $proc = Start-StreamCoder -StreamId $streamId -StreamDir $streamInfo.Path -RepoDir $RepoDir -AgentPath $nextAgentPath -InstanceId $InstanceId -Role $role -UseWorktrees:$script:useWorktrees -Namespace $nextNs -HarnessConfig $nextProfile.Config -PlanProfileOverride:$nextProfile.HasOverride
                         $streamInfo.Process = if ($proc -is [System.Diagnostics.Process]) { $proc } elseif ($proc.Handle) { $proc.Handle } else { $null }
