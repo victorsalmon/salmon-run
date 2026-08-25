@@ -1,0 +1,16 @@
+{
+  "name": "salmon-run",
+  "version": "0.1.0",
+  "description": "Public, generalized salmon-run Kanban control plane and installer",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://example.com/salmon-run/salmon-run.git"
+  },
+  "scripts": {
+    "install": "powershell -ExecutionPolicy Bypass -File ./install.ps1",
+    "sync": "powershell -ExecutionPolicy Bypass -File ./scripts/Sync-FromCanonical.ps1",
+    "check-leaks": "powershell -ExecutionPolicy Bypass -File ./scripts/Invoke-LeakCheck.ps1"
+  }
+}

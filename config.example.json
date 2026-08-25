@@ -1,0 +1,18 @@
+{
+    "RuntimeHome": "~/.salmon",
+    "Tasks": {
+        "Code": "~/.salmon/Tasks/Code",
+        "Review": "~/.salmon/Tasks/Review",
+        "Working": "~/.salmon/Tasks/Working",
+        "Complete": "~/.salmon/Tasks/Complete",
+        "Failed": "~/.salmon/Tasks/Failed",
+        "Manual": "~/.salmon/Tasks/Manual",
+        "Handoffs": "~/.salmon/Tasks/Handoffs",
+        "Temp": "~/.salmon/Tasks/Temp",
+        "Logs": "~/.salmon/Tasks/Logs"
+    },
+    "Plugins": {
+        "InstallFrom": "Skills"
+    },
+    "LogLevel": "INFO"
+}

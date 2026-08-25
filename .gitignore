@@ -1,0 +1,41 @@
+# Runtime state and personal/work data — never commit these.
+# The canonical runtime home is ~/.salmon; see install.ps1.
+
+# Task queue and logs
+Tasks/
+Tasks.*/
+
+# Runtime logs
+*.log
+
+# Local user configuration and secrets
+config.json
+config.local.json
+*.local.json
+.secrets
+secrets.json
+*.secrets
+
+# Runtime cache, temp, and working files
+cache/
+tmp/
+temp/
+
+# PID and heartbeat files
+*.pid
+*.heartbeat
+
+# Workspaces and archives produced by the orchestrator
+workspace/
+archive/
+
+# Build / dependency outputs
+dist/
+build/
+node_modules/
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
