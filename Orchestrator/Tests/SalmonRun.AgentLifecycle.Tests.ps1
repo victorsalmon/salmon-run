@@ -51,7 +51,7 @@ Describe "SalmonRun.AgentLifecycle Module" -Tag "Core" {
 
         It "registers an EngineEvent for cleanup" {
             Write-AgentPidFile -AgentId $script:TestAgentId
-            $subscriber = Get-EventSubscriber -SourceIdentifier "Interclaw.PidCleanup_$script:TestAgentId" -Force -ErrorAction SilentlyContinue
+            $subscriber = Get-EventSubscriber -SourceIdentifier "SalmonRun.PidCleanup_$script:TestAgentId" -Force -ErrorAction SilentlyContinue
             $subscriber | Should -Not -BeNullOrEmpty
         }
 

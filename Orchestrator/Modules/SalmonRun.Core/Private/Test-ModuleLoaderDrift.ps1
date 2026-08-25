@@ -10,12 +10,14 @@ function Test-ModuleLoaderDrift {
         $path = Join-Path $modulesDir $ModuleName
         if (Test-Path $path) { @(Get-Item $path) } else { @() }
     } else {
-        Get-ChildItem -Path $modulesDir -Directory -Filter 'Interclaw.*'
+        Get-ChildItem -Path $modulesDir -Directory | Where-Object { $_.Name -like 'SalmonRun.*' -or $_.Name -like 'Interclaw.*' }
     }
 
     $results = @()
-    $wrapperPatterns = @('SalmonRun.Constants', 'SalmonRun.Config', 'Interclaw.Core', 'Interclaw.Paths',
-                         'Interclaw.Diagnostics', 'Interclaw.Ports', 'SalmonRun.Host')
+    $wrapperPatterns = @('SalmonRun.Constants', 'SalmonRun.Config', 'SalmonRun.Core',
+                         'SalmonRun.Paths', 'SalmonRun.Diagnostics', 'SalmonRun.Ports', 'SalmonRun.Host',
+                         'Interclaw.Constants', 'Interclaw.Config', 'Interclaw.Core',
+                         'Interclaw.Paths', 'Interclaw.Diagnostics', 'Interclaw.Ports', 'Interclaw.Host')
 
     foreach ($dir in $moduleDirs) {
         $name = $dir.Name

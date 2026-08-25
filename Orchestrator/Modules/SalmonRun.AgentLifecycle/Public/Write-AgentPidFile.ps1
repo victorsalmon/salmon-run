@@ -22,7 +22,7 @@ function Write-AgentPidFile {
     $pidPath = Join-Path $agentDir "$AgentId.pid"
     $PID.ToString() | Write-AtomicFile -Path $pidPath -Encoding utf8
 
-    $eventName = "Interclaw.PidCleanup_$AgentId"
+    $eventName = "SalmonRun.PidCleanup_$AgentId"
     $null = Register-EngineEvent -SourceIdentifier $eventName -Action {
         Remove-Item $pidPath -Force -ErrorAction SilentlyContinue
     } -SupportEvent -ErrorAction SilentlyContinue

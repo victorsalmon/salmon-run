@@ -199,7 +199,7 @@ trap {
     return
 }
 
-$null = Register-EngineEvent -SourceIdentifier "Interclaw.OrchFatalExit_$PID" -Action {
+$null = Register-EngineEvent -SourceIdentifier "SalmonRun.OrchFatalExit_$PID" -Action {
     try {
         $logPath = $script:orchLogPath
         if ($logPath) {
