@@ -30,7 +30,7 @@ function Start-PondEngine {
         [int]$MaxIterations = 20,
         [int]$SubprocessTimeoutMinutes = 30,
         [int]$PollIntervalSeconds = 300,
-        [PondStream[]]$Streams = (New-PondStream -Id 'stream-1' -Branch 'main' -Path $RepoDir)
+        [PondStream[]]$Streams = (New-PondStream -Id 'stream-1' -Branch 'main' -Path (Get-SalmonRunRepoRoot))
     )
 
     $context = [PondContext]::new()
@@ -43,19 +43,57 @@ function Start-PondEngine {
     $context.CrashHistory = [System.Collections.Generic.List[datetime]]::new()
     $context.Iteration = 0
     $context.Counts = $null
+    $context.Continue = $true
+    $context.Success = $false
 
     Write-Host "Starting PondEngine for $RepoDir" -ForegroundColor Cyan
 
     for ($context.Iteration = 1; $context.Iteration -le $MaxIterations; $context.Iteration++) {
-        $context.Counts = Get-TaskCounts
         $didWork = $false
 
         foreach ($pond in $Ponds) {
             $context.CurrentPond = $pond
             if (-not $pond.Entry.Enabled) { continue }
 
-            # TODO: implement full pipeline
-            Write-Verbose "PondEngine: evaluating pond '$($pond.Name)'"
+            $candidates = @(Get-PondCandidates -Pond $pond -Context $context)
+            if ($candidates.Count -eq 0) { continue }
+
+            $groups = @(Group-PondFiles -Pond $pond -Files $candidates -Context $context)
+            if ($groups.Count -eq 0) { continue }
+
+            $selected = @(Select-PondGroups -Pond $pond -Groups $groups -Context $context)
+            if ($selected.Count -eq 0) { continue }
+
+            foreach ($group in $selected) {
+                $context.CurrentGroup = $group
+                $context.Continue = $true
+                $context.Success = $false
+
+                $lane = Get-FreePondLane -Pond $pond -Context $context
+                if (-not $lane) {
+                    Write-Verbose "POND_NO_FREE_LANE pond=$($pond.Name) ns=$($group.Namespace)"
+                    continue
+                }
+                $group.LaneId = $lane.Id
+                $group.StreamPath = $lane.Path
+
+                foreach ($task in $pond.Tasks) {
+                    if (-not $context.Continue) { break }
+                    $taskFunction = Get-Command $task.Function -ErrorAction SilentlyContinue
+                    if (-not $taskFunction) {
+                        Write-OrchestratorLog "POND_TASK_NOT_FOUND pond=$($pond.Name) task=$($task.Name) function=$($task.Function)" -Level ERROR
+                        $context.Continue = $false
+                        break
+                    }
+                    $context = & $task.Function -Pond $pond -Task $task -Context $context
+                }
+
+                # Release the lane if the pipeline did not hand it to a monitor task
+                if ($lane) { $lane.Idle = $true }
+                $context.UsedNamespaces.Remove($group.Namespace)
+
+                $didWork = $true
+            }
         }
 
         if (-not $didWork) {

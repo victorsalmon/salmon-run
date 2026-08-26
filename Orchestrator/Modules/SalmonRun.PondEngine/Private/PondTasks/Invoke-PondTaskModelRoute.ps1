@@ -4,6 +4,8 @@ function Invoke-PondTaskModelRoute {
         [Parameter(Mandatory)]
         [Pond]$Pond,
         [Parameter(Mandatory)]
+        [PondTask]$Task,
+        [Parameter(Mandatory)]
         [PondContext]$Context
     )
     # TODO: resolve model/harness for the current group

@@ -84,6 +84,44 @@ Describe 'Get-SalmonRunPonds' -Tag 'PondEngine', 'Regression-Only' {
     }
 }
 
+Describe 'Start-PondEngine dry run' -Tag 'PondEngine', 'Regression-Only' {
+    It 'does not crash with a single ready Code plan' {
+        $tempDir = Join-Path $TestDrive 'pondengine-dryrun'
+        $null = New-Item -ItemType Directory -Path "$tempDir/Tasks/Code" -Force
+        $null = New-Item -ItemType Directory -Path "$tempDir/Tasks/Review" -Force
+        $null = New-Item -ItemType Directory -Path "$tempDir/Tasks/Working" -Force
+        $null = New-Item -ItemType Directory -Path "$tempDir/Tasks/Failed" -Force
+        $null = New-Item -ItemType Directory -Path "$tempDir/Tasks/Complete" -Force
+        $null = New-Item -ItemType Directory -Path "$tempDir/Tasks/Paused" -Force
+        "# Session Plan: test`n**Status**: ready`n**Scope**: something" | Set-Content "$tempDir/Tasks/Code/2026-08-25-ns-test-1-task.md" -Encoding utf8 -NoNewline
+
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            { Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 } | Should -Not -Throw
+        } finally {
+            $env:SALMON_RUN_HOME = $saved
+        }
+    }
+
+    It 'parks a Code plan missing required headers' {
+        $tempDir = Join-Path $TestDrive 'pondengine-park'
+        $null = New-Item -ItemType Directory -Path "$tempDir/Tasks/Code" -Force
+        $null = New-Item -ItemType Directory -Path "$tempDir/Tasks/Paused" -Force
+        "# Session Plan: test" | Set-Content "$tempDir/Tasks/Code/2026-08-25-ns-test-2-task.md" -Encoding utf8 -NoNewline
+
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0
+            "$tempDir/Tasks/Paused/2026-08-25-ns-test-2-task.md" | Should -Exist
+            "$tempDir/Tasks/Code/2026-08-25-ns-test-2-task.md" | Should -Not -Exist
+        } finally {
+            $env:SALMON_RUN_HOME = $saved
+        }
+    }
+}
+
 Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
     It 'can construct a PondContext' {
         $c = [PondContext]::new()

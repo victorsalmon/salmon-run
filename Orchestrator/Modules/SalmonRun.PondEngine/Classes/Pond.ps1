@@ -87,4 +87,6 @@ class PondContext {
     [Pond]$CurrentPond
     [PondGroup]$CurrentGroup
     [PSCustomObject]$Config
+    [bool]$Continue
+    [bool]$Success
 }
