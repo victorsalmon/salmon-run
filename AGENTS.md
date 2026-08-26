@@ -10,5 +10,6 @@ The module catalog is in `docs/MODULES.md`.
 
 - Runtime state lives under `~/.salmon` (or `%SALMON_RUN_HOME%`), never in the repo.
 - Do not commit credentials, tokens, client hostnames, or internal fleet references.
+- Use `~/.salmon/.env` for credential *redirects* (literal, `Env`, `File`, `AWS`, `GitHub`, `Worktree`, or custom resolvers), not literal secrets when avoidable.
 - Prefer Salmon Run naming; preserve legacy aliases only when needed for compatibility.
 - Modular commits, one concern each. Pull-rebase and push after each change.

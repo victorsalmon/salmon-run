@@ -14,7 +14,8 @@ mutable, user-specific, and potentially sensitive state lives.
 | Source modules, skills, docs | `Orchestrator/`, `Skills/`, `docs/` | - |
 | Task queue files | - | `~/.salmon/Tasks/*` |
 | Session logs | - | `~/.salmon/Tasks/Logs` |
-| User configuration | `config.example.json` | `~/.salmon/config.json` |
+| User configuration | `dot-salmon.example/config.example.json` | `~/.salmon/config.json` |
+| Credential redirects | `dot-salmon.example/.env.example` | `~/.salmon/.env` |
 | Runtime secrets / cache | - | `~/.salmon/secrets`, `~/.salmon/cache` |
 | Installed modules | - | `~/.salmon/Modules` or `$PSModulePath` location |
 | Build/package metadata | `package.json`, `install.ps1` | - |

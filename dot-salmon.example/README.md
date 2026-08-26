@@ -9,7 +9,7 @@ runtime state live under the user's own `~/.salmon` (`%SALMON_RUN_HOME%`).
 | Path | Purpose |
 |------|---------|
 | `.env` | Credential redirects and runtime variables. See `.env.example`. |
-| `config.json` | User configuration. Copied from `config.example.json`. |
+| `config.example.json` | User configuration template. Copied to `config.json`. |
 | `Tasks/Intake/` | New plan stubs and feature discovery. |
 | `Tasks/Code/` | Ready-to-implement plans. |
 | `Tasks/Review/` | Completed plans awaiting review. |

@@ -1,0 +1,13 @@
+{
+  "project": "example",
+  "logLevel": "Info",
+  "ponds": [
+    "Intake",
+    "Code",
+    "Review",
+    "Audit",
+    "QA",
+    "Complete",
+    "Archive"
+  ]
+}

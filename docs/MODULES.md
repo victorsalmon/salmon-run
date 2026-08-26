@@ -13,6 +13,7 @@ The `salmon-run` package is organized into two module trees:
 | `SalmonRun.Audit` | JSONL audit logging with hash-chain signing, tamper detection, secret redaction, and an API-call wrapper. |
 | `SalmonRun.Config` | Loads and validates `install.json` and user configuration. |
 | `SalmonRun.Constants` | Environment, port, path, and exit-code constants. |
+| `SalmonRun.Credentials` | Modular credential resolution from `~/.salmon/.env`: Env, File, AWS, GitHub, Worktree, and custom resolvers. |
 | `SalmonRun.Core` | Shared helper functions (logging, backoff, native command wrappers). |
 | `SalmonRun.Locking` | File and namespace locking for multi-agent safe queues. |
 | `SalmonRun.ModuleLoader` | Loads Salmon Run modules with legacy-name fallbacks. |
