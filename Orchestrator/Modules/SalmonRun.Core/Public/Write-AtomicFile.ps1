@@ -39,7 +39,7 @@ function Write-AtomicFile {
 
         $isWindowsPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)
 
-        if ($isWindowsPlatform -and -not ([System.Management.Automation.PSTypeName]'AtomicMove.NativeMethods').Type) {
+        if ($isWindowsPlatform -and -not ([System.Management.Automation.PSTypeName]'AtomicMove').Type) {
             Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
