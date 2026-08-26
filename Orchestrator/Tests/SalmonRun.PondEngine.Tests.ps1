@@ -98,7 +98,7 @@ Describe 'Start-PondEngine dry run' -Tag 'PondEngine', 'Regression-Only' {
         $saved = $env:SALMON_RUN_HOME
         try {
             $env:SALMON_RUN_HOME = $tempDir
-            { Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 } | Should -Not -Throw
+            { Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 0 } | Should -Not -Throw
         } finally {
             $env:SALMON_RUN_HOME = $saved
         }
@@ -113,7 +113,7 @@ Describe 'Start-PondEngine dry run' -Tag 'PondEngine', 'Regression-Only' {
         $saved = $env:SALMON_RUN_HOME
         try {
             $env:SALMON_RUN_HOME = $tempDir
-            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 0
             "$tempDir/Tasks/Paused/2026-08-25-ns-test-2-task.md" | Should -Exist
             "$tempDir/Tasks/Code/2026-08-25-ns-test-2-task.md" | Should -Not -Exist
         } finally {
