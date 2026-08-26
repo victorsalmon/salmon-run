@@ -31,7 +31,7 @@ function Start-PondEngine {
         [int]$MaxIterations = 20,
         [int]$SubprocessTimeoutMinutes = 30,
         [int]$PollIntervalSeconds = 300,
-        [PondStream[]]$Streams = (New-PondStream -Id 'stream-1' -Branch 'main' -Path (Get-SalmonRunRepoRoot) -TaskRoot $TaskRoot)
+        [PondStream[]]$Streams = @()
     )
 
     $context = [PondContext]::new()
@@ -41,7 +41,12 @@ function Start-PondEngine {
     $context.UsedNamespaces = @{}
     $context.BusyNamespaces = @{}
     $context.Streams = [System.Collections.ArrayList]::new()
-    foreach ($s in $Streams) { $null = $context.Streams.Add($s) }
+    if ($Streams.Count -eq 0) {
+        $streamPath = if ([string]::IsNullOrWhiteSpace($RepoDir)) { Get-SalmonRunRepoRoot } else { $RepoDir }
+        $null = $context.Streams.Add((New-PondStream -Id 'stream-1' -Branch 'main' -Path $streamPath -TaskRoot $TaskRoot))
+    } else {
+        foreach ($s in $Streams) { $null = $context.Streams.Add($s) }
+    }
     $context.CrashHistory = [System.Collections.Generic.List[datetime]]::new()
     $context.Iteration = 0
     $context.Counts = $null
