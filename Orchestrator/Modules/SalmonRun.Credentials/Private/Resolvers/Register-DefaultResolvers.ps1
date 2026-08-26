@@ -1,3 +1,42 @@
+function Get-WorktreeHost {
+    <#
+    .SYNOPSIS
+        Resolves the Worktree / Gitea-compatible host for the Credentials resolver.
+    .DESCRIPTION
+        Checks $env:WORKTREE_HOST and ~/.salmon/.env, defaulting to
+        https://worktree.example.
+    .OUTPUTS
+        [string]
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param()
+
+    if (-not [string]::IsNullOrWhiteSpace($env:WORKTREE_HOST)) {
+        return $env:WORKTREE_HOST
+    }
+
+    $salmonHome = if (Get-Command Get-SalmonHome -ErrorAction SilentlyContinue) {
+        Get-SalmonHome
+    } else {
+        if (-not [string]::IsNullOrWhiteSpace($env:SALMON_RUN_HOME)) {
+            $env:SALMON_RUN_HOME
+        } else {
+            Join-Path $HOME '.salmon'
+        }
+    }
+
+    $envPath = Join-Path $salmonHome '.env'
+    if (Test-Path $envPath -PathType Leaf) {
+        $values = Get-SalmonRunEnvFile -Path $envPath
+        if ($values.Contains('WORKTREE_HOST') -and -not [string]::IsNullOrWhiteSpace($values['WORKTREE_HOST'])) {
+            return $values['WORKTREE_HOST']
+        }
+    }
+
+    return 'https://worktree.example'
+}
+
 function Register-DefaultSalmonRunCredentialResolvers {
     # Env resolver: returns the named environment variable, or the joined
     # arguments as a literal if the env var is not set.
@@ -55,8 +94,8 @@ function Register-DefaultSalmonRunCredentialResolvers {
                 $inProfile = $false
                 foreach ($line in [System.IO.File]::ReadLines($configPath)) {
                     $trim = $line.Trim()
-                    if ($trim -match '^\[(profile\s+)?(.+?)\s*\]') {
-                        $inProfile = ($matches[2].Trim() -eq $profile)
+                    if ($trim -match '^(?:\[profile\s+)?(.+?)\s*\]') {
+                        $inProfile = ($matches[1].Trim() -eq $profile)
                     } elseif ($inProfile -and $trim -match "^$([regex]::Escape($key))\s*=\s*(.+)") {
                         return $matches[1].Trim()
                     }
@@ -86,7 +125,7 @@ function Register-DefaultSalmonRunCredentialResolvers {
         }
     }
 
-    # Worktree resolver: reads a repository secret from a worktree.ca (Gitea) instance.
+    # Worktree resolver: reads a repository secret from a Worktree / Gitea-compatible host.
     #   worktree <owner> <repo> <secret-name>
     Register-SalmonRunCredentialResolver -Name 'Worktree' -ScriptBlock {
         param([string[]]$Arguments)
@@ -95,12 +134,13 @@ function Register-DefaultSalmonRunCredentialResolvers {
         $token = $env:WORKTREE_REPO_RW_ACCESS_TOKEN
         if ([string]::IsNullOrWhiteSpace($token)) {
             if (Get-Module 'SalmonRun.GitCloud' -ErrorAction SilentlyContinue) {
-                $token = Get-WorktreeToken -Operation read
+                $token = Get-WorktreeToken
             }
         }
         if ([string]::IsNullOrWhiteSpace($token)) { throw 'Worktree resolver: no token available' }
 
-        $uri = "https://worktree.ca/api/v1/repos/$owner/$repo/actions/secrets/$secretName"
+        $host = Get-WorktreeHost
+        $uri = "$host/api/v1/repos/$owner/$repo/actions/secrets/$secretName"
         $headers = @{
             Authorization = "token $token"
             Accept        = 'application/json'
