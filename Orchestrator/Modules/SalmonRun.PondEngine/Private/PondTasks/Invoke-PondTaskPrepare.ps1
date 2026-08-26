@@ -19,22 +19,21 @@ function Invoke-PondTaskPrepare {
     }
 
     $files = @(Get-ChildItem "$lanePath/*.md" -ErrorAction SilentlyContinue)
-    $lockRe = '(?im)^\*\*Lock\*\*'
     foreach ($file in $files) {
         $src = $file.FullName
         if (-not (Test-Path -LiteralPath $src)) { continue }
-        $content = Get-Content -LiteralPath $src -Raw
-        if ($content -notmatch $lockRe) {
-            $lock = @"
 
-**Lock**
-- Agent:
-- StartTime: $(Get-Date -Format 'o')
-- Lane: $($group.LaneId)
-- Stream: $(if ($group.Stream) { $group.Stream.Id } else { 'main' })
-"@
-            $content + $lock | Set-Content -LiteralPath $src -Encoding utf8 -NoNewline
-        }
+        $streamId = if ($group.Stream) { $group.Stream.Id } else { 'main' }
+        $null = Add-PlanPondLog -PlanPath $src -Entry @{
+            ts     = (Get-Date -Format 'o')
+            pond   = $Pond.Name
+            role   = 'planner'
+            action = 'lock'
+            detail = "acquired lock in lane $($group.LaneId) on stream $streamId"
+            lane   = $group.LaneId
+            stream = $streamId
+            agent  = 'PondEngine'
+        } -ErrorAction Stop
     }
 
     return $Context
