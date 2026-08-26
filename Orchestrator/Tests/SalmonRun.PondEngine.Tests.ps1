@@ -298,6 +298,44 @@ Describe 'Pond dependency gating' -Tag 'PondEngine', 'Regression-Only' {
             $env:SALMON_RUN_HOME = $saved
         }
     }
+
+    It 'waits for all comma-separated DependsOn plans to reach Complete' {
+        $tempDir = Join-Path $TestDrive 'pondengine-depends-multi'
+        foreach ($sub in @('Tasks/Code','Tasks/Complete','Tasks/Archive','Tasks/Working','Tasks/Paused','Tasks/Failed')) {
+            $null = New-Item -ItemType Directory -Path (Join-Path $tempDir $sub) -Force
+        }
+
+        $parentA = @"
+# Parent A
+**Status**: complete
+"@
+        $parentA | Set-Content -LiteralPath (Join-Path $tempDir 'Tasks/Complete/2026-08-26-parent-a.md') -Encoding utf8 -NoNewline
+
+        $parentB = @"
+# Parent B
+**Status**: complete
+"@
+        $parentB | Set-Content -LiteralPath (Join-Path $tempDir 'Tasks/Complete/2026-08-26-parent-b.md') -Encoding utf8 -NoNewline
+
+        $childContent = @"
+# Child Plan
+**Status**: ready
+**Scope**: test
+**Challenge**: Local
+**DependsOn**: 2026-08-26-parent-a, 2026-08-26-parent-b
+"@
+        $childContent | Set-Content -LiteralPath (Join-Path $tempDir 'Tasks/Code/2026-08-26-child.md') -Encoding utf8 -NoNewline
+
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Join-Path $tempDir "Tasks/Complete/2026-08-26-child.md" | Should -Exist
+            Join-Path $tempDir "Tasks/Code/2026-08-26-child.md" | Should -Not -Exist
+        } finally {
+            $env:SALMON_RUN_HOME = $saved
+        }
+    }
 }
 
 Describe 'Project and ProjectReview pipeline' -Tag 'PondEngine', 'Regression-Only' {
