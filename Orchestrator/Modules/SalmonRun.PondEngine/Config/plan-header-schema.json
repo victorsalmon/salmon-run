@@ -82,6 +82,16 @@
       "requiredFields": ["ts", "pond", "role", "action"],
       "optionalFields": ["detail", "agent"]
     },
+    "external-complete": {
+      "description": "An external agent executor completed a plan.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "external-fail": {
+      "description": "An external agent executor failed to complete a plan.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
     "complete": {
       "description": "The plan moved to Complete.",
       "requiredFields": ["ts", "pond", "role", "action"],

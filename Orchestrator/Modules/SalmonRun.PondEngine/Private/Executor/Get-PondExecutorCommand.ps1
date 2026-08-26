@@ -43,12 +43,43 @@ function Get-PondExecutorCommand {
         $Credentials = [string[]](@($Profile.Credentials | Where-Object { $_ -ne $null }))
     }
 
-    $fileArgs = $PlanFiles -join ' '
+    $quotedFiles = @($PlanFiles | ForEach-Object { "`"$_`"" })
+    $fileArgs = $quotedFiles -join ' '
     $command = "$($Profile.Cli) run --command work-$Role-once --model $($Profile.Model) --effort $($Profile.Effort) --files $fileArgs"
 
-    # Build a structured StartInfo for Start-Process. The local PowerShell
-    # executor expects the lane path and plan files as parameters.
-    if ($Profile.Provider -eq 'local' -or $Profile.Cli -in @('powershell','pwsh')) {
+    # Build a structured StartInfo for Start-Process. The OpenCode adapters
+    # and the local PowerShell executor receive the lane, repo, model,
+    # effort, timeout, and plan files as parameters.
+    if ($Profile.Provider -in @('opencode','opencode-go')) {
+        $filePath = if (Get-Command -Name 'pwsh' -CommandType Application -ErrorAction SilentlyContinue) {
+            'pwsh'
+        } else {
+            'powershell'
+        }
+
+        $argumentList = @(
+            '-NoProfile'
+            '-NonInteractive'
+            '-File', $executorPath
+            '-Role', $Role
+            '-LanePath', $LanePath
+            '-RepoDir', $RepoDir
+            '-Provider', $Profile.Provider
+        )
+        if (-not [string]::IsNullOrWhiteSpace($Profile.Model)) {
+            $argumentList += '-Model'
+            $argumentList += $Profile.Model
+        }
+        if (-not [string]::IsNullOrWhiteSpace($Profile.Effort)) {
+            $argumentList += '-Effort'
+            $argumentList += $Profile.Effort
+        }
+        if ($TimeoutMinutes -gt 0) {
+            $argumentList += '-TimeoutMinutes'
+            $argumentList += $TimeoutMinutes
+        }
+        foreach ($pf in $PlanFiles) { $argumentList += $pf }
+    } elseif ($Profile.Provider -eq 'local' -or $Profile.Cli -in @('powershell','pwsh')) {
         $filePath = if ($Profile.Cli -in @('pwsh','powershell')) { $Profile.Cli } else { 'powershell' }
         $argumentList = @(
             '-NoProfile'
@@ -60,7 +91,7 @@ function Get-PondExecutorCommand {
             '-Provider', $Profile.Provider
         )
         foreach ($pf in $PlanFiles) { $argumentList += $pf }
-        $command = "$filePath -NoProfile -NonInteractive -File `"$executorPath`" -Role $Role -LanePath `"$LanePath`" -RepoDir `"$RepoDir`" -Provider $Profile.Provider `"$fileArgs`""
+        $command = "$filePath -NoProfile -NonInteractive -File `"$executorPath`" -Role $Role -LanePath `"$LanePath`" -RepoDir `"$RepoDir`" -Provider $Profile.Provider $fileArgs"
     } else {
         $filePath = $Profile.Cli
         $argumentList = @('run','--command',"work-$Role-once",'--model',$Profile.Model,'--effort',$Profile.Effort,'--files') + @($PlanFiles)
