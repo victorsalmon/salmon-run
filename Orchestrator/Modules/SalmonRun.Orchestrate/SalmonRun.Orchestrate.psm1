@@ -10,7 +10,14 @@ if (-not (Test-Path -LiteralPath $script:RootResolverPath -PathType Leaf)) {
     throw "Orchestrator root resolver not found: $script:RootResolverPath"
 }
 . $script:RootResolverPath
-$script:RepoRoot = Resolve-OrchestratorRepoRoot -StartPath $PSScriptRoot
+try {
+    $script:RepoRoot = Resolve-OrchestratorRepoRoot -StartPath $PSScriptRoot
+} catch {
+    # Fall back to the general SalmonRun repo root resolver so the module can
+    # load even when the legacy Tasks/ root marker is absent (e.g. public
+    # packaging with canonical task root under ~/.salmon/Tasks).
+    $script:RepoRoot = Get-SalmonRunRepoRoot
+}
 
 # Dot-source Private scripts in dependency order (Logging, ExecutorContract first)
 $script:PrivateOrder = @(
