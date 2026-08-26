@@ -1,0 +1,37 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  pester:
+    name: Pester suite
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Install-Module Pester -MinimumVersion 6.0.0 -Force -SkipPublisherCheck
+
+      - name: Run Orchestrator/Tests
+        shell: pwsh
+        run: |
+          $env:PSModulePath = "${{ repository.workspace }}\Orchestrator\Modules;${{ repository.workspace }}\Skills\Docker\Modules;" + $env:PSModulePath
+          Invoke-Pester -Path 'Orchestrator/Tests' -Output Detailed
+
+      - name: Run Skills/Docker/Tests
+        shell: pwsh
+        run: |
+          $env:PSModulePath = "${{ repository.workspace }}\Orchestrator\Modules;${{ repository.workspace }}\Skills\Docker\Modules;" + $env:PSModulePath
+          Invoke-Pester -Path 'Skills/Docker/Tests' -Output Detailed
+
+      - name: Leak check
+        shell: pwsh
+        run: |
+          .\scripts\Invoke-LeakCheck.ps1
