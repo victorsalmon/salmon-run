@@ -23,11 +23,14 @@ logs, or secrets are committed.
 
 ## State
 
-The public package is now an installable, leak-clean control plane. Wave 1–4
-(PondLog I/O standardization, packaging, OpenCode, and DSH executors) are
-integrated on `main`, with passing `Orchestrator/Tests` (408) and
-`Skills/Docker/Tests` (103). `Invoke-LeakCheck.ps1` reports no private
-references.
+The public package is now an installable, containerized, leak-clean control
+plane. Items 1–7 of the remaining MVP scope are complete on `main`:
+Devin/OpenRouter/DeepInfra executors, Mermaid repository chunking,
+Docker/Swarm packaging, CI workflows, a parameterized `Sync-FromCanonical.ps1`,
+branch/worktree cleanup, and completed plan routing.
+
+Latest validation: `Orchestrator/Tests` **423 passed**, `Skills/Docker/Tests`
+**103 passed**, `Invoke-LeakCheck.ps1` green, Docker build and dry-run green.
 
 The canonical source-of-truth remains the private `salmon-orchestrator`
 implementation; `salmon-run` is the scrubbed, generalized mirror.
@@ -41,6 +44,20 @@ Start-SalmonRun.ps1 -DryRun
 
 `install.ps1` copies modules to `~/.salmon/Modules`, wires `PSModulePath`, and
 verifies a fresh `Import-Module SalmonRun.PondEngine`.
+
+## Docker quick start
+
+```powershell
+.\deploy.ps1          # local: docker compose up --build
+.\deploy.ps1 -Mode swarm  # Swarm: docker build + docker stack deploy
+```
+
+Or directly:
+
+```bash
+docker build -t salmon-run .
+docker run --rm salmon-run -DryRun
+```
 
 
 ## Personal data layout

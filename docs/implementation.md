@@ -30,7 +30,11 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 - `Invoke-LeakCheck.ps1`: **No private references found.**
 - `install.ps1` completes in a fresh `pwsh -NoProfile` session and imports `SalmonRun.PondEngine`.
 - `Start-SalmonRun.ps1 -DryRun` runs without error.
-- Remaining deferred work: Devin, OpenRouter, DeepInfra executors; Mermaid repo chunking; Docker/Swarm packaging.
+- `docker build` produces a working `salmon-run` image and `docker run` dry-runs.
+- `Sync-FromCanonical.ps1` is parameterized and includes runtime text scrub.
+- Devin, OpenRouter, and DeepInfra/Codex executors are real CLI adapters with `PondLog` integration.
+- `SalmonRun.Mermaid` chunks repository Mermaid diagrams.
+- CI workflows are in `.github/workflows` and `.worktree/workflows`.
 
 ---
 

@@ -60,10 +60,11 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 
 ## Highest-confidence release blockers
 
-1. **Mermaid chunking is missing** despite being part of the README vision.
-2. **Devin, OpenRouter, and DeepInfra executors remain stubs.** Only OpenCode Go/Zen and DSH are wired for real CLI runs in this MVP pass.
-3. **No Docker/Swarm packaging.** There is no public `docker-compose.yml`, `Dockerfile`, or `deploy.ps1` for running the engine as a service.
-4. **CI workflow was deferred.** No GitHub/Worktree Actions workflow runs the full test suite on push.
+1. ~~Mermaid chunking is missing.~~ **Resolved** by `SalmonRun.Mermaid`.
+2. ~~Devin, OpenRouter, and DeepInfra executors remain stubs.~~ **Resolved** by `Devin.ps1`, `OpenRouter.ps1`, and `DeepInfra.ps1` adapters.
+3. ~~No Docker/Swarm packaging.~~ **Resolved** by `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, and `deploy.ps1`.
+4. ~~CI workflow was deferred.~~ **Resolved** by `.github/workflows/test.yml`, `.github/workflows/docker.yml`, and `.worktree/workflows/validate.yml`.
+5. ~~`Sync-FromCanonical.ps1` is hardcoded to a private path.~~ **Resolved** with parameter/env-driven canonical repo and runtime text scrub.
 
 ## Unknowns / manual gates
 
@@ -74,4 +75,4 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 
 ## Overall readiness
 
-The public `salmon-run` package is approximately **70% production-ready for its stated vision**. The package now installs, loads, and runs in a fresh PowerShell session; the full Orchestrator and Skills/Docker test suites pass; PondLog I/O is standardized; OpenCode Go/Zen and DSH can dispatch real CLI calls; and the public tree is leak-clean. Remaining gaps are Mermaid chunking, Docker/Swarm packaging, and the deferred Devin/OpenRouter/DeepInfra executors.
+The public `salmon-run` package is approximately **85% production-ready for its stated vision**. The package installs, loads, and runs in a fresh PowerShell session and in a Docker container; the full Orchestrator (423 passed) and Skills/Docker (103 passed) test suites pass; CI workflows validate changes; PondLog I/O is standardized; OpenCode Go/Zen, DSH, Devin, OpenRouter, and DeepInfra/Codex can dispatch real CLI calls; Mermaid repository chunking is implemented; `Sync-FromCanonical.ps1` is parameterized and leak-clean; and the public tree contains no private references.
