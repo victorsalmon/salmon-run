@@ -109,6 +109,20 @@ function Resolve-SkillPath {
     return $null
 }
 
+function Get-SalmonHome {
+    [CmdletBinding()]
+    param()
+    if (-not [string]::IsNullOrWhiteSpace($env:SALMON_RUN_HOME)) { return $env:SALMON_RUN_HOME }
+    $homeDir = Get-HomeDir
+    return Join-Path $homeDir '.salmon'
+}
+
+function Get-SalmonTaskRoot {
+    [CmdletBinding()]
+    param()
+    return Join-Path (Get-SalmonHome) 'Tasks'
+}
+
 function Reset-SalmonRunPathCache {
     $script:CachedRepoRoot = $null
     $script:CachedHomeDir = $null
@@ -117,4 +131,4 @@ function Reset-SalmonRunPathCache {
 Set-Alias -Name 'Get-InterclawRepoRoot' -Value 'Get-SalmonRunRepoRoot'
 Set-Alias -Name 'Reset-InterclawPathCache' -Value 'Reset-SalmonRunPathCache'
 
-Export-ModuleMember -Function 'Get-SalmonRunRepoRoot','Get-HomeDir','Get-RepoRoot','Get-SkillsRoot','Resolve-SkillPath','Reset-SalmonRunPathCache' -Alias 'Get-InterclawRepoRoot','Reset-InterclawPathCache'
+Export-ModuleMember -Function 'Get-SalmonRunRepoRoot','Get-HomeDir','Get-RepoRoot','Get-SkillsRoot','Resolve-SkillPath','Get-SalmonHome','Get-SalmonTaskRoot','Reset-SalmonRunPathCache' -Alias 'Get-InterclawRepoRoot','Reset-InterclawPathCache'

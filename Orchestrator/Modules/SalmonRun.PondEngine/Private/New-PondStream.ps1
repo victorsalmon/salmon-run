@@ -16,6 +16,7 @@ function New-PondStream {
         [string]$Branch,
         [Parameter(Mandatory)]
         [string]$Path,
+        [string]$TaskRoot = (Get-SalmonTaskRoot),
         [hashtable]$RoleCounts = @{
             'coder'    = 3
             'reviewer' = 1
@@ -39,7 +40,7 @@ function New-PondStream {
             $lane.Id = "lane-$role-$laneIndex"
             $lane.Role = $role
             $lane.StreamId = $Id
-            $lane.Path = Join-Path $Path 'Tasks' 'Working' $lane.Id
+            $lane.Path = Join-Path $TaskRoot 'Working' $lane.Id
             $lane.Idle = $true
             $stream.Lanes[$lane.Id] = $lane
             $laneIndex++

@@ -27,14 +27,16 @@ function Start-PondEngine {
     param(
         [Pond[]]$Ponds = (Get-SalmonRunPonds),
         [string]$RepoDir = (Get-SalmonRunRepoRoot),
+        [string]$TaskRoot = (Get-SalmonTaskRoot),
         [int]$MaxIterations = 20,
         [int]$SubprocessTimeoutMinutes = 30,
         [int]$PollIntervalSeconds = 300,
-        [PondStream[]]$Streams = (New-PondStream -Id 'stream-1' -Branch 'main' -Path (Get-SalmonRunRepoRoot))
+        [PondStream[]]$Streams = (New-PondStream -Id 'stream-1' -Branch 'main' -Path (Get-SalmonRunRepoRoot) -TaskRoot $TaskRoot)
     )
 
     $context = [PondContext]::new()
     $context.RepoDir = $RepoDir
+    $context.TaskRoot = $TaskRoot
     $context.ActiveStreams = @{}
     $context.UsedNamespaces = @{}
     $context.BusyNamespaces = @{}
@@ -43,6 +45,7 @@ function Start-PondEngine {
     $context.CrashHistory = [System.Collections.Generic.List[datetime]]::new()
     $context.Iteration = 0
     $context.Counts = $null
+    $context.Config = [PSCustomObject]@{ TimeoutMinutes = $SubprocessTimeoutMinutes }
     $context.Continue = $true
     $context.Success = $false
 
@@ -76,21 +79,28 @@ function Start-PondEngine {
                 }
                 $group.LaneId = $lane.Id
                 $group.StreamPath = $lane.Path
+                $group.Stream = $null
+                foreach ($s in $context.Streams) { if ($s.Id -eq $lane.StreamId) { $group.Stream = $s; break } }
 
-                foreach ($task in $pond.Tasks) {
-                    if (-not $context.Continue) { break }
-                    $taskFunction = Get-Command $task.Function -ErrorAction SilentlyContinue
-                    if (-not $taskFunction) {
-                        Write-OrchestratorLog "POND_TASK_NOT_FOUND pond=$($pond.Name) task=$($task.Name) function=$($task.Function)" -Level ERROR
-                        $context.Continue = $false
-                        break
+                try {
+                    foreach ($task in $pond.Tasks) {
+                        if (-not $context.Continue) { break }
+                        $taskFunction = Get-Command $task.Function -ErrorAction SilentlyContinue
+                        if (-not $taskFunction) {
+                            Write-Verbose "POND_TASK_NOT_FOUND pond=$($pond.Name) task=$($task.Name) function=$($task.Function)"
+                            $context.Continue = $false
+                            break
+                        }
+                        $context = & $task.Function -Pond $pond -Task $task -Context $context
                     }
-                    $context = & $task.Function -Pond $pond -Task $task -Context $context
+                } finally {
+                    # Release the lane; the Transition task is responsible for moving files out.
+                    # If the pipeline aborted early, free the lane here.
+                    if ($lane) {
+                        $lane.Idle = $true
+                    }
+                    $context.UsedNamespaces.Remove($group.Namespace)
                 }
-
-                # Release the lane if the pipeline did not hand it to a monitor task
-                if ($lane) { $lane.Idle = $true }
-                $context.UsedNamespaces.Remove($group.Namespace)
 
                 $didWork = $true
             }

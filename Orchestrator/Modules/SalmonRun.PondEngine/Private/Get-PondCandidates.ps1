@@ -17,7 +17,7 @@ function Get-PondCandidates {
         [PondContext]$Context
     )
 
-    $pondPath = Join-Path $Context.RepoDir $Pond.Folder
+    $pondPath = Get-PondQueuePath -Pond $Pond -Context $Context
     if (-not (Test-Path -LiteralPath $pondPath)) { return @() }
 
     $files = Get-ChildItem "$pondPath/*.md" -ErrorAction SilentlyContinue |
@@ -59,7 +59,7 @@ function Get-PondCandidates {
         # Required headers must be present; otherwise park the plan
         $missing = @()
         foreach ($h in $Pond.Entry.RequiredHeaders) {
-            $headerRe = "(?im)^\*\*$h\*\*:"
+            $headerRe = "(?im)^\*\*$h\*\*"
             if ($content -notmatch $headerRe) { $missing += $h }
         }
         if ($missing.Count -gt 0) {
@@ -68,7 +68,7 @@ function Get-PondCandidates {
                 continue
             }
             Write-Verbose "Get-PondCandidates: plan $($f.Name) missing headers $($missing -join ',') moving to $($Pond.Entry.OnInvalid)"
-            $destDir = Join-Path $Context.RepoDir "Tasks/$($Pond.Entry.OnInvalid)"
+            $destDir = Join-Path $Context.TaskRoot $Pond.Entry.OnInvalid
             $null = New-Item -ItemType Directory -Path $destDir -Force -ErrorAction SilentlyContinue
             $dest = Join-Path $destDir $f.Name
             if (-not (Test-Path -LiteralPath $dest)) {
@@ -84,7 +84,7 @@ function Get-PondCandidates {
             if (-not ($hasLock -and $hasValidation)) {
                 if ([string]::IsNullOrWhiteSpace($Pond.Entry.OnInvalid)) { continue }
                 Write-Verbose "Get-PondCandidates: plan $($f.Name) missing evidence moving to $($Pond.Entry.OnInvalid)"
-                $destDir = Join-Path $Context.RepoDir "Tasks/$($Pond.Entry.OnInvalid)"
+                $destDir = Join-Path $Context.TaskRoot $Pond.Entry.OnInvalid
                 $null = New-Item -ItemType Directory -Path $destDir -Force -ErrorAction SilentlyContinue
                 $dest = Join-Path $destDir $f.Name
                 if (-not (Test-Path -LiteralPath $dest)) {

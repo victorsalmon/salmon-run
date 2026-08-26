@@ -5,7 +5,7 @@
     Author = 'Salmon Run'
     Description = 'Generalizable pond/workflow engine for salmon-run. Defines Pond classes, default pond configuration, and a task-pipeline dispatch engine.'
     PowerShellVersion = '7.0'
-    RequiredModules = @('SalmonRun.Orchestrate', 'SalmonRun.Constants')
+    RequiredModules = @('SalmonRun.Orchestrate', 'SalmonRun.Constants', 'SalmonRun.Paths')
     ScriptsToProcess = @('Classes/Pond.ps1')
     FunctionsToExport = @('Get-SalmonRunPonds', 'Start-PondEngine', 'New-PondStream')
     CmdletsToExport = @()

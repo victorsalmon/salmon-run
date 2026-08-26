@@ -89,4 +89,5 @@ class PondContext {
     [PSCustomObject]$Config
     [bool]$Continue
     [bool]$Success
+    [string]$TaskRoot
 }

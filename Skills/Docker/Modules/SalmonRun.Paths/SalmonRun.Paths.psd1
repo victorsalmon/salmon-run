@@ -7,7 +7,7 @@
     Description = 'Path resolution: repo root, home dir, and path cache for SalmonRun. Retains Interclaw.Paths compatibility aliases.'
     PowerShellVersion = '7.0'
     RequiredModules = @()
-    FunctionsToExport = @('Get-SalmonRunRepoRoot','Get-HomeDir','Get-RepoRoot','Get-SkillsRoot','Resolve-SkillPath','Reset-SalmonRunPathCache')
+    FunctionsToExport = @('Get-SalmonRunRepoRoot','Get-HomeDir','Get-RepoRoot','Get-SkillsRoot','Resolve-SkillPath','Get-SalmonHome','Get-SalmonTaskRoot','Reset-SalmonRunPathCache')
     AliasesToExport = @('Get-InterclawRepoRoot','Reset-InterclawPathCache')
     PrivateData = @{ PSData = @{ } }
 }
