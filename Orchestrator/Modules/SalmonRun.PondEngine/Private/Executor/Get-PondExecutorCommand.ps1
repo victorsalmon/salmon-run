@@ -79,6 +79,35 @@ function Get-PondExecutorCommand {
             $argumentList += $TimeoutMinutes
         }
         foreach ($pf in $PlanFiles) { $argumentList += $pf }
+    } elseif ($Profile.Provider -eq 'dsh') {
+        $filePath = if (Get-Command -Name 'pwsh' -CommandType Application -ErrorAction SilentlyContinue) {
+            'pwsh'
+        } else {
+            'powershell'
+        }
+
+        $argumentList = @(
+            '-NoProfile'
+            '-NonInteractive'
+            '-File', $executorPath
+            '-Role', $Role
+            '-LanePath', $LanePath
+            '-RepoDir', $RepoDir
+            '-Provider', $Profile.Provider
+        )
+        if (-not [string]::IsNullOrWhiteSpace($Profile.Model)) {
+            $argumentList += '-Model'
+            $argumentList += $Profile.Model
+        }
+        if (-not [string]::IsNullOrWhiteSpace($Profile.Effort)) {
+            $argumentList += '-Effort'
+            $argumentList += $Profile.Effort
+        }
+        if ($TimeoutMinutes -gt 0) {
+            $argumentList += '-TimeoutMinutes'
+            $argumentList += $TimeoutMinutes
+        }
+        foreach ($pf in $PlanFiles) { $argumentList += $pf }
     } elseif ($Profile.Provider -eq 'local' -or $Profile.Cli -in @('powershell','pwsh')) {
         $filePath = if ($Profile.Cli -in @('pwsh','powershell')) { $Profile.Cli } else { 'powershell' }
         $argumentList = @(
