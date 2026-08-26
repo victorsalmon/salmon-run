@@ -39,29 +39,34 @@ function Test-AuditChainIntegrity {
         $entryObj.PSObject.Properties.Remove('prev')
         $entryObj.PSObject.Properties.Remove('hash')
 
+        $canonicalTs = Get-CanonicalTimestamp $entryObj.ts
         $sortedObj = [ordered]@{}
-        $entryObj.PSObject.Properties.Name | Sort-Object | ForEach-Object { $sortedObj[$_] = $entryObj.$_ }
+        $entryObj.PSObject.Properties.Name | Sort-Object | ForEach-Object {
+            if ($_ -eq 'ts') { $sortedObj['ts'] = $canonicalTs }
+            else { $sortedObj[$_] = $entryObj.$_ }
+        }
         $canonicalJson = $sortedObj | ConvertTo-Json -Compress -Depth 10
         $hashBytes = [System.Text.Encoding]::UTF8.GetBytes($canonicalJson)
         $computedHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::HashData($hashBytes)) -replace '-', ''
         $computedHash = $computedHash.ToLower()
-        if ($entry.hash -ne $computedHash) {
+
+        if ($entry.hash -eq $computedHash) {
+            if ($i -gt 0) {
+                if ($entry.prev -ne $entries[$i - 1].hash) {
+                    $broken += @{ Index = $i; Reason = "PrevMismatch: expected $($entries[$i-1].hash), got $($entry.prev)" }
+                }
+            } else {
+                if ($entry.prev -ne '') {
+                    $broken += @{ Index = 0; Reason = 'GenesisPrevNotEmpty' }
+                }
+            }
+        } else {
             $legacyJson = $entryObj | ConvertTo-Json -Compress -Depth 10
             $legacyBytes = [System.Text.Encoding]::UTF8.GetBytes($legacyJson)
             $legacyHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::HashData($legacyBytes)) -replace '-', ''
             $legacyHash = $legacyHash.ToLower()
             if ($entry.hash -ne $legacyHash) {
                 $broken += @{ Index = $i; Reason = "HashMismatch: sorted=$computedHash legacy=$legacyHash, got $($entry.hash)" }
-            }
-            continue
-        }
-        if ($i -gt 0) {
-            if ($entry.prev -ne $entries[$i - 1].hash) {
-                $broken += @{ Index = $i; Reason = "PrevMismatch: expected $($entries[$i-1].hash), got $($entry.prev)" }
-            }
-        } else {
-            if ($entry.prev -ne '') {
-                $broken += @{ Index = 0; Reason = 'GenesisPrevNotEmpty' }
             }
         }
     }

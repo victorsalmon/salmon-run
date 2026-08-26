@@ -29,7 +29,9 @@ function New-HashChainEntry {
         $orderedKeys = $Entry.Keys | Sort-Object
         $orderedEntry = [ordered]@{}
         foreach ($key in $orderedKeys) {
-            $orderedEntry[$key] = $Entry[$key]
+            $value = $Entry[$key]
+            if ($key -eq 'ts') { $value = Get-CanonicalTimestamp $value }
+            $orderedEntry[$key] = $value
         }
         $entryJson = $orderedEntry | ConvertTo-Json -Compress -Depth 10
         $hashBytes = [System.Text.Encoding]::UTF8.GetBytes($entryJson)
