@@ -41,6 +41,7 @@ $taskDirs = @(
     'Tasks/Project',
     'Tasks/ProjectReview',
     'Tasks/Schedules',
+    'Tasks/Locks',
     'cache',
     'secrets'
 )
@@ -71,5 +72,48 @@ if (-not (Test-Path $InstallPath)) {
 Write-Host "Installing salmon-run to $InstallPath" -ForegroundColor Green
 Write-Host "Runtime home (task queues, logs, cache, secrets) set to $RuntimeHome" -ForegroundColor Green
 
-# Module copy and path wiring will be added once the public mirror projection is complete.
-Write-Host "Installer stub complete." -ForegroundColor Green
+# Copy module trees into the runtime home so they are on the user PSModulePath.
+$moduleDestination = Join-Path $RuntimeHome 'Modules'
+$null = New-Item -ItemType Directory -Path $moduleDestination -Force
+
+$moduleSources = @(
+    (Join-Path $PSScriptRoot 'Orchestrator' 'Modules'),
+    (Join-Path $PSScriptRoot 'Skills' 'Docker' 'Modules')
+)
+
+foreach ($src in $moduleSources) {
+    if (-not (Test-Path $src)) { continue }
+    foreach ($mod in Get-ChildItem -Path $src -Directory) {
+        $dst = Join-Path $moduleDestination $mod.Name
+        if (Test-Path $dst) {
+            Remove-Item -Path $dst -Recurse -Force
+        }
+        Copy-Item -Path $mod.FullName -Destination $dst -Recurse -Force
+    }
+}
+
+# Ensure the runtime modules directory is on the current and persistent user PSModulePath.
+$pathSeparator = if ($IsWindows -or $env:OS -eq 'Windows_NT') { ';' } else { ':' }
+
+$userPath = [Environment]::GetEnvironmentVariable('PSModulePath', 'User')
+$userParts = ($userPath -split [regex]::Escape($pathSeparator)) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+if ($userParts -notcontains $moduleDestination) {
+    $userPath = ($moduleDestination, ($userParts -join $pathSeparator)) -join $pathSeparator
+    [Environment]::SetEnvironmentVariable('PSModulePath', $userPath, 'User')
+}
+
+$processParts = ($env:PSModulePath -split [regex]::Escape($pathSeparator)) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+if ($processParts -notcontains $moduleDestination) {
+    $env:PSModulePath = ($moduleDestination, ($processParts -join $pathSeparator)) -join $pathSeparator
+}
+
+# Quick smoke test that the pond engine is importable from the installed tree.
+try {
+    Import-Module SalmonRun.PondEngine -Force -ErrorAction Stop
+    $pondEngineCommand = Get-Command Start-PondEngine -ErrorAction Stop
+    Write-Host "Pond engine import OK: $($pondEngineCommand.Source)" -ForegroundColor Green
+} catch {
+    throw "salmon-run modules could not be imported after installation: $_"
+}
+
+Write-Host "Installation complete. Run 'Start-PondEngine -?' for available options." -ForegroundColor Green
