@@ -50,13 +50,6 @@ $script:InterclawConstants = @{
     SentryRemediationCooldownSec   = 15
     SentryMainLoopIntervalSec      = 300
 
-    TempoCommandPollIntervalSec      = 30
-    TempoNightlyIntervalSec          = 86400
-    TempoUpdateCycleIntervalSec      = 86400
-    TempoVersionCheckIntervalSec     = 21600
-    TempoApiPort                     = $(try { Get-ServicePort -Service is-tempo } catch { 20500 })
-    TempoImage                       = "tempo:local"
-
     AgentHeartbeatStaleThresholdSeconds = 120
     AgentHungThresholdMultiplier        = 2
     NamespaceReclaimThresholdSeconds    = 300

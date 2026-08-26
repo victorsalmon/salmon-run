@@ -1060,29 +1060,10 @@ while ($true) {
     }
 
     # ── Fleet container health probe (defence-in-depth alongside is-fleet) ──
-    # The watchdog runs on the host with docker CLI access. If is-tempo or
-    # is-fleet is down, the watchdog can restart it — this is a redundant
-    # second self-healer that catches cases where is-fleet itself is dead.
-    try {
-        $tempoHealthy = $false
-        try {
-            $tempoResp = Invoke-RestMethod -Uri "http://127.0.0.1:29996/api/health" -TimeoutSec 5 -ErrorAction Stop
-            $tempoHealthy = $true
-        } catch {
-            $tempoHealthy = $false
-        }
-        if (-not $tempoHealthy) {
-            Write-WatchdogLog "FLEET_CONTAINER_UNHEALTHY service=is-tempo — attempting restart" -Level WARN
-            $stackName = (docker stack ls --format "{{.Name}}" 2>$null | Select-Object -First 1)
-            if ($stackName) {
-                $svc = "${stackName}_is-tempo"
-                docker service update --force $svc 2>&1 | Out-Null
-                Write-WatchdogLog "FLEET_CONTAINER_RESTART service=is-tempo action=docker service update --force $svc" -Level WARN
-            }
-        }
-    } catch {
-        Write-WatchdogLog "FLEET_CONTAINER_PROBE_ERROR error='$_'" -Level WARN
-    }
+    # The watchdog runs on the host with docker CLI access. If is-fleet is down,
+    # the watchdog can restart it — this is a redundant second self-healer that
+    # catches cases where is-fleet itself is dead.
+    # The retired sidecar was removed 2026-08-25 and is no longer probed or restarted.
 
     # Re-detect orchestrator PID on each cycle using dynamic glob scan
     if (-not $orchPid -or -not (Get-Process -Id $orchPid -ErrorAction SilentlyContinue)) {

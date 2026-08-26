@@ -47,14 +47,13 @@ $script:PortDefaults = @{
     "ops-funnel-proxy"  = 21009
     "is-marketer"       = 21011
     "is-monitoring"     = 21010
-    "is-tempo"          = 21015
 }
 
 <#
 .SYNOPSIS
     Resolves a service port from the port registry or fallback defaults.
 .PARAMETER Service
-     Service name (e.g. is-fleet, is-tempo).
+     Service name (e.g. is-fleet).
 .PARAMETER Type
     Port type: internal (container port) or host (published port).
 .OUTPUTS

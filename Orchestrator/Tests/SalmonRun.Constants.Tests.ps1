@@ -99,7 +99,6 @@ Describe "Get-SalmonRunConstants" -Tag "Constants", "Regression-Only" {
     It "port constants match port registry" {
         $c = Get-SalmonRunConstants
         $c.FleetApiPort | Should -Be (Get-ServicePort -Service is-fleet)
-        $c.TempoApiPort | Should -Be (Get-ServicePort -Service is-tempo)
         # mcp_opencode_health, mcp_opencode_server, is-marketer, aqe, web
         # retired 2026-08-21/2026-08-22 — port constants for those services were
         # removed (aqe 2026-08-21, web 2026-08-22) and are no longer

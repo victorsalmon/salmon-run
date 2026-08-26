@@ -5,12 +5,10 @@
     "agent-credential-broker": 21016,
     "llm-audit-proxy": 21018,
     "is-fleet": 21002,
-    "is-monitoring": 21010,
-    "is-tempo": 21015
+    "is-monitoring": 21010
   },
   "host": {
-    "is-fleet": 29999,
-    "is-tempo": 29996
+    "is-fleet": 29999
   },
   "ranges": {
     "gateway_host_ports": {
@@ -77,7 +75,7 @@
     },
     "21000": {
       "date": "2026-08-21",
-      "reason": "mcp_opencode_health retired — mcp_opencode container removed; is-tempo dispatches plans to Tasks/Code/ for the host orchestrator"
+      "reason": "mcp_opencode_health retired — mcp_opencode container removed; host orchestrator dispatches plans to Tasks/Code/"
     },
     "21001": {
       "date": "2026-08-21",
@@ -103,14 +101,21 @@
       "date": "2026-08-21",
       "reason": "is-fleet-mcp retired — MCP sidecar endpoints removed from is-fleet"
     },
+    "21015": {
+      "date": "2026-08-25",
+      "reason": "Service retired — scheduling and dispatch moved to OS-native Windows Task Scheduler; remaining fleet cycles removed"
+    },
+    "29996": {
+      "date": "2026-08-25",
+      "reason": "Service host port retired with the retired sidecar"
+    },
     "3003": {
       "date": "2026-08-21",
       "reason": "mcp_browserless retired — browser automation via cross-harness /browser-web-ops skill"
     }
   },
-  "_comment": "Port allocation scheme per ADR 0014. Internal ports are Docker overlay only (no host mapping). Where a host mapping is needed for an internal service it MUST be loopback-only (127.0.0.1:<port>:<port>) — never a bare <port>:<port> mapping, which publishes to all host interfaces. Only the explicitly listed host ports are published to all interfaces: is-fleet (29999) and is-tempo (29996). Retired ports are never reassigned — see ADR 0014 §4. The gateway_host_ports range and agent role blocks (base/orch/veri/work) were retired 2026-08-21 with the openclaw agent layer.",
+  "_comment": "Port allocation scheme per ADR 0014. Internal ports are Docker overlay only (no host mapping). Where a host mapping is needed for an internal service it MUST be loopback-only (127.0.0.1:<port>:<port>) — never a bare <port>:<port> mapping, which publishes to all host interfaces. Only the explicitly listed host port is published to all interfaces: is-fleet (29999). Retired ports are never reassigned — see ADR 0014 §4. The gateway_host_ports range and agent role blocks (base/orch/veri/work) were retired 2026-08-21 with the openclaw agent layer.",
   "_notes": {
-    "is-tempo host (29996)": "Published to host for operational access via port 29996. Internal port 21015. Port assignments documented in ADR-0042 § Port assignments.",
     "is-fleet host (29999)": "Published to host for operational access via port 29999. Internal port 21002.",
     "agent-credential-broker (21016)": "Internal overlay only, never host-published. Broker listens on the agent-broker-net overlay; workers reach it by service name. Registered 2026-08-14 with ADR 0047 swarm wave (plan swarmcredentials-1).",
     "llm-audit-proxy (21018)": "Internal overlay only, never host-published. One instance is deployed per fixed inference upstream; it writes redacted per-request telemetry to Tasks/Logs/LLM."

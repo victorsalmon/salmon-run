@@ -98,22 +98,12 @@ Describe "Get-SalmonRunConstants property tests" -Tag "Property", "Constants" {
             $result.Passed | Should -Be $true
         }
 
-        It "property: TempoApiPort matches registry internal.is-tempo" {
-            $result = Invoke-Property {
-                param($seed)
-                $c = Get-SalmonRunConstants
-                $expected = $script:portRegistry.internal.'is-tempo'
-                $c.TempoApiPort | Should -Be $expected
-            } -Seed 20260903 -NumRuns 10 -Description "TempoApiPort matches registry"
-            $result.Passed | Should -Be $true
-        }
-
         It "property: no port constant falls in retired range" {
             $result = Invoke-Property {
                 param($seed)
                 $c = Get-SalmonRunConstants
                 $retiredPorts = $script:portRegistry.retired.PSObject.Properties.Name
-                $portKeys = @('FleetApiPort', 'TempoApiPort', 'FleetRotationPort')
+                $portKeys = @('FleetApiPort', 'FleetRotationPort')
                 foreach ($key in $portKeys) {
                     if ($c.ContainsKey($key)) {
                         "$($c[$key])" | Should -Not -BeIn $retiredPorts -Because "'$key' should not use a retired port"
