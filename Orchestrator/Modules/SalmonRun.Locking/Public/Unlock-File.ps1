@@ -16,7 +16,7 @@ function Unlock-File {
         [string[]]$FileNames
     )
 
-    $repoRoot = Get-InterclawRepoRoot
+    $repoRoot = if (Get-Command Get-SalmonRunRepoRoot -ErrorAction SilentlyContinue) { Get-SalmonRunRepoRoot } else { Get-InterclawRepoRoot }
     $locksDir = Join-Path $repoRoot "Tasks" "Locks"
 
     foreach ($name in $FileNames) {

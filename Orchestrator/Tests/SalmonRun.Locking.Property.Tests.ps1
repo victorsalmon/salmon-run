@@ -31,12 +31,15 @@ BeforeAll {
     # Stub dependencies
     function Write-SetupLog { param([string]$Message, [string]$Level, [string]$Agent, [string]$Phase) }
     function Get-InterclawConstants { @{ NamespaceReclaimThresholdSeconds = 120 } }
+    function Get-SalmonRunConstants { @{ NamespaceReclaimThresholdSeconds = 120 } }
 
     # Create a temp repo root for hermetic tests
     $script:tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "locking-prop-test-$(Get-Random)"
     $null = New-Item -ItemType Directory -Path $script:tempDir -Force
 
-    # Stub Get-InterclawRepoRoot
+    # Stub path and constants helpers; use SalmonRun names so module aliases
+    # cannot shadow the test stubs.
+    function global:Get-SalmonRunRepoRoot { return $script:tempDir }
     function global:Get-InterclawRepoRoot { return $script:tempDir }
 
     # Dot-source dependencies

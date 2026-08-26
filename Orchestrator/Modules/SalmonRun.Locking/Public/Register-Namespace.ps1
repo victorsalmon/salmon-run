@@ -25,7 +25,7 @@ function Register-Namespace {
         [string]$AgentId
     )
 
-    $repoRoot = Get-InterclawRepoRoot
+    $repoRoot = if (Get-Command Get-SalmonRunRepoRoot -ErrorAction SilentlyContinue) { Get-SalmonRunRepoRoot } else { Get-InterclawRepoRoot }
     $locksDir = Join-Path $repoRoot "Tasks" "Locks"
     $null = New-Item -ItemType Directory -Path $locksDir -Force
 
@@ -56,7 +56,8 @@ function Register-Namespace {
                     $parsed = [datetime]::MinValue
                     if ([datetime]::TryParse($hbContent, [ref]$parsed)) {
                         $parsedUtc = $parsed.ToUniversalTime()
-                        $reclaimThreshold = (Get-InterclawConstants).NamespaceReclaimThresholdSeconds
+                        $constantsFn = if (Get-Command Get-SalmonRunConstants -ErrorAction SilentlyContinue) { 'Get-SalmonRunConstants' } else { 'Get-InterclawConstants' }
+                        $reclaimThreshold = (& (Get-Command $constantsFn)).NamespaceReclaimThresholdSeconds
                         if (([datetime]::UtcNow - $parsedUtc).TotalSeconds -le $reclaimThreshold) {
                             $stale = $false
                         }
