@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "salmon-run-plan-header-schema",
+  "description": "Canonical schema for salmon-run plan files. Routing headers are current-state metadata. PondLog entries are the append-only history of actions performed on a plan.",
+  "routingHeaders": {
+    "Status": {
+      "description": "Current pond status. Updated on every transition.",
+      "required": true,
+      "mutable": true,
+      "allowedValues": ["draft", "proposal", "ready", "claimed", "working", "completed", "failed", "review", "qa", "manual", "archive"]
+    },
+    "Scope": {
+      "description": "One-line description of the plan's responsibility.",
+      "required": true,
+      "mutable": false
+    },
+    "Challenge": {
+      "description": "Model tier or override for routing (Flash, Daily, Complex, Frontier, Local).",
+      "required": false,
+      "mutable": true,
+      "allowedValues": ["Flash", "Daily", "Complex", "Frontier", "Local"]
+    },
+    "DependsOn": {
+      "description": "Comma-separated list of plan IDs that must reach Complete before this plan enters Code.",
+      "required": false,
+      "mutable": true
+    },
+    "Children": {
+      "description": "Comma-separated list of child plan IDs for Project pond decomposition.",
+      "required": false,
+      "mutable": true
+    },
+    "ProjectId": {
+      "description": "Parent project plan ID, if this plan is a child of a Project.",
+      "required": false,
+      "mutable": false
+    }
+  },
+  "pondLogActions": {
+    "claim": {
+      "description": "An agent or operator claimed the plan for work.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "prepare": {
+      "description": "The plan was prepared for execution (lane/stream selected, model routed).",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "lock": {
+      "description": "An exclusive lock was acquired on the plan for an execution attempt.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent", "lane", "stream"]
+    },
+    "route": {
+      "description": "A model/profile was selected for the plan.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "spawn": {
+      "description": "An executor process was started for the plan.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "implement": {
+      "description": "The Code pond produced an implementation.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "review": {
+      "description": "The Review pond reviewed the implementation.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "audit": {
+      "description": "The Audit pond audited the plan for public-safety issues.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "qa": {
+      "description": "The QA pond verified quality gates.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "complete": {
+      "description": "The plan moved to Complete.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "fail": {
+      "description": "The plan moved to Failed (final failure).",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "retry": {
+      "description": "The plan was retried and moved back to an earlier pond.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "override": {
+      "description": "A routing or execution value was overridden (preserved as history, not just current state).",
+      "requiredFields": ["ts", "pond", "role", "action", "detail"],
+      "optionalFields": ["agent"]
+    }
+  },
+  "evidenceActions": {
+    "implement": { "satisfiesPond": "Review" },
+    "review": { "satisfiesPond": "Audit" },
+    "audit": { "satisfiesPond": "QA" },
+    "qa": { "satisfiesPond": "Complete" }
+  },
+  "overrideActions": {
+    "override": {
+      "detailFormat": "<key>: <value> (reason: <reason>)",
+      "example": "Challenge: Frontier (reason: large refactor)"
+    }
+  }
+}
