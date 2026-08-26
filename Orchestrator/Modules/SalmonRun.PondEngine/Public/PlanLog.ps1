@@ -8,7 +8,7 @@
     cross-agent races without taking a dependency on SalmonRun.Locking module load order.
 #>
 
-$script:SchemaPath = Join-Path $script:ModuleRoot 'Config' 'plan-header-schema.json'
+$script:SchemaPath = Join-Path (Join-Path $script:ModuleRoot 'Config') 'plan-header-schema.json'
 $script:agentId = $null
 
 <#
@@ -72,9 +72,9 @@ function Get-PlanPondLog {
             return @()
         }
 
-        $result = $entries | Where-Object { $null -ne $_ } | ForEach-Object {
+        $result = @($entries | Where-Object { $null -ne $_ } | ForEach-Object {
             if ($_ -is [hashtable]) { [PSCustomObject]$_ } else { $_ }
-        }
+        })
 
         return $result
     }
@@ -173,8 +173,8 @@ function Add-PlanPondLog {
             $pre = $content.Substring(0, $match.Groups[1].Index + $match.Groups[1].Length)
             $post = $content.Substring($match.Groups[3].Index)
         } else {
-            $pre = $content.TrimEnd() + "`n`n**PondLog**`n```json`n"
-            $post = "`n````n"
+            $pre = $content.TrimEnd() + "`n`n**PondLog**`n``````json`n"
+            $post = "`n``````n"
         }
 
         $entries = @($entries) + $newEntry
