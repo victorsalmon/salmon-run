@@ -10,6 +10,7 @@ The `salmon-run` package is organized into two module trees:
 | Module | Purpose |
 | :--- | :--- |
 | `SalmonRun.AgentLifecycle` | Tracks agent birth, heartbeat, and death; cleans stale lanes. |
+| `SalmonRun.AQE` | Public Agentic Quality Engineering runner: Pester suites, documentation lint, and optional AQE bridge. |
 | `SalmonRun.Audit` | JSONL audit logging with hash-chain signing, tamper detection, secret redaction, and an API-call wrapper. |
 | `SalmonRun.Config` | Loads and validates `install.json` and user configuration. |
 | `SalmonRun.Constants` | Environment, port, path, and exit-code constants. |
