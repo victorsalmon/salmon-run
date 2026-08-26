@@ -15,7 +15,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('coder','reviewer','auditor','qa','planner','project')]
+    [ValidateSet('coder','reviewer','auditor','qa','planner','project','project-planner','project-reviewer')]
     [string]$Role,
 
     [Parameter(Mandatory)]

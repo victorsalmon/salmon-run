@@ -133,7 +133,7 @@ function Get-SalmonRunPonds {
 
     $ponds += New-Pond -Name 'Complete' -Folder 'Tasks/Complete' -Role 'archiver' -Description 'Compress and archive plans older than 7 days' -ParallelCount 1 -MaxNewPerIteration 1 -GroupBy 'None' -Tasks @(
         [PondTask]@{ Name = 'Archive'; Type = 'Local'; Function = 'Invoke-PondTaskArchive'; Arguments = @{ AgeDays = 7; ArchiveFormat = '7z' } }
-    ) -OnSuccess 'Archive'
+    ) -OnSuccess ''
 
     return $ponds
 }

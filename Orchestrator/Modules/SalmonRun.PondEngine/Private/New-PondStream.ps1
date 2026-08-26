@@ -18,10 +18,12 @@ function New-PondStream {
         [string]$Path,
         [string]$TaskRoot = (Get-SalmonTaskRoot),
         [hashtable]$RoleCounts = @{
-            'coder'    = 3
-            'reviewer' = 1
-            'auditor'  = 1
-            'qa'       = 1
+            'coder'           = 3
+            'reviewer'        = 1
+            'auditor'         = 1
+            'qa'              = 1
+            'project-planner' = 2
+            'project-reviewer' = 1
         }
     )
 

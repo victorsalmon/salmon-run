@@ -140,20 +140,24 @@ Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
     It 'can construct a PondStream with default lanes' {
         $stream = New-PondStream -Id 'stream-1' -Branch 'main' -Path 'C:\temp\repo'
         $stream | Should -Not -BeNullOrEmpty
-        $stream.Lanes.Count | Should -Be 6
+        $stream.Lanes.Count | Should -Be 9
     }
 
-    It 'has three coder lanes, one reviewer, one auditor, one qa' {
+    It 'has the expected role lane counts' {
         $stream = New-PondStream -Id 'stream-1' -Branch 'main' -Path 'C:\temp\repo'
         $roles = $stream.Lanes.Values | Group-Object Role | ForEach-Object { @{ $_.Name = $_.Count } }
         $coder = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'coder' }).Count
         $reviewer = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'reviewer' }).Count
         $auditor = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'auditor' }).Count
         $qa = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'qa' }).Count
+        $projectPlanner = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'project-planner' }).Count
+        $projectReviewer = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'project-reviewer' }).Count
         $coder | Should -Be 3
         $reviewer | Should -Be 1
         $auditor | Should -Be 1
         $qa | Should -Be 1
+        $projectPlanner | Should -Be 2
+        $projectReviewer | Should -Be 1
     }
 }
 
@@ -288,6 +292,35 @@ Describe 'Pond dependency gating' -Tag 'PondEngine', 'Regression-Only' {
             Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
             Join-Path $tempDir "Tasks/Code/2026-08-26-child.md" | Should -Exist
             Join-Path $tempDir "Tasks/Complete/2026-08-26-child.md" | Should -Not -Exist
+        } finally {
+            $env:SALMON_RUN_HOME = $saved
+        }
+    }
+}
+
+Describe 'Project and ProjectReview pipeline' -Tag 'PondEngine', 'Regression-Only' {
+    It 'moves a Project plan through ProjectReview to Complete with Local harness' {
+        $tempDir = Join-Path $TestDrive 'pondengine-project'
+        foreach ($sub in @('Tasks/Code','Tasks/Review','Tasks/Audit','Tasks/QA','Tasks/Complete','Tasks/Archive','Tasks/Working','Tasks/Paused','Tasks/Failed','Tasks/Project','Tasks/ProjectReview')) {
+            $null = New-Item -ItemType Directory -Path (Join-Path $tempDir $sub) -Force
+        }
+
+        $planName = '2026-08-26-e2e-project.md'
+        $planContent = @"
+# E2E Project Plan
+**Status**: ready
+**Scope**: test
+**Challenge**: Local
+"@
+        $planContent | Set-Content -LiteralPath (Join-Path $tempDir "Tasks/Project/$planName") -Encoding utf8 -NoNewline
+
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Join-Path $tempDir "Tasks/Complete/$planName" | Should -Exist
+            Join-Path $tempDir "Tasks/Project/$planName" | Should -Not -Exist
+            Join-Path $tempDir "Tasks/Failed/$planName" | Should -Not -Exist
         } finally {
             $env:SALMON_RUN_HOME = $saved
         }
