@@ -37,8 +37,15 @@ BeforeAll {
     $script:agentsDir = Join-Path $script:tempDir "Tasks/Logs/agents"
     $null = New-Item -ItemType Directory -Path $script:agentsDir -Force
 
-    # Stub Get-InterclawRepoRoot to return temp dir
+    # Save and force the public SalmonRun.Paths cache to resolve to the temp dir.
+    $script:SavedRepoRoot = $env:REPO_ROOT
+    $env:REPO_ROOT = $script:tempDir
+    if (Get-Command Reset-SalmonRunPathCache -ErrorAction SilentlyContinue) { Reset-SalmonRunPathCache }
+    if (Get-Command Reset-InterclawPathCache -ErrorAction SilentlyContinue) { Reset-InterclawPathCache }
+
+    # Stub Get-InterclawRepoRoot to return temp dir as a fallback
     function global:Get-InterclawRepoRoot { return $script:tempDir }
+    function global:Get-SalmonRunRepoRoot { return $script:tempDir }
 
     # Dot-source the AgentLifecycle module (which dot-sources Public/*.ps1)
     . (Join-Path $script:repoRoot 'Orchestrator/Modules/SalmonRun.Core/Public/Write-AtomicFile.ps1')
@@ -51,6 +58,10 @@ AfterAll {
     if ($script:tempDir -and (Test-Path $script:tempDir)) {
         Remove-Item $script:tempDir -Recurse -Force -ErrorAction SilentlyContinue
     }
+
+    if ($script:SavedRepoRoot) { $env:REPO_ROOT = $script:SavedRepoRoot } else { Remove-Item Env:\REPO_ROOT -ErrorAction SilentlyContinue }
+    if (Get-Command Reset-SalmonRunPathCache -ErrorAction SilentlyContinue) { Reset-SalmonRunPathCache }
+    if (Get-Command Reset-InterclawPathCache -ErrorAction SilentlyContinue) { Reset-InterclawPathCache }
 }
 
 Describe "AgentLifecycle property tests" -Tag "Property", "AgentLifecycle" {

@@ -1,5 +1,13 @@
 #Requires -Modules @{ ModuleName='Pester'; ModuleVersion='6.0.0' }
 
+# Load the modules at the file scope so Pester can resolve InModuleScope during
+# discovery and the path-override environment variables take effect immediately.
+$__moduleDir = $PSScriptRoot
+$__pathsPsd1 = Join-Path $__moduleDir '..' 'Modules' 'SalmonRun.Paths' 'SalmonRun.Paths.psd1'
+$__diagPs1 = Join-Path $__moduleDir '..' 'Modules' 'SalmonRun.Diagnostics' 'SalmonRun.Diagnostics.ps1'
+if (Test-Path $__pathsPsd1) { Import-Module -Name $__pathsPsd1 -Force -DisableNameChecking }
+if (Test-Path $__diagPs1) { . $__diagPs1 }
+
 Describe "SalmonRun.Diagnostics Module FunctionsToExport" -Tag "Diagnostics", "Regression-Only" {
     It "exports the 4 expected functions" {
         $manifestPath = Join-Path $PSScriptRoot "..\Modules\SalmonRun.Diagnostics\SalmonRun.Diagnostics.psd1"
@@ -37,6 +45,8 @@ Describe "SalmonRun.Diagnostics Module" -Tag "Diagnostics" {
         $script:SavedInterclawRunId = $env:INTERCLAW_RUN_ID
         $script:SavedUserProfile = $env:USERPROFILE
         $script:SavedHome = $env:HOME
+        $script:SavedRepoRoot = $env:REPO_ROOT
+        $script:SavedRepoDir = $env:REPO_DIR
     }
 
     AfterAll {
@@ -50,6 +60,8 @@ Describe "SalmonRun.Diagnostics Module" -Tag "Diagnostics" {
         if ($script:SavedInterclawRunId) { $env:INTERCLAW_RUN_ID = $script:SavedInterclawRunId } else { Remove-Item Env:\INTERCLAW_RUN_ID -ErrorAction SilentlyContinue }
         if ($script:SavedUserProfile) { $env:USERPROFILE = $script:SavedUserProfile } else { Remove-Item Env:\USERPROFILE -ErrorAction SilentlyContinue }
         if ($script:SavedHome) { $env:HOME = $script:SavedHome } else { Remove-Item Env:\HOME -ErrorAction SilentlyContinue }
+        if ($script:SavedRepoRoot) { $env:REPO_ROOT = $script:SavedRepoRoot } else { Remove-Item Env:\REPO_ROOT -ErrorAction SilentlyContinue }
+        if ($script:SavedRepoDir) { $env:REPO_DIR = $script:SavedRepoDir } else { Remove-Item Env:\REPO_DIR -ErrorAction SilentlyContinue }
     }
 
     Context "Write-SetupLog" -Tag "Diagnostics" {
@@ -164,43 +176,53 @@ Describe "SalmonRun.Diagnostics Module" -Tag "Diagnostics" {
         }
     }
 
-    Context "Test-Step" -Tag "Diagnostics" {
-        BeforeEach {
-            $script:FailCount = 0
-            $script:Results = @()
-            Mock Write-Host {}
-        }
+    InModuleScope 'SalmonRun.Diagnostics' {
+        Context "Test-Step" -Tag "Diagnostics" {
+            BeforeEach {
+                $script:FailCount = 0
+                $script:Results = @()
+                Mock Write-Host {}
+            }
 
-        It "records a passing result" {
-            Test-Step -Name "Check A" -Passed $true
-            $script:FailCount | Should -Be 0
-            $script:Results.Count | Should -Be 1
-            $script:Results[0].Name | Should -Be "Check A"
-            $script:Results[0].Passed | Should -Be $true
-        }
+            It "records a passing result" {
+                Test-Step -Name "Check A" -Passed $true
+                $script:FailCount | Should -Be 0
+                $script:Results.Count | Should -Be 1
+                $script:Results[0].Name | Should -Be "Check A"
+                $script:Results[0].Passed | Should -Be $true
+            }
 
-        It "records a failing result and increments fail counter" {
-            Test-Step -Name "Check B" -Passed $false -Detail "Detail here" -Remediation "Fix it"
-            $script:FailCount | Should -Be 1
-            $script:Results.Count | Should -Be 1
-            $script:Results[0].Passed | Should -Be $false
-            $script:Results[0].Detail | Should -Be "Detail here"
-            $script:Results[0].Remediation | Should -Be "Fix it"
-        }
+            It "records a failing result and increments fail counter" {
+                Test-Step -Name "Check B" -Passed $false -Detail "Detail here" -Remediation "Fix it"
+                $script:FailCount | Should -Be 1
+                $script:Results.Count | Should -Be 1
+                $script:Results[0].Passed | Should -Be $false
+                $script:Results[0].Detail | Should -Be "Detail here"
+                $script:Results[0].Remediation | Should -Be "Fix it"
+            }
 
-        It "writes PASS in green and FAIL in red" {
-            Test-Step -Name "PassCheck" -Passed $true
-            Should -Invoke Write-Host -ParameterFilter { $Object -match '\[PASS\]' -and $ForegroundColor -eq 'Green' } -Exactly 1 -Scope It
+            It "writes PASS in green and FAIL in red" {
+                Test-Step -Name "PassCheck" -Passed $true
+                Should -Invoke Write-Host -ParameterFilter { $Object -match '\[PASS\]' -and $ForegroundColor -eq 'Green' } -Exactly 1 -Scope It
 
-            Test-Step -Name "FailCheck" -Passed $false
-            Should -Invoke Write-Host -ParameterFilter { $Object -match '\[FAIL\]' -and $ForegroundColor -eq 'Red' } -Exactly 1 -Scope It
+                Test-Step -Name "FailCheck" -Passed $false
+                Should -Invoke Write-Host -ParameterFilter { $Object -match '\[FAIL\]' -and $ForegroundColor -eq 'Red' } -Exactly 1 -Scope It
+            }
         }
     }
 
     Context "Get-ReportsDir" -Tag "Diagnostics" {
         BeforeAll {
             $script:FakeRepoRoot = Join-Path $script:TestTempDir "FakeRepo"
-            Mock Get-RepoRoot { return $script:FakeRepoRoot }
+            $script:SavedReportsHome = $env:HOME
+            $script:SavedReportsRepoRoot = $env:REPO_ROOT
+            $env:HOME = $script:TestTempDir
+            $env:REPO_ROOT = $script:FakeRepoRoot
+        }
+
+        AfterAll {
+            if ($script:SavedReportsHome) { $env:HOME = $script:SavedReportsHome } else { Remove-Item Env:\HOME -ErrorAction SilentlyContinue }
+            if ($script:SavedReportsRepoRoot) { $env:REPO_ROOT = $script:SavedReportsRepoRoot } else { Remove-Item Env:\REPO_ROOT -ErrorAction SilentlyContinue }
         }
 
         It "returns container path when it exists" {

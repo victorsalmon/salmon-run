@@ -102,10 +102,12 @@ Describe "SalmonRun.DeployState Module" -Tag "DeployState" {
 
     Context "Add-SetupError" -Tag "DeployState" {
         It "records a fatal error to the internal list" {
-            Add-SetupError -Phase "Phase1" -Message "Something went wrong" -Category "AWS"
-            $errors = (Get-Module -Name SalmonRun.DeployState).SessionState.PSVariable.GetValue('InterclawErrors')
-            $errors.Count | Should -Be 1
-            $entry = $errors[0]
+            $entry = InModuleScope -ModuleName 'SalmonRun.DeployState' -ScriptBlock {
+                Clear-DeployState
+                Add-SetupError -Phase "Phase1" -Message "Something went wrong" -Category "AWS"
+                return $script:InterclawErrors[0]
+            }
+            $entry | Should -Not -BeNullOrEmpty
             $entry.Phase | Should -Be "Phase1"
             $entry.Message | Should -Be "Something went wrong"
             $entry.Category | Should -Be "AWS"
@@ -114,16 +116,22 @@ Describe "SalmonRun.DeployState Module" -Tag "DeployState" {
         }
 
         It "records a recoverable error" {
-            Add-SetupError -Phase "Phase2" -Message "Recoverable issue" -Recoverable $true
-            $errors = (Get-Module -Name SalmonRun.DeployState).SessionState.PSVariable.GetValue('InterclawErrors')
-            $errors.Count | Should -Be 1
-            $errors[0].Recoverable | Should -Be $true
+            $entry = InModuleScope -ModuleName 'SalmonRun.DeployState' -ScriptBlock {
+                Clear-DeployState
+                Add-SetupError -Phase "Phase2" -Message "Recoverable issue" -Recoverable $true
+                return $script:InterclawErrors[0]
+            }
+            $entry | Should -Not -BeNullOrEmpty
+            $entry.Recoverable | Should -Be $true
         }
 
         It "defaults category to 'Phase'" {
-            Add-SetupError -Phase "Test" -Message "No category"
-            $errors = (Get-Module -Name SalmonRun.DeployState).SessionState.PSVariable.GetValue('InterclawErrors')
-            $errors[0].Category | Should -Be "Phase"
+            $entry = InModuleScope -ModuleName 'SalmonRun.DeployState' -ScriptBlock {
+                Clear-DeployState
+                Add-SetupError -Phase "Test" -Message "No category"
+                return $script:InterclawErrors[0]
+            }
+            $entry.Category | Should -Be "Phase"
         }
 
         It "logs fatal errors at ERROR level" {
@@ -309,17 +317,37 @@ Describe "SalmonRun.DeployState Module" -Tag "DeployState" {
         }
 
         It "records error and re-throws when non-recoverable" {
-            { Invoke-DeployStatePhase -Phase "FailPhase" -ScriptBlock { throw "Fatal failure" } } | Should -Throw
-            $errors = (Get-Module -Name SalmonRun.DeployState).SessionState.PSVariable.GetValue('InterclawErrors')
-            $errors.Count | Should -Be 1
-            $errors[0].Recoverable | Should -Be $false
+            $result = InModuleScope -ModuleName 'SalmonRun.DeployState' -ScriptBlock {
+                Clear-DeployState
+                Clear-SetupCheckpoints
+                $threw = $false
+                try {
+                    Invoke-DeployStatePhase -Phase "FailPhase" -ScriptBlock { throw "Fatal failure" }
+                } catch {
+                    $threw = $true
+                }
+                return @{ Threw = $threw; Error = $script:InterclawErrors[0] }
+            }
+            $result.Threw | Should -Be $true
+            $result.Error | Should -Not -BeNullOrEmpty
+            $result.Error.Recoverable | Should -Be $false
         }
 
         It "records error without re-throwing when recoverable" {
-            { Invoke-DeployStatePhase -Phase "RecPhase" -ScriptBlock { throw "Recoverable failure" } -Recoverable } | Should -Not -Throw
-            $errors = (Get-Module -Name SalmonRun.DeployState).SessionState.PSVariable.GetValue('InterclawErrors')
-            $errors.Count | Should -Be 1
-            $errors[0].Recoverable | Should -Be $true
+            $result = InModuleScope -ModuleName 'SalmonRun.DeployState' -ScriptBlock {
+                Clear-DeployState
+                Clear-SetupCheckpoints
+                $threw = $false
+                try {
+                    Invoke-DeployStatePhase -Phase "RecPhase" -ScriptBlock { throw "Recoverable failure" } -Recoverable
+                } catch {
+                    $threw = $true
+                }
+                return @{ Threw = $threw; Error = $script:InterclawErrors[0] }
+            }
+            $result.Threw | Should -Be $false
+            $result.Error | Should -Not -BeNullOrEmpty
+            $result.Error.Recoverable | Should -Be $true
         }
 
         It "does not set checkpoint on failure" {

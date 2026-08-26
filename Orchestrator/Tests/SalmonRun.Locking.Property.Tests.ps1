@@ -37,6 +37,14 @@ BeforeAll {
     $script:tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "locking-prop-test-$(Get-Random)"
     $null = New-Item -ItemType Directory -Path $script:tempDir -Force
 
+    # Save and force the public SalmonRun.Paths cache to resolve to the temp dir.
+    # The env + reset works when the module is already loaded in AQE; the global
+    # stubs are a fallback when it is not.
+    $script:SavedRepoRoot = $env:REPO_ROOT
+    $env:REPO_ROOT = $script:tempDir
+    if (Get-Command Reset-SalmonRunPathCache -ErrorAction SilentlyContinue) { Reset-SalmonRunPathCache }
+    if (Get-Command Reset-InterclawPathCache -ErrorAction SilentlyContinue) { Reset-InterclawPathCache }
+
     # Stub path and constants helpers; use SalmonRun names so module aliases
     # cannot shadow the test stubs.
     function global:Get-SalmonRunRepoRoot { return $script:tempDir }
@@ -65,6 +73,10 @@ AfterAll {
     if ($script:tempDir -and (Test-Path $script:tempDir)) {
         Remove-Item $script:tempDir -Recurse -Force -ErrorAction SilentlyContinue
     }
+
+    if ($script:SavedRepoRoot) { $env:REPO_ROOT = $script:SavedRepoRoot } else { Remove-Item Env:\REPO_ROOT -ErrorAction SilentlyContinue }
+    if (Get-Command Reset-SalmonRunPathCache -ErrorAction SilentlyContinue) { Reset-SalmonRunPathCache }
+    if (Get-Command Reset-InterclawPathCache -ErrorAction SilentlyContinue) { Reset-InterclawPathCache }
 }
 
 Describe "Lock-File property tests" -Tag "Property", "Locking" {
