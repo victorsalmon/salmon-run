@@ -152,3 +152,50 @@ Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
         $qa | Should -Be 1
     }
 }
+
+Describe 'Pond executor registry' -Tag 'PondEngine', 'Regression-Only' {
+    It 'resolves a Daily profile from the model-router catalog' {
+        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' }
+        $profile | Should -Not -BeNullOrEmpty
+        $profile.Harness | Should -Not -BeNullOrEmpty
+        $profile.Provider | Should -Not -BeNullOrEmpty
+        $profile.Model | Should -Not -BeNullOrEmpty
+        $profile.Effort | Should -Not -BeNullOrEmpty
+        $profile.Cli | Should -Not -BeNullOrEmpty
+        $profile.ExecutorFile | Should -Not -BeNullOrEmpty
+    }
+
+    It 'resolves different models for each tier' {
+        $flash = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Flash' }
+        $frontier = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }
+        $flash.Model | Should -Not -Be $frontier.Model -Because 'Flash and Frontier should route to different models'
+    }
+
+    It 'produces a runnable executor command from a profile' {
+        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' }
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
+        $cmd.ExecutorPath | Should -Exist
+        $cmd.Command | Should -Match "work-coder-once"
+        $cmd.Command | Should -Match $profile.Model
+    }
+
+    It 'writes a .run sentinel when spawning an agent' {
+        $td = New-Item -ItemType Directory -Path (Join-Path ([System.IO.Path]::GetTempPath()) "pondengine-spawn-$([System.Guid]::NewGuid().ToString('n').Substring(0,8))") -Force
+        try {
+            $planPath = Join-Path $td 'plan.md'
+            "# test" | Set-Content -LiteralPath $planPath -Encoding utf8 -NoNewline
+            $command = [PSCustomObject]@{
+                ExecutorPath = 'C:\temp\executor.ps1'
+                Command = 'opencode run --command work-coder-once'
+                Role = 'coder'
+                RepoDir = $td
+                PlanFiles = @($planPath)
+            }
+            & (Get-Module SalmonRun.PondEngine) { param($c, $l, $p) Start-PondExecutor -Command $c -LanePath $l -LogPath $p } $command $td (Join-Path $td 'log.log')
+            Join-Path $td '.run' | Should -Exist
+            Join-Path $td '.pid' | Should -Exist
+        } finally {
+            Remove-Item $td -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}

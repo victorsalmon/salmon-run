@@ -51,6 +51,16 @@ class PondTransition {
     [string]$FinalMoveTo
 }
 
+class PondExecutionProfile {
+    [string]$Tier
+    [string]$Harness
+    [string]$Provider
+    [string]$Model
+    [string]$Effort
+    [string]$Cli
+    [string]$ExecutorFile
+}
+
 class Pond {
     [string]$Name
     [string]$Folder
