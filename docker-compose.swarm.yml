@@ -1,0 +1,34 @@
+services:
+  salmon-run:
+    image: salmon-run:latest
+    environment:
+      SALMON_RUN_HOME: /salmon-home
+      POWERSHELL_TELEMETRY_OPTOUT: '1'
+    volumes:
+      - type: volume
+        source: salmon-home
+        target: /salmon-home
+    networks:
+      - salmon-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+volumes:
+  salmon-home:
+    driver: local
+
+networks:
+  salmon-net:
+    driver: overlay
+    attachable: true

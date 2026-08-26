@@ -1,0 +1,24 @@
+services:
+  salmon-run:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: salmon-run:latest
+    container_name: salmon-run
+    environment:
+      SALMON_RUN_HOME: /salmon-home
+      POWERSHELL_TELEMETRY_OPTOUT: '1'
+    volumes:
+      - salmon-home:/salmon-home
+      - ./.env:/salmon-home/.env:ro
+    command:
+      - '-DryRun'
+    networks:
+      - salmon-net
+
+volumes:
+  salmon-home:
+
+networks:
+  salmon-net:
+    driver: bridge

@@ -1,0 +1,6 @@
+.git
+.env
+.salmon
+Tasks
+*.md.tmp
+*.log
