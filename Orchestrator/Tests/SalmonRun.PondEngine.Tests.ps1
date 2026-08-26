@@ -313,16 +313,47 @@ Describe 'Project and ProjectReview pipeline' -Tag 'PondEngine', 'Regression-Onl
 **Status**: ready
 **Scope**: test
 **Challenge**: Local
+**Children**: child-a
 "@
         $planContent | Set-Content -LiteralPath (Join-Path $tempDir "Tasks/Project/$planName") -Encoding utf8 -NoNewline
 
         $saved = $env:SALMON_RUN_HOME
         try {
             $env:SALMON_RUN_HOME = $tempDir
-            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 2 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
             Join-Path $tempDir "Tasks/Complete/$planName" | Should -Exist
             Join-Path $tempDir "Tasks/Project/$planName" | Should -Not -Exist
             Join-Path $tempDir "Tasks/Failed/$planName" | Should -Not -Exist
+        } finally {
+            $env:SALMON_RUN_HOME = $saved
+        }
+    }
+
+    It 'decomposes a project into multiple children and waits for all to complete' {
+        $tempDir = Join-Path $TestDrive 'pondengine-project-multi'
+        foreach ($sub in @('Tasks/Code','Tasks/Review','Tasks/Audit','Tasks/QA','Tasks/Complete','Tasks/Archive','Tasks/Working','Tasks/Paused','Tasks/Failed','Tasks/Project','Tasks/ProjectReview')) {
+            $null = New-Item -ItemType Directory -Path (Join-Path $tempDir $sub) -Force
+        }
+
+        $planName = '2026-08-26-e2e-project.md'
+        $planContent = @"
+# E2E Project Plan
+**Status**: ready
+**Scope**: test
+**Challenge**: Local
+**Children**: child-a, child-b
+"@
+        $planContent | Set-Content -LiteralPath (Join-Path $tempDir "Tasks/Project/$planName") -Encoding utf8 -NoNewline
+
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 2 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Join-Path $tempDir "Tasks/Complete/$planName" | Should -Exist
+            Join-Path $tempDir "Tasks/Project/$planName" | Should -Not -Exist
+            Join-Path $tempDir "Tasks/Failed/$planName" | Should -Not -Exist
+            $children = Get-ChildItem -Path (Join-Path $tempDir 'Tasks/Complete') -Filter '*-child-*.md'
+            $children.Count | Should -Be 2
         } finally {
             $env:SALMON_RUN_HOME = $saved
         }

@@ -58,8 +58,8 @@ function Get-PondExecutorCommand {
             '-LanePath', $LanePath
             '-RepoDir', $RepoDir
         )
-        foreach ($pf in $PlanFiles) { $argumentList += @('-PlanFiles', $pf) }
-        $command = "$filePath -NoProfile -NonInteractive -File `"$executorPath`" -Role $Role -LanePath `"$LanePath`" -RepoDir `"$RepoDir`" -PlanFiles `"$fileArgs`""
+        foreach ($pf in $PlanFiles) { $argumentList += $pf }
+        $command = "$filePath -NoProfile -NonInteractive -File `"$executorPath`" -Role $Role -LanePath `"$LanePath`" -RepoDir `"$RepoDir`" `"$fileArgs`""
     } else {
         $filePath = $Profile.Cli
         $argumentList = @('run','--command',"work-$Role-once",'--model',$Profile.Model,'--effort',$Profile.Effort,'--files') + @($PlanFiles)

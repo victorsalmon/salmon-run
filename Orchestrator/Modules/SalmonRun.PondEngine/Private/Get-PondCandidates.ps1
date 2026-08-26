@@ -104,6 +104,48 @@ function Get-PondCandidates {
             }
         }
 
+        # Evidence gate: a ProjectReview plan's children must all be complete
+        if ($Pond.Entry.EvidenceGate -eq 'children-complete') {
+            $dependsRe = '(?im)^\*\*DependsOn\*\*:\s*(?<value>[^\r\n]+)'
+            $depMatches = [regex]::Matches($content, $dependsRe)
+            $completionDirs = @(
+                (Join-Path $Context.TaskRoot 'Complete'),
+                (Join-Path $Context.TaskRoot 'Archive')
+            )
+            $allComplete = $true
+            foreach ($m in $depMatches) {
+                $deps = $m.Groups['value'].Value.Trim() -split ',\s*'
+                foreach ($d in $deps) {
+                    $d = $d.Trim()
+                    if ([string]::IsNullOrWhiteSpace($d)) { continue }
+                    $depFile = if ($d -notlike '*.md') { "$d.md" } else { $d }
+                    $found = $false
+                    foreach ($dir in $completionDirs) {
+                        if (-not (Test-Path -LiteralPath $dir)) { continue }
+                        $depFiles = @(Get-ChildItem -Path "$dir/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq $depFile })
+                        if ($depFiles.Count -gt 0) { $found = $true; break }
+                    }
+                    if (-not $found) {
+                        Write-Verbose "Get-PondCandidates: plan $($f.Name) waiting for child '$d'"
+                        $allComplete = $false
+                        break
+                    }
+                }
+                if (-not $allComplete) { break }
+            }
+            if (-not $allComplete) {
+                if ([string]::IsNullOrWhiteSpace($Pond.Entry.OnInvalid)) { continue }
+                Write-Verbose "Get-PondCandidates: plan $($f.Name) children not complete moving to $($Pond.Entry.OnInvalid)"
+                $destDir = Join-Path $Context.TaskRoot $Pond.Entry.OnInvalid
+                $null = New-Item -ItemType Directory -Path $destDir -Force -ErrorAction SilentlyContinue
+                $dest = Join-Path $destDir $f.Name
+                if (-not (Test-Path -LiteralPath $dest)) {
+                    Move-Item -LiteralPath $f.FullName -Destination $dest -Force -ErrorAction SilentlyContinue
+                }
+                continue
+            }
+        }
+
         $candidates.Add($f)
     }
 

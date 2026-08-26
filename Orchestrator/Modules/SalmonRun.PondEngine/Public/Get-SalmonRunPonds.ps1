@@ -116,13 +116,11 @@ function Get-SalmonRunPonds {
 
     $ponds += New-Pond -Name 'Project' -Folder 'Tasks/Project' -Role 'project-planner' -Description 'Large feature plans split into child Code plans and a review plan' -ParallelCount 2 -MaxNewPerIteration 1 -GroupBy 'Namespace' -Tasks @(
         [PondTask]@{ Name = 'Claim'; Type = 'Group'; Function = 'Invoke-PondTaskClaim' }
-        [PondTask]@{ Name = 'ModelRoute'; Type = 'Group'; Function = 'Invoke-PondTaskModelRoute' }
-        [PondTask]@{ Name = 'Spawn'; Type = 'Agent'; Function = 'Invoke-PondTaskSpawnAgent'; Arguments = @{ Command = 'work-project-planner-once' } }
-        [PondTask]@{ Name = 'Monitor'; Type = 'Poll'; Function = 'Invoke-PondTaskMonitorStream' }
+        [PondTask]@{ Name = 'PlanProject'; Type = 'Local'; Function = 'Invoke-PondTaskPlanProject' }
         [PondTask]@{ Name = 'Transition'; Type = 'Group'; Function = 'Invoke-PondTaskTransition' }
     ) -OnSuccess 'ProjectReview'
 
-    $ponds += New-Pond -Name 'ProjectReview' -Folder 'Tasks/ProjectReview' -Role 'project-reviewer' -Description 'Evaluate all child plans of a completed project' -ParallelCount 1 -MaxNewPerIteration 1 -EvidenceGate 'children-complete' -GroupBy 'Namespace' -Tasks @(
+    $ponds += New-Pond -Name 'ProjectReview' -Folder 'Tasks/ProjectReview' -Role 'project-reviewer' -Description 'Evaluate all child plans of a completed project' -ParallelCount 1 -MaxNewPerIteration 1 -EvidenceGate 'children-complete' -GroupBy 'Namespace' -OnInvalid '' -Tasks @(
         [PondTask]@{ Name = 'Claim'; Type = 'Group'; Function = 'Invoke-PondTaskClaim' }
         [PondTask]@{ Name = 'Prepare'; Type = 'PerFile'; Function = 'Invoke-PondTaskPrepare' }
         [PondTask]@{ Name = 'ModelRoute'; Type = 'Group'; Function = 'Invoke-PondTaskModelRoute' }

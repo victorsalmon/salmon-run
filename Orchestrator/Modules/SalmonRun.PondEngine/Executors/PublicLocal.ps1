@@ -24,7 +24,7 @@ param(
     [Parameter(Mandatory)]
     [string]$RepoDir,
 
-    [Parameter(Mandatory)]
+    [Parameter(Mandatory, ValueFromRemainingArguments=$true)]
     [string[]]$PlanFiles
 )
 
