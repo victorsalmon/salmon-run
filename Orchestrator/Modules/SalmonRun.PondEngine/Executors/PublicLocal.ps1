@@ -24,6 +24,8 @@ param(
     [Parameter(Mandatory)]
     [string]$RepoDir,
 
+    [string]$Provider = 'local',
+
     [Parameter(Mandatory, ValueFromRemainingArguments=$true)]
     [string[]]$PlanFiles
 )

@@ -1,16 +1,28 @@
-# Executors/OpenRouter.ps1
-# Placeholder for an OpenRouter provider. The harness-defaults.json already
-# reserves the provider/model mapping; this file prevents a missing-executor
-# load error and gives a clear message until the executor is implemented.
+<#
+.SYNOPSIS
+    Public-safe stub for the OpenRouter provider executor.
 
-function Initialize-Executor {
-    throw "OpenRouter executor is not yet implemented. Use -Harness opencode -Provider opencode-go or -Harness devin."
-}
+.DESCRIPTION
+    This file is a placeholder for the public salmon-run package. It does not
+    contain fleet-specific hostnames, credentials, PII, or internal tooling.
+    See ExternalPublicSafe.ps1 for the shared implementation.
+#>
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)]
+    [ValidateSet('coder','reviewer','auditor','qa','planner','project','project-planner','project-reviewer')]
+    [string]$Role,
 
-function Test-ExecutorPreflight { param([string]$AgentPath); return $true }
-function Start-StreamCoder { throw "OpenRouter executor is not yet implemented." }
-function New-ExecutorTask { return $null }
-function Stop-ExecutorTask { param($Task) }
-function Get-ExecutorTaskStatus { param($Task) }
-function Clear-AgentArtifacts { param([string]$AgentId, [string]$RepoDir) }
-function Invoke-ExecutorMerge { throw "OpenRouter merge is not yet implemented." }
+    [Parameter(Mandatory)]
+    [string]$LanePath,
+
+    [Parameter(Mandatory)]
+    [string]$RepoDir,
+
+    [string]$Provider = 'openrouter',
+
+    [Parameter(Mandatory, ValueFromRemainingArguments=$true)]
+    [string[]]$PlanFiles
+)
+
+& (Join-Path $PSScriptRoot 'ExternalPublicSafe.ps1') -Role $Role -LanePath $LanePath -RepoDir $RepoDir -Provider $Provider -PlanFiles $PlanFiles

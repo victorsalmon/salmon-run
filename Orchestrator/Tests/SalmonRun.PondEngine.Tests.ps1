@@ -471,6 +471,34 @@ Describe 'Pond rescue' -Tag 'PondEngine', 'Regression-Only' {
     }
 }
 
+Describe 'Pond public executor safety' -Tag 'PondEngine', 'Regression-Only' {
+    It 'does not leak private hostnames, internal paths, or credential values in executor scripts' {
+        $repoRoot = (Get-Item $PSCommandPath).Directory.Parent.Parent.FullName
+        $executorsDir = Join-Path $repoRoot 'Orchestrator/Modules/SalmonRun.PondEngine/Executors'
+        $privatePatterns = @(
+            'salmon-orchestrator'
+            'dsh-adapter'
+            'mcp_opencode'
+            'DSO_ACP_AUTH_API_KEY'
+            'OC_STREAM'
+            'OC_RESERVATION'
+            'OC_PROJECT_ROOT'
+            'Get-SkillsRoot'
+            'New-AgentWorktree'
+            'Write-OrchestratorLog\s+".*platform.*:'
+            'http://mcp_'
+        )
+        $files = Get-ChildItem -Path $executorsDir -Filter '*.ps1' -File
+        $files.Count | Should -BeGreaterThan 0
+        foreach ($file in $files) {
+            $content = Get-Content -LiteralPath $file.FullName -Raw
+            foreach ($pattern in $privatePatterns) {
+                $content -match $pattern | Should -Be $false -Because "file $($file.Name) should not contain '$pattern'"
+            }
+        }
+    }
+}
+
 Describe 'Pond capacity' -Tag 'PondEngine', 'Regression-Only' {
     It 'allows work when crash history is empty' {
         $result = & (Get-Module SalmonRun.PondEngine) { Get-PondCapacity -CrashHistory $null }
