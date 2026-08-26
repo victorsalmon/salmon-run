@@ -203,3 +203,84 @@ Describe 'Pond executor registry' -Tag 'PondEngine', 'Regression-Only' {
         }
     }
 }
+
+Describe 'Pond connascence helpers' -Tag 'PondEngine', 'Regression-Only' {
+    It 'extracts namespace from a plan filename' {
+        & (Get-Module SalmonRun.PondEngine) { Get-PondFileNamespace -FileName '2026-08-25-transfer-salmon-orchestrator-to-salmon-run.md' } | Should -Be 'transfer-salmon-orchestrator-to-salmon-run'
+        & (Get-Module SalmonRun.PondEngine) { Get-PondFileNamespace -FileName 'ns-test-1-task.md' } | Should -Be 'ns-test'
+        & (Get-Module SalmonRun.PondEngine) { Get-PondFileNamespace -FileName 'orphan.md' } | Should -Be 'ungrouped'
+    }
+
+    It 'groups files by namespace' {
+        $td = New-Item -ItemType Directory -Path (Join-Path $TestDrive "connascence-$(Get-Random)") -Force
+        try {
+            $null = New-Item -ItemType File -Path (Join-Path $td '2026-08-25-a-1.md') -Force
+            $null = New-Item -ItemType File -Path (Join-Path $td '2026-08-25-a-2.md') -Force
+            $null = New-Item -ItemType File -Path (Join-Path $td 'b-standalone.md') -Force
+            $groups = & (Get-Module SalmonRun.PondEngine) { param($d) Get-PondNamespaceGroups -Directory $d } $td
+            $groups | Should -HaveCount 2
+            ($groups | Where-Object { $_.Namespace -eq 'a' }).Files.Count | Should -Be 2
+            ($groups | Where-Object { $_.Namespace -eq 'b-standalone' }).Files.Count | Should -Be 1
+        } finally {
+            Remove-Item $td -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+Describe 'Pond rescue' -Tag 'PondEngine', 'Regression-Only' {
+    It 'rescues stale files from Working to Code' {
+        $td = New-Item -ItemType Directory -Path (Join-Path $TestDrive "rescue-$(Get-Random)") -Force
+        try {
+            $null = New-Item -ItemType Directory -Path (Join-Path $td 'Working') -Force
+            $null = New-Item -ItemType Directory -Path (Join-Path $td 'Code') -Force
+            $file = Join-Path $td 'Working/stale.md'
+            "# plan" | Set-Content -LiteralPath $file -Encoding utf8 -NoNewline
+            (Get-Item $file).LastWriteTime = (Get-Date).AddSeconds(-600)
+
+            $result = & (Get-Module SalmonRun.PondEngine) { param($s,$t) Invoke-PondRescue -SourceDir $s -TargetDir $t -StaleThresholdSeconds 300 } (Join-Path $td 'Working') (Join-Path $td 'Code')
+            $result.Rescued | Should -Be 1
+            Join-Path $td 'Code/stale.md' | Should -Exist
+            $file | Should -Not -Exist
+        } finally {
+            Remove-Item $td -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'does not rescue fresh files' {
+        $td = New-Item -ItemType Directory -Path (Join-Path $TestDrive "rescue-$(Get-Random)") -Force
+        try {
+            $null = New-Item -ItemType Directory -Path (Join-Path $td 'Working') -Force
+            $null = New-Item -ItemType Directory -Path (Join-Path $td 'Code') -Force
+            $file = Join-Path $td 'Working/fresh.md'
+            "# plan" | Set-Content -LiteralPath $file -Encoding utf8 -NoNewline
+
+            $result = & (Get-Module SalmonRun.PondEngine) { param($s,$t) Invoke-PondRescue -SourceDir $s -TargetDir $t -StaleThresholdSeconds 300 } (Join-Path $td 'Working') (Join-Path $td 'Code')
+            $result.Rescued | Should -Be 0
+            $file | Should -Exist
+        } finally {
+            Remove-Item $td -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+Describe 'Pond capacity' -Tag 'PondEngine', 'Regression-Only' {
+    It 'allows work when crash history is empty' {
+        $result = & (Get-Module SalmonRun.PondEngine) { Get-PondCapacity -CrashHistory $null }
+        $result | Should -Be $true
+    }
+
+    It 'throttles when recent crashes exceed threshold' {
+        $crashes = [System.Collections.Generic.List[datetime]]::new()
+        $now = Get-Date
+        for ($i = 0; $i -lt 3; $i++) { $crashes.Add($now.AddSeconds(-$i)) }
+        $result = & (Get-Module SalmonRun.PondEngine) { param($c) Get-PondCapacity -CrashHistory $c -MaxCrashesPerWindow 3 } $crashes
+        $result | Should -Be $false
+    }
+
+    It 'returns increasing backoff delay with more crashes' {
+        $crashes = [System.Collections.Generic.List[datetime]]::new()
+        for ($i = 0; $i -lt 3; $i++) { $crashes.Add((Get-Date).AddMinutes(-$i)) }
+        $delay = & (Get-Module SalmonRun.PondEngine) { param($c) Get-PondCrashThrottleDelay -CrashHistory $c } $crashes
+        $delay | Should -BeGreaterThan 0
+    }
+}
