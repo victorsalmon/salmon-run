@@ -8,7 +8,7 @@
     PowerShellVersion = '7.0'
     # Uses: Core (Write-AtomicFile, Write-AtomicJson), Paths (Get-InterclawRepoRoot), Diagnostics (Write-SetupLog, Get-ReportsDir)
     RequiredModules = @('SalmonRun.Core', 'SalmonRun.Process')
-    FunctionsToExport = @('Add-SetupError','Export-SetupErrors','Set-SetupCheckpoint','Test-SetupCheckpoint','Clear-SetupCheckpoints','New-SetupErrorsTasksFile','Invoke-DeployStatePhase','Invoke-CredentialCleanup','Clear-DeployState')
+    FunctionsToExport = @('Add-SetupError','Export-SetupErrors','Set-SetupCheckpoint','Test-SetupCheckpoint','Clear-SetupCheckpoints','New-SetupErrorsTasksFile','Invoke-DeployStatePhase','Invoke-CredentialCleanup','Clear-DeployState','ConvertFrom-PSCustomObjectToHashtable')
     AliasesToExport = @('Invoke-SetupPhase')
     PrivateData = @{ PSData = @{ } }
 }

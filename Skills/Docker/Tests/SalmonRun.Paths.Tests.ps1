@@ -10,8 +10,10 @@ Describe "SalmonRun.Paths Module FunctionsToExport" -Tag "Paths", "Regression-On
         $exports | Should -Contain "Get-RepoRoot"
         $exports | Should -Contain "Get-SkillsRoot"
         $exports | Should -Contain "Resolve-SkillPath"
+        $exports | Should -Contain "Get-SalmonHome"
+        $exports | Should -Contain "Get-SalmonTaskRoot"
         $exports | Should -Contain "Reset-SalmonRunPathCache"
-        $exports.Count | Should -Be 6
+        $exports.Count | Should -Be 8
     }
 
     It "exports the 2 expected aliases" {

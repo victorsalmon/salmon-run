@@ -482,7 +482,8 @@ Export-ModuleMember -Function @(
     'New-SetupErrorsTasksFile',
     'Invoke-DeployStatePhase',
     'Invoke-CredentialCleanup',
-    'Clear-DeployState'
+    'Clear-DeployState',
+    'ConvertFrom-PSCustomObjectToHashtable'
 )
 Export-ModuleMember -Alias 'Invoke-SetupPhase'
 
