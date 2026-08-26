@@ -2,9 +2,20 @@
 
 Describe "SalmonRun.GitCloud Module" -Tag "GitCloud", "Regression-Only" {
     BeforeAll {
+        $repoRoot = (Get-Item $PSScriptRoot).Parent.Parent.Parent.FullName
+        $orchModules = Join-Path $repoRoot 'Orchestrator' 'Modules'
+        $skillModules = Join-Path $repoRoot 'Skills' 'Docker' 'Modules'
+        $sep = [System.IO.Path]::PathSeparator
+        if ($env:PSModulePath) {
+            $env:PSModulePath = "$orchModules$sep$skillModules$sep$env:PSModulePath"
+        } else {
+            $env:PSModulePath = "$orchModules$sep$skillModules"
+        }
+
         $modulePath = Join-Path $PSScriptRoot '..' 'Modules' 'SalmonRun.GitCloud' 'SalmonRun.GitCloud.psd1'
         $script:GitCloudModule = Import-Module -Name $modulePath -Force -ErrorAction Stop -PassThru
         $env:SALMON_RUN_GITCLOUD_TOKEN = 'fallback-token'
+        $env:WORKTREE_HOST = 'https://worktree.example'
     }
 
     AfterAll {
@@ -15,6 +26,7 @@ Describe "SalmonRun.GitCloud Module" -Tag "GitCloud", "Regression-Only" {
         Remove-Item Env:\SALMON_RUN_GITCLOUD_TOKEN_PUSH -ErrorAction SilentlyContinue
         Remove-Item Env:\GITHUB_TOKEN -ErrorAction SilentlyContinue
         Remove-Item Env:\WORKTREE_REPO_RW_ACCESS_TOKEN -ErrorAction SilentlyContinue
+        Remove-Item Env:\WORKTREE_HOST -ErrorAction SilentlyContinue
     }
 
     It "exports the expected public functions and aliases" {
@@ -79,9 +91,14 @@ Describe "SalmonRun.GitCloud Module" -Tag "GitCloud", "Regression-Only" {
             $url | Should -Be 'https://github.com/example/salmon-run.git'
         }
 
-        It "resolves Worktree HTTPS URL" {
+        It "resolves Worktree HTTPS URL from the configured host" {
             $url = Get-SalmonRunGitCloudRemoteUrl -Provider Worktree -Owner 'example' -Repo 'salmon-run'
-            $url | Should -Be 'https://worktree.ca/example/salmon-run.git'
+            $url | Should -Be 'https://worktree.example/example/salmon-run.git'
+        }
+
+        It "accepts an explicit Worktree host" {
+            $url = Get-SalmonRunGitCloudRemoteUrl -Provider Worktree -Owner 'example' -Repo 'salmon-run' -WorktreeHost 'https://git.example'
+            $url | Should -Be 'https://git.example/example/salmon-run.git'
         }
     }
 
