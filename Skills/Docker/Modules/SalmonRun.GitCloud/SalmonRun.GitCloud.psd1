@@ -4,7 +4,7 @@
     GUID                   = 'a2f4c8e1-6d3b-4e9a-bc7f-8d1e2f3a4b5c'
     Author                 = 'Salmon Run'
     CompanyName            = 'Salmon Run'
-    Description            = 'Git-hosting abstraction for Salmon Run: token resolution, authenticated push, CI status, and repo secrets for GitHub and worktree.ca providers.'
+    Description            = 'Git-hosting abstraction for Salmon Run: token resolution, authenticated push, CI status, and repo secrets for GitHub and Gitea-compatible Worktree hosts.'
     PowerShellVersion      = '7.0'
     RequiredModules        = @('SalmonRun.Core')
     FunctionsToExport      = @(
@@ -24,7 +24,7 @@
     )
     PrivateData = @{
         PSData = @{
-            Tags = @('git', 'github', 'worktree', 'ci')
+            Tags = @('git', 'github', 'worktree', 'gitea', 'ci')
         }
     }
 }

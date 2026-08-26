@@ -1,7 +1,7 @@
 function Get-WorktreeToken {
     <#
     .SYNOPSIS
-        Resolves a worktree.ca API token.
+        Resolves a Worktree / Gitea-compatible API token.
     .DESCRIPTION
         Reads from the env var WORKTREE_REPO_RW_ACCESS_TOKEN by default.
         Accepts an override hashtable for pre-resolved secrets.

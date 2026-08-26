@@ -143,7 +143,7 @@ function Write-WorkflowEvent {
         if ($_.Exception.Message -match "concurrent access detected") { throw }
     } finally {
         if ($mutex) {
-            try { $mutex.Release() } catch { Write-Debug "Write-WorkflowEvent mutex release failed: $_" }
+            try { $null = $mutex.Release() } catch { Write-Debug "Write-WorkflowEvent mutex release failed: $_" }
             $mutex.Dispose()
         }
     }

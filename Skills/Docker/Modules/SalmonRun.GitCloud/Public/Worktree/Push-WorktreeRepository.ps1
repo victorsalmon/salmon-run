@@ -1,26 +1,30 @@
 function Push-WorktreeRepository {
     <#
     .SYNOPSIS
-        Pushes the current Git repository to worktree.ca.
+        Pushes the current Git repository to a Worktree / Gitea-compatible host.
     .DESCRIPTION
         Resolves the remote URL and current branch, then invokes a git push with
-        a temporary GIT_ASKPASS helper. The worktree quarantine pack limit can be
+        a temporary GIT_ASKPASS helper. The Worktree quarantine pack limit can be
         avoided by setting -SplitThreshold to a positive number of changed files;
         the function then pushes commit-by-commit in small batches.
     .PARAMETER Owner
-        Repository owner/organization on worktree.ca.
+        Repository owner/organization on the Worktree / Gitea-compatible host.
     .PARAMETER Repo
-        Repository name on worktree.ca.
+        Repository name on the Worktree / Gitea-compatible host.
     .PARAMETER Branch
         Branch to push. Defaults to the current branch.
     .PARAMETER Token
-        worktree.ca API token. If omitted, resolved via Get-WorktreeToken.
+        Worktree API token. If omitted, resolved via Get-WorktreeToken.
     .PARAMETER EnvVarName
         Optional env var name override for token resolution.
     .PARAMETER SplitThreshold
         If the working tree has more modified files than this threshold, the
         current commit range is split into smaller sequential commits and pushed
         one batch at a time. Set to 0 (default) to disable batching.
+    .PARAMETER WorktreeHost
+        Optional Worktree / Gitea-compatible host. Defaults to the configured
+        WORKTREE_HOST (from ~/.salmon/.env or $env:WORKTREE_HOST), falling back
+        to https://worktree.example.
     #>
     [CmdletBinding()]
     [OutputType([pscustomobject])]
@@ -37,7 +41,9 @@ function Push-WorktreeRepository {
 
         [string]$EnvVarName,
 
-        [int]$SplitThreshold = 0
+        [int]$SplitThreshold = 0,
+
+        [string]$WorktreeHost
     )
 
     $resolvedToken = if ($Token) { $Token } else { Get-WorktreeToken -EnvVarName $EnvVarName }
@@ -45,7 +51,7 @@ function Push-WorktreeRepository {
         throw "Push-WorktreeRepository: no worktree token available. Set WORKTREE_REPO_RW_ACCESS_TOKEN or pass -Token."
     }
 
-    $remoteUrl = Get-SalmonRunGitCloudRemoteUrl -Provider Worktree -Owner $Owner -Repo $Repo
+    $remoteUrl = Get-SalmonRunGitCloudRemoteUrl -Provider Worktree -Owner $Owner -Repo $Repo -WorktreeHost $WorktreeHost
     $pushBranch = if ($Branch) { $Branch } else { (git branch --show-current 2>$null) }
     if ([string]::IsNullOrWhiteSpace($pushBranch)) {
         throw "Push-WorktreeRepository: could not determine current branch. Run from a git checkout."
