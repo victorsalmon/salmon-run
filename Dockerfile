@@ -2,8 +2,7 @@
 FROM mcr.microsoft.com/powershell:latest
 
 LABEL org.opencontainers.image.title="salmon-run" \
-      org.opencontainers.image.description="File-based Kanban control plane with pond dispatch and model routing" \
-      org.opencontainers.image.source="https://worktree.ca/clocklobster/salmon-run"
+      org.opencontainers.image.description="File-based Kanban control plane with pond dispatch and model routing"
 
 WORKDIR /salmon-run
 
