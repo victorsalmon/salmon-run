@@ -219,6 +219,13 @@ Describe "Start-Orchestrator function" -Tag "Orchestrate" {
         $execParam = $paramBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq 'Executor' }
         $execParam.DefaultValue.Extent.Text | Should -Match '"local"'
     }
+
+    It "has UsePondEngine switch" {
+        . (Join-Path $script:OrchestratePublic "Start-Orchestrator.ps1")
+        $cmd = Get-Command Start-Orchestrator
+        $cmd.Parameters.ContainsKey('UsePondEngine') | Should -Be $true
+        $cmd.Parameters['UsePondEngine'].ParameterType.Name | Should -Be "SwitchParameter"
+    }
 }
 
 Describe "SalmonRun.Orchestrate Executor scripts" -Tag "Orchestrate" {

@@ -112,7 +112,8 @@ param(
     [ValidateRange(1, 480)]
     [int]$IdleTimeoutMinutes = 30,
     [ValidateRange(0, 10)]
-    [int]$ModuleCount = 1
+    [int]$ModuleCount = 1,
+    [switch]$UsePondEngine
 )
 
 function Wait-PokeOrSeconds {
@@ -139,6 +140,20 @@ try {
 # ─── Compute project root early (used by Write-OrchestratorLog, mutex, etc.) ──
 $RepoDir = $script:RepoRoot
 $script:SkillsRoot = Get-SkillsRoot -RepoRoot $RepoDir
+
+# ─── Opt-in PondEngine dispatch ───────────────────────────────────────────
+if ($UsePondEngine) {
+    $null = Import-Module SalmonRun.PondEngine -Force -ErrorAction Stop
+    Write-Verbose "Start-Orchestrator: delegating to PondEngine (taskRoot=$(Get-SalmonTaskRoot))"
+    $pondEngineParams = @{
+        RepoDir                  = $RepoDir
+        MaxIterations            = $MaxIterations
+        SubprocessTimeoutMinutes = $SubprocessTimeoutMinutes
+        PollIntervalSeconds      = $PollIntervalSeconds
+    }
+    if ($PSBoundParameters.ContainsKey('Verbose') -and $PSBoundParameters['Verbose']) { $pondEngineParams['Verbose'] = $true }
+    return Start-PondEngine @pondEngineParams
+}
 
 # ─── Set up logging environment before any code that might log ─────────────────
 if (-not $env:INTERCLAW_SETUP_LOG) {
