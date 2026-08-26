@@ -12,6 +12,8 @@ Tasks.*/
 config.json
 config.local.json
 *.local.json
+.env
+.env.local
 .secrets
 secrets.json
 *.secrets

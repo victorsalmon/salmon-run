@@ -52,6 +52,14 @@ foreach ($rel in $taskDirs) {
     }
 }
 
+# Seed an .env file for credential redirects if one does not already exist
+$envExample = Join-Path $PSScriptRoot 'dot-salmon.example' '.env.example'
+$envDest = Join-Path $RuntimeHome '.env'
+if ((Test-Path $envExample) -and -not (Test-Path $envDest)) {
+    Copy-Item -Path $envExample -Destination $envDest -Force
+    Write-Host "Seeded $envDest from .env.example; edit it with your credential redirects." -ForegroundColor Yellow
+}
+
 # Persist SALMON_RUN_HOME for the current user
 [Environment]::SetEnvironmentVariable('SALMON_RUN_HOME', $RuntimeHome, 'User')
 $env:SALMON_RUN_HOME = $RuntimeHome
