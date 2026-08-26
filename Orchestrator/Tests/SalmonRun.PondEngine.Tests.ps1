@@ -140,7 +140,7 @@ Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
     It 'can construct a PondStream with default lanes' {
         $stream = New-PondStream -Id 'stream-1' -Branch 'main' -Path 'C:\temp\repo'
         $stream | Should -Not -BeNullOrEmpty
-        $stream.Lanes.Count | Should -Be 9
+        $stream.Lanes.Count | Should -Be 10
     }
 
     It 'has the expected role lane counts' {
@@ -152,12 +152,14 @@ Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
         $qa = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'qa' }).Count
         $projectPlanner = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'project-planner' }).Count
         $projectReviewer = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'project-reviewer' }).Count
+        $archiver = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'archiver' }).Count
         $coder | Should -Be 3
         $reviewer | Should -Be 1
         $auditor | Should -Be 1
         $qa | Should -Be 1
         $projectPlanner | Should -Be 2
         $projectReviewer | Should -Be 1
+        $archiver | Should -Be 1
     }
 }
 
@@ -321,6 +323,35 @@ Describe 'Project and ProjectReview pipeline' -Tag 'PondEngine', 'Regression-Onl
             Join-Path $tempDir "Tasks/Complete/$planName" | Should -Exist
             Join-Path $tempDir "Tasks/Project/$planName" | Should -Not -Exist
             Join-Path $tempDir "Tasks/Failed/$planName" | Should -Not -Exist
+        } finally {
+            $env:SALMON_RUN_HOME = $saved
+        }
+    }
+}
+
+Describe 'Pond archive task' -Tag 'PondEngine', 'Regression-Only' {
+    It 'archives plans older than the configured age and leaves recent plans' {
+        $tempDir = Join-Path $TestDrive 'pondengine-archive'
+        foreach ($sub in @('Tasks/Code','Tasks/Review','Tasks/Audit','Tasks/QA','Tasks/Complete','Tasks/Archive','Tasks/Working','Tasks/Paused','Tasks/Failed','Tasks/Project','Tasks/ProjectReview')) {
+            $null = New-Item -ItemType Directory -Path (Join-Path $tempDir $sub) -Force
+        }
+
+        $oldPlan = '2026-08-01-old-plan.md'
+        $newPlan = '2026-08-26-new-plan.md'
+        $oldContent = "# Old Plan`n**Status**: complete`n"
+        $newContent = "# New Plan`n**Status**: complete`n"
+        $oldContent | Set-Content -LiteralPath (Join-Path $tempDir "Tasks/Complete/$oldPlan") -Encoding utf8 -NoNewline
+        $newContent | Set-Content -LiteralPath (Join-Path $tempDir "Tasks/Complete/$newPlan") -Encoding utf8 -NoNewline
+        (Get-Item -LiteralPath (Join-Path $tempDir "Tasks/Complete/$oldPlan")).LastWriteTime = (Get-Date).AddDays(-10)
+
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Join-Path $tempDir "Tasks/Complete/$oldPlan" | Should -Not -Exist
+            Join-Path $tempDir "Tasks/Complete/$newPlan" | Should -Exist
+            $archives = Get-ChildItem -Path (Join-Path $tempDir 'Tasks/Archive') -Filter '*.zip'
+            $archives.Count | Should -BeGreaterThan 0
         } finally {
             $env:SALMON_RUN_HOME = $saved
         }
