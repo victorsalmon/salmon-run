@@ -54,6 +54,13 @@ function Start-PondEngine {
     for ($context.Iteration = 1; $context.Iteration -le $MaxIterations; $context.Iteration++) {
         $didWork = $false
 
+        # Rescue stale in-progress files before scanning ponds
+        $rescue = Invoke-PondRescue -SourceDir (Join-Path $TaskRoot 'Tasks/Working') -TargetDir (Join-Path $TaskRoot 'Tasks/Code') -StaleThresholdSeconds $PollIntervalSeconds
+        if ($rescue.Rescued -gt 0) {
+            Write-Verbose "PondEngine: rescued $($rescue.Rescued) stale working file(s)"
+            $didWork = $true
+        }
+
         foreach ($pond in $Ponds) {
             $context.CurrentPond = $pond
             if (-not $pond.Entry.Enabled) { continue }
@@ -71,6 +78,12 @@ function Start-PondEngine {
                 $context.CurrentGroup = $group
                 $context.Continue = $true
                 $context.Success = $false
+
+                if (-not (Get-PondCapacity -CrashHistory $context.CrashHistory)) {
+                    Write-Verbose "PondEngine: throttled by crash capacity"
+                    Start-Sleep -Milliseconds (Get-PondCrashThrottleDelay -CrashHistory $context.CrashHistory)
+                    continue
+                }
 
                 $lane = Get-FreePondLane -Pond $pond -Context $context
                 if (-not $lane) {
