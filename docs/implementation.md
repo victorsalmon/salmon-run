@@ -1,9 +1,9 @@
 # salmon-run — Implementation Evidence Ledger
 
-> Appraisal date: **2026-08-26**  
-> Last verified: **2026-08-26**  
+> Appraisal date: **2026-08-27**  
+> Last verified: **2026-08-27**  
 > Evidence scope: `C:\Repos\Public\salmon-run`. The private `salmon-orchestrator` repo is cited as the canonical source but was not directly inspected for this public-package appraisal.  
-> Freshness: Code and tests were active through 2026-08-25/26. The README explicitly states the public package is a projection skeleton and that the full leak-clean pass is pending.
+> Freshness: Wave 1–4 integrated on `main`; full test suite and leak check pass.
 
 ## How to read this ledger
 
@@ -21,6 +21,16 @@ Each feature is scored for **production readiness** using the appraisal scale:
 | 100 | Production working and evidenced end-to-end, including release, security/compliance, monitoring, recovery, and acceptance gates |
 
 Scores are not averages; they reflect the weakest unaddressed gate for that feature.
+
+## 2026-08-27 Integration pass
+
+- PondLog I/O standardization, packaging, OpenCode, and DSH waves merged to `main`.
+- `Orchestrator/Tests`: **408 passed / 0 failed / 3 skipped**.
+- `Skills/Docker/Tests`: **103 passed / 0 failed / 0 skipped**.
+- `Invoke-LeakCheck.ps1`: **No private references found.**
+- `install.ps1` completes in a fresh `pwsh -NoProfile` session and imports `SalmonRun.PondEngine`.
+- `Start-SalmonRun.ps1 -DryRun` runs without error.
+- Remaining deferred work: Devin, OpenRouter, DeepInfra executors; Mermaid repo chunking; Docker/Swarm packaging.
 
 ---
 

@@ -23,10 +23,25 @@ logs, or secrets are committed.
 
 ## State
 
-This repository is a public packaging skeleton. The canonical source-of-truth
-remains the private `salmon-orchestrator` implementation. The `scripts/` folder
-contains a sync-and-scrub toolkit; the actual canonical projection will land
-here after a full leak-clean pass.
+The public package is now an installable, leak-clean control plane. Wave 1–4
+(PondLog I/O standardization, packaging, OpenCode, and DSH executors) are
+integrated on `main`, with passing `Orchestrator/Tests` (408) and
+`Skills/Docker/Tests` (103). `Invoke-LeakCheck.ps1` reports no private
+references.
+
+The canonical source-of-truth remains the private `salmon-orchestrator`
+implementation; `salmon-run` is the scrubbed, generalized mirror.
+
+## Quick start
+
+```powershell
+.\install.ps1
+Start-SalmonRun.ps1 -DryRun
+```
+
+`install.ps1` copies modules to `~/.salmon/Modules`, wires `PSModulePath`, and
+verifies a fresh `Import-Module SalmonRun.PondEngine`.
+
 
 ## Personal data layout
 
