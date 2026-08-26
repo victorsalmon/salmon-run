@@ -1,5 +1,9 @@
 {
   "harnesses": {
+    "local": {
+      "description": "In-process PowerShell executor for public salmon-run",
+      "defaultProvider": "local"
+    },
     "opencode": {
       "description": "OpenCode CLI and compatible providers",
       "defaultProvider": "opencode-go"
@@ -18,6 +22,17 @@
     }
   },
   "providers": {
+    "local": {
+      "cli": "powershell",
+      "defaultModel": "local",
+      "defaultEffort": "default",
+      "acceptedEfforts": ["default"],
+      "executorFile": "PublicLocal",
+      "credentials": [],
+      "models": {
+        "local": { "defaultEffort": "default" }
+      }
+    },
     "modelFailover": [
       { "model": "openrouter/stealth/ox-alpha", "variant": "max" },
       { "model": "opencode-go/ox-alpha-free", "variant": "max" },
@@ -31,6 +46,7 @@
       "defaultEffort": "max",
       "acceptedEfforts": ["max", "default", "high"],
       "executorFile": "Opencode",
+      "credentials": ["OPENCODE_GO_KEY"],
       "models": {
         "opencode-go/ox-alpha-free": { "defaultEffort": "max" },
         "openrouter/stealth/ox-alpha": { "defaultEffort": "max" },
@@ -45,6 +61,7 @@
       "defaultEffort": "max",
       "acceptedEfforts": ["max", "default"],
       "executorFile": "Opencode",
+      "credentials": ["OPENCODE_GO_KEY"],
       "models": {
         "opencode/hy3-free": { "defaultEffort": "max" },
         "opencode/mimo-v2.5-free": { "defaultEffort": "default" }
@@ -56,6 +73,7 @@
       "defaultEffort": "medium",
       "acceptedEfforts": ["medium", "max"],
       "executorFile": "Devin",
+      "credentials": ["DEVIN_API_KEY"],
       "models": {
         "swe-1-7": { "defaultEffort": "medium" }
       }
@@ -66,6 +84,7 @@
       "defaultEffort": "max",
       "acceptedEfforts": ["medium", "high", "max"],
       "executorFile": "Dsh",
+      "credentials": ["DSH_API_KEY"],
       "models": {
         "deepseek-v4-flash": { "defaultEffort": "max" },
         "deepseek-v4-pro": { "defaultEffort": "max" }
@@ -77,6 +96,7 @@
       "defaultEffort": "max",
       "acceptedEfforts": ["max", "default"],
       "executorFile": "OpenRouter",
+      "credentials": ["OPENROUTER_API_KEY"],
       "models": {
         "deepseek/deepseek-v4-flash": { "defaultEffort": "max" },
         "deepseek/deepseek-v4-pro": { "defaultEffort": "max" }
@@ -88,6 +108,7 @@
       "defaultEffort": "medium",
       "acceptedEfforts": ["low", "medium", "high", "xhigh"],
       "executorFile": "DeepInfra",
+      "credentials": ["OPENAI_API_KEY"],
       "models": {
         "deepseek-ai/DeepSeek-V4-Flash-0731": { "defaultEffort": "medium" }
       }

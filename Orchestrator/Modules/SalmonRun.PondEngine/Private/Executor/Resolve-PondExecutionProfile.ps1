@@ -8,7 +8,7 @@ function Resolve-PondExecutionProfile {
     [OutputType([PondExecutionProfile])]
     param(
         [Parameter(Mandatory)]
-        [ValidateSet('Flash','Daily','Complex','Frontier')]
+        [ValidateSet('Flash','Daily','Complex','Frontier','Local')]
         [string]$Tier,
 
         [string[]]$PlanFiles
@@ -66,6 +66,8 @@ function Resolve-PondExecutionProfile {
     $profile.Effort       = $effort
     $profile.Cli          = $providerCfg['cli']
     $profile.ExecutorFile = $providerCfg['executorFile']
+    $profile.TimeoutMinutes = if ($providerCfg['defaultTimeoutMinutes']) { $providerCfg['defaultTimeoutMinutes'] } else { 30 }
+    $profile.Credentials  = [string[]](@($providerCfg['credentials'] | Where-Object { $_ -ne $null }))
 
     return $profile
 }

@@ -24,7 +24,7 @@ function Invoke-PondTaskModelRoute {
     $tier = 'Daily'
     if ($content -match '(?im)^\*\*Challenge\*\*:\s*(?<value>[^\r\n]+)') {
         $tier = $Matches['value'].Trim()
-        if ($tier -notin @('Flash','Daily','Complex','Frontier')) {
+        if ($tier -notin @('Flash','Daily','Complex','Frontier','Local')) {
             Write-Verbose "Invoke-PondTaskModelRoute: unknown Challenge '$tier'; defaulting to Daily"
             $tier = 'Daily'
         }

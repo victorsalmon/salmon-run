@@ -59,6 +59,8 @@ class PondExecutionProfile {
     [string]$Effort
     [string]$Cli
     [string]$ExecutorFile
+    [int]$TimeoutMinutes
+    [string[]]$Credentials
 }
 
 class Pond {

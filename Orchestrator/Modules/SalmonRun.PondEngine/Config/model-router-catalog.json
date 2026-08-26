@@ -25,6 +25,26 @@
   },
   "models": [
     {
+      "canonicalName": "Salmon/Local",
+      "harness": "local",
+      "provider": "local",
+      "model": "local",
+      "effort": "default",
+      "tier": "Local",
+      "costRule": "free",
+      "apiCostPer1KTokens": 0.0,
+      "effectiveCostPer1KTokens": 0.0,
+      "capabilityScore": 1,
+      "benchmarks": {
+        "sweBench": 0.0,
+        "aime2024": 0.0,
+        "terminalBench21": 0.0,
+        "mmlu": 0.0
+      },
+      "cacheContract": "none",
+      "notes": "Default in-process local executor for testing and public packaging."
+    },
+    {
       "canonicalName": "OCG/Ox-Alpha",
       "harness": "opencode",
       "provider": "opencode-go",

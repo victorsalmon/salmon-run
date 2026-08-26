@@ -44,16 +44,26 @@ function Get-PondCandidates {
             continue
         }
 
-        # DependencyReady is satisfied by a ready-set or Status: ready header
+        # DependencyReady: if the plan declares DependsOn entries, they must
+        # exist in a completion pond (Complete, Archive, or ProjectReview).
         if ($Pond.Entry.DependencyReady) {
-            $readyRe = '(?im)^\*\*Status\*\*:\s*ready\b'
             $dependsRe = '(?im)^\*\*DependsOn\*\*:\s*(?<value>[^\r\n]+)'
-            $hasDeps = $content -match $dependsRe
-            $isReady = $content -match $readyRe
-            if ($hasDeps -and -not $isReady) {
-                Write-Verbose "Get-PondCandidates: skipping dependency-not-ready plan $($f.Name)"
-                continue
+            $depMatches = [regex]::Matches($content, $dependsRe)
+            $unsatisfied = $false
+            foreach ($m in $depMatches) {
+                $deps = $m.Groups['value'].Value.Trim() -split ',\s*'
+                foreach ($d in $deps) {
+                    $d = $d.Trim()
+                    if ([string]::IsNullOrWhiteSpace($d)) { continue }
+                    if (-not (Test-PlanDependencySatisfied -Dependency $d -Context $Context)) {
+                        Write-Verbose "Get-PondCandidates: skipping plan $($f.Name) with unsatisfied dependency '$d'"
+                        $unsatisfied = $true
+                        break
+                    }
+                }
+                if ($unsatisfied) { break }
             }
+            if ($unsatisfied) { continue }
         }
 
         # Required headers must be present; otherwise park the plan

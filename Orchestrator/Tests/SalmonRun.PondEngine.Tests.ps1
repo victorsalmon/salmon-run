@@ -181,6 +181,8 @@ Describe 'Pond executor registry' -Tag 'PondEngine', 'Regression-Only' {
         $cmd.ExecutorPath | Should -Exist
         $cmd.Command | Should -Match "work-coder-once"
         $cmd.Command | Should -Match $profile.Model
+        $cmd.Credentials | Should -Not -BeNullOrEmpty
+        $cmd.Credentials | Should -Contain 'OPENCODE_GO_KEY'
     }
 
     It 'writes a .run sentinel when spawning an agent' {
@@ -200,6 +202,94 @@ Describe 'Pond executor registry' -Tag 'PondEngine', 'Regression-Only' {
             Join-Path $td '.pid' | Should -Exist
         } finally {
             Remove-Item $td -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+Describe 'Start-PondEngine end-to-end with local executor' -Tag 'PondEngine', 'Regression-Only' {
+    It 'moves a Code plan to Complete using the Local harness' {
+        $tempDir = Join-Path $TestDrive 'pondengine-e2e'
+        foreach ($sub in @('Tasks/Code','Tasks/Review','Tasks/Audit','Tasks/QA','Tasks/Complete','Tasks/Archive','Tasks/Working','Tasks/Paused','Tasks/Failed')) {
+            $null = New-Item -ItemType Directory -Path (Join-Path $tempDir $sub) -Force
+        }
+
+        $planContent = @"
+# E2E Plan
+**Status**: ready
+**Scope**: test
+**Challenge**: Local
+"@
+        $planName = '2026-08-26-e2e-local-test.md'
+        $planContent | Set-Content -LiteralPath (Join-Path $tempDir "Tasks/Code/$planName") -Encoding utf8 -NoNewline
+
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Join-Path $tempDir "Tasks/Complete/$planName" | Should -Exist
+            Join-Path $tempDir "Tasks/Code/$planName" | Should -Not -Exist
+            Join-Path $tempDir "Tasks/Failed/$planName" | Should -Not -Exist
+        } finally {
+            $env:SALMON_RUN_HOME = $saved
+        }
+    }
+}
+
+Describe 'Pond dependency gating' -Tag 'PondEngine', 'Regression-Only' {
+    It 'holds a Code plan until its DependsOn plan reaches Complete' {
+        $tempDir = Join-Path $TestDrive 'pondengine-depends'
+        foreach ($sub in @('Tasks/Code','Tasks/Complete','Tasks/Archive','Tasks/Working','Tasks/Paused','Tasks/Failed')) {
+            $null = New-Item -ItemType Directory -Path (Join-Path $tempDir $sub) -Force
+        }
+
+        $parentContent = @"
+# Parent Plan
+**Status**: complete
+"@
+        $parentContent | Set-Content -LiteralPath (Join-Path $tempDir 'Tasks/Complete/2026-08-26-parent.md') -Encoding utf8 -NoNewline
+
+        $childContent = @"
+# Child Plan
+**Status**: ready
+**Scope**: test
+**Challenge**: Local
+**DependsOn**: 2026-08-26-parent
+"@
+        $childContent | Set-Content -LiteralPath (Join-Path $tempDir 'Tasks/Code/2026-08-26-child.md') -Encoding utf8 -NoNewline
+
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Join-Path $tempDir "Tasks/Complete/2026-08-26-child.md" | Should -Exist
+            Join-Path $tempDir "Tasks/Code/2026-08-26-child.md" | Should -Not -Exist
+        } finally {
+            $env:SALMON_RUN_HOME = $saved
+        }
+    }
+
+    It 'keeps a Code plan in Code when its DependsOn plan is not yet Complete' {
+        $tempDir = Join-Path $TestDrive 'pondengine-depends-blocked'
+        foreach ($sub in @('Tasks/Code','Tasks/Complete','Tasks/Archive','Tasks/Working','Tasks/Paused','Tasks/Failed')) {
+            $null = New-Item -ItemType Directory -Path (Join-Path $tempDir $sub) -Force
+        }
+
+        $childContent = @"
+# Child Plan
+**Status**: ready
+**Scope**: test
+**DependsOn**: 2026-08-26-missing-parent
+"@
+        $childContent | Set-Content -LiteralPath (Join-Path $tempDir 'Tasks/Code/2026-08-26-child.md') -Encoding utf8 -NoNewline
+
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Join-Path $tempDir "Tasks/Code/2026-08-26-child.md" | Should -Exist
+            Join-Path $tempDir "Tasks/Complete/2026-08-26-child.md" | Should -Not -Exist
+        } finally {
+            $env:SALMON_RUN_HOME = $saved
         }
     }
 }
