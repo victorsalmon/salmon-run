@@ -12,6 +12,10 @@ function Get-SalmonRunGitCloudRemoteUrl {
         Repository owner/organization.
     .PARAMETER Repo
         Repository name.
+    .PARAMETER WorktreeHost
+        Optional Worktree / Gitea-compatible host. Defaults to the configured
+        WORKTREE_HOST (from ~/.salmon/.env or $env:WORKTREE_HOST), falling back
+        to https://worktree.example.
     #>
     [CmdletBinding()]
     [OutputType([string])]
@@ -24,12 +28,17 @@ function Get-SalmonRunGitCloudRemoteUrl {
         [string]$Owner,
 
         [Parameter(Mandatory)]
-        [string]$Repo
+        [string]$Repo,
+
+        [string]$WorktreeHost
     )
 
     switch ($Provider) {
         'GitHub'   { return "https://github.com/$Owner/$Repo.git" }
-        'Worktree' { return "https://worktree.ca/$Owner/$Repo.git" }
+        'Worktree' {
+            $host = if ($WorktreeHost) { $WorktreeHost } else { Get-WorktreeHost }
+            return "$host/$Owner/$Repo.git"
+        }
         default    { throw "Unknown GitCloud provider: $Provider" }
     }
 }

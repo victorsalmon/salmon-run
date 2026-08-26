@@ -6,13 +6,17 @@ function Get-WorktreeCiRun {
         Returns objects with run_number, status, and head_sha for the latest
         -Count CI runs.
     .PARAMETER Owner
-        Repository owner/organization on worktree.ca.
+        Repository owner/organization on the Worktree / Gitea-compatible host.
     .PARAMETER Repo
-        Repository name on worktree.ca.
+        Repository name on the Worktree / Gitea-compatible host.
     .PARAMETER Count
         Maximum number of runs to return. Defaults to 3.
     .PARAMETER Token
-        worktree.ca API token. If omitted, resolved via Get-WorktreeToken.
+        Worktree API token. If omitted, resolved via Get-WorktreeToken.
+    .PARAMETER WorktreeHost
+        Optional Worktree / Gitea-compatible host. Defaults to the configured
+        WORKTREE_HOST (from ~/.salmon/.env or $env:WORKTREE_HOST), falling back
+        to https://worktree.example.
     #>
     [CmdletBinding()]
     [OutputType([pscustomobject[]])]
@@ -25,7 +29,9 @@ function Get-WorktreeCiRun {
 
         [int]$Count = 3,
 
-        [string]$Token
+        [string]$Token,
+
+        [string]$WorktreeHost
     )
 
     $resolvedToken = if ($Token) { $Token } else { Get-WorktreeToken }
@@ -33,11 +39,12 @@ function Get-WorktreeCiRun {
         throw "Get-WorktreeCiRun: no worktree token available. Set WORKTREE_REPO_RW_ACCESS_TOKEN or pass -Token."
     }
 
+    $host = if ($WorktreeHost) { $WorktreeHost } else { Get-WorktreeHost }
     $headers = @{
         'Authorization' = "token $resolvedToken"
         'Accept'        = 'application/json'
     }
-    $uri = "https://worktree.ca/api/v1/repos/$Owner/$Repo/actions/tasks"
+    $uri = "$host/api/v1/repos/$Owner/$Repo/actions/tasks"
 
     try {
         $response = Invoke-RestMethod -Uri $uri -Headers $headers -TimeoutSec 30 -ErrorAction Stop
