@@ -26,7 +26,8 @@ function Invoke-SalmonRunGitCloudPush {
 
     try {
         if ($isHttps) {
-            $askPassFile = New-TemporaryFile
+            $askPassPath = Join-Path $env:TEMP ("salmon-run-askpass-" + [Guid]::NewGuid().ToString('N') + '.ps1')
+            $askPassFile = [System.IO.FileInfo]::new($askPassPath)
             $askPassScript = @'
 param([string]$Prompt)
 return $env:SALMON_RUN_GITCLOUD_PUSH_TOKEN
@@ -34,14 +35,8 @@ return $env:SALMON_RUN_GITCLOUD_PUSH_TOKEN
             $askPassScript | Set-Content -LiteralPath $askPassFile.FullName -Encoding utf8 -NoNewline
 
             $env:SALMON_RUN_GITCLOUD_PUSH_TOKEN = $Token
-            $env:GIT_ASKPASS = $askPassFile.FullName
+            $env:GIT_ASKPASS = "powershell -File `"$($askPassFile.FullName)`""
             $env:GIT_TERMINAL_PROMPT = '1'
-
-            # PowerShell 7+ can run .ps1 directly if PATHEXT includes .PS1
-            $pathext = [Environment]::GetEnvironmentVariable('PATHEXT')
-            if ($pathext -notlike '*.PS1*') {
-                $env:PATHEXT = "$pathext;.PS1"
-            }
         }
 
         $output = & git push $RemoteUrl $RefSpec 2>&1
@@ -61,6 +56,5 @@ return $env:SALMON_RUN_GITCLOUD_PUSH_TOKEN
         Remove-Item Env:\SALMON_RUN_GITCLOUD_PUSH_TOKEN -ErrorAction SilentlyContinue
         Remove-Item Env:\GIT_ASKPASS -ErrorAction SilentlyContinue
         Remove-Item Env:\GIT_TERMINAL_PROMPT -ErrorAction SilentlyContinue
-        Remove-Item Env:\PATHEXT -ErrorAction SilentlyContinue
     }
 }
