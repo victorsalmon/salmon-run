@@ -17,7 +17,7 @@ function Register-DefaultSalmonRunCredentialResolvers {
         if ($Arguments.Count -eq 0) { throw 'File resolver requires a path' }
         $path = $Arguments -join ' '
         if (-not (Test-Path $path)) { throw "File not found: $path" }
-        return [System.IO.File]::ReadLines($path) | Select-Object -First 1
+        return [System.IO.File]::ReadAllLines($path)[0]
     }
 
     # AWS resolver:
