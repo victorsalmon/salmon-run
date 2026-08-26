@@ -32,6 +32,7 @@ function Invoke-PondTaskTransition {
 
     # Retry logic for failure transitions back to the same pond.
     $finalDest = $destPondName
+    $retry = 0
     if (-not $Context.Success -and $destPondName -eq $Pond.Name) {
         $first = $files | Select-Object -First 1
         $content = Get-Content -LiteralPath $first.FullName -Raw
@@ -71,21 +72,60 @@ function Invoke-PondTaskTransition {
         } else {
             $c = $c + "`n`n**Status**: $newStatus`n"
         }
+        $c | Set-Content -LiteralPath $dest -Encoding utf8 -NoNewline
 
-        # If this was a coder success moving to Review, append a validation
-        # evidence block so the Review pond's evidence gate accepts it.
-        if ($Context.Success -and $Pond.Name -eq 'Code' -and $Pond.OnSuccess.MoveTo -eq 'Review') {
-            if ($c -notmatch '(?im)^\*\*Validation\*\*') {
-                $c = $c + @"
-
-**Validation**
-- CoderNotes: completed by $($Pond.Role)
-- ValidationStamp: $(Get-Date -Format 'o')
-"@
+        # Append a transition event to the canonical **PondLog** history.
+        $action = $null
+        $detail = $null
+        if ($Context.Success) {
+            $action = 'complete'
+            $detail = "moved from $($Pond.Name) to $finalDest"
+        } else {
+            if ($destPondName -eq $Pond.Name) {
+                if ($retry -lt $Pond.OnFailure.MaxRetries) {
+                    $action = 'retry'
+                    $detail = "retry $retry of $($Pond.OnFailure.MaxRetries) in $($Pond.Name)"
+                } else {
+                    $action = 'fail'
+                    $detail = "exceeded max retries in $($Pond.Name); moved to $finalDest"
+                }
+            } else {
+                if ($finalDest -in @('Failed','Tasks/Failed')) {
+                    $action = 'fail'
+                    $detail = "moved from $($Pond.Name) to $finalDest"
+                } else {
+                    $action = 'retry'
+                    $detail = "moved from $($Pond.Name) back to $finalDest after failure"
+                }
             }
         }
 
-        $c | Set-Content -LiteralPath $dest -Encoding utf8 -NoNewline
+        if ($action) {
+            $null = Add-PlanPondLog -PlanPath $dest -Entry @{
+                ts     = (Get-Date -Format 'o')
+                pond   = $Pond.Name
+                role   = $Pond.Role
+                action = $action
+                detail = $detail
+                agent  = 'PondEngine'
+            } -ErrorAction Stop
+        }
+
+        # If the plan carries an explicit **Override** header, log it as history.
+        $c = Get-Content -LiteralPath $dest -Raw
+        if ($c -match '(?im)^\*\*Override\*\*:\s*(?<value>[^\r\n]+)') {
+            $overrideValue = $Matches['value'].Trim()
+            $null = Add-PlanPondLog -PlanPath $dest -Entry @{
+                ts     = (Get-Date -Format 'o')
+                pond   = $Pond.Name
+                role   = $Pond.Role
+                action = 'override'
+                detail = $overrideValue
+                agent  = 'PondEngine'
+            } -ErrorAction Stop
+            $c = $c -replace '(?im)^\*\*Override\*\*:\s*[^\r\n]+\r?\n?', ''
+            $c | Set-Content -LiteralPath $dest -Encoding utf8 -NoNewline
+        }
     }
 
     # Clean up sentinel files and empty lane directory.
