@@ -7,7 +7,7 @@
     Start-PondEngine is the next-generation orchestrator entry point.
     It reads a list of Pond objects, dispatches each through its configured
     task pipeline, and transitions plans between ponds on success or failure.
-    This function is opt-in from Start-Orchestrator via -UsePondEngine.
+    This function is the primary orchestrator entry point for salmon-run.
 .PARAMETER Ponds
     Optional. An array of Pond objects. Defaults to Get-SalmonRunPonds.
 .PARAMETER RepoDir

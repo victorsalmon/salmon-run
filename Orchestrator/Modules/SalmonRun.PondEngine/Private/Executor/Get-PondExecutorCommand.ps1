@@ -19,12 +19,12 @@ function Get-PondExecutorCommand {
         [string[]]$PlanFiles
     )
 
-    $orchModule = Get-Module SalmonRun.Orchestrate -ErrorAction SilentlyContinue
+    $orchModule = Get-Module SalmonRun.PondEngine -ErrorAction SilentlyContinue
     if (-not $orchModule) {
-        $orchModule = Get-Module SalmonRun.Orchestrate -ListAvailable -ErrorAction SilentlyContinue | Select-Object -First 1
+        $orchModule = Get-Module SalmonRun.PondEngine -ListAvailable -ErrorAction SilentlyContinue | Select-Object -First 1
     }
     if (-not $orchModule) {
-        throw "Get-PondExecutorCommand: SalmonRun.Orchestrate module is required."
+        throw "Get-PondExecutorCommand: SalmonRun.PondEngine module is required."
     }
 
     $executorPath = Join-Path $orchModule.ModuleBase 'Executors' "$($Profile.ExecutorFile).ps1"

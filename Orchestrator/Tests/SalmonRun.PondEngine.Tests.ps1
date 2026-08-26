@@ -11,7 +11,7 @@ BeforeAll {
 
     # Ensure a clean module load in case other test files have left stale
     # orchestrator/pond state in the same session.
-    Remove-Module 'SalmonRun.PondEngine', 'SalmonRun.Orchestrate', 'SalmonRun.Paths', 'SalmonRun.Constants', 'SalmonRun.Core', 'SalmonRun.AgentLifecycle' -Force -ErrorAction SilentlyContinue
+    Remove-Module 'SalmonRun.PondEngine', 'SalmonRun.Paths', 'SalmonRun.Constants', 'SalmonRun.Core', 'SalmonRun.AgentLifecycle' -Force -ErrorAction SilentlyContinue
 
     $script:PondEnginePsd1 = Join-Path $__ModulesDir 'SalmonRun.PondEngine' 'SalmonRun.PondEngine.psd1'
     Import-Module $script:PondEnginePsd1 -Force -ErrorAction Stop

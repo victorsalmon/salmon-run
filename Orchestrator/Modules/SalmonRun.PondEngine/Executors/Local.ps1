@@ -1,6 +1,5 @@
 # Executors/Local.ps1
-# Active executor for the opencode-go provider. Loaded by Start-Orchestrator.ps1 via `. $executorScript`.
-# For the new harness naming, this is also dot-sourced by Executors/Opencode.ps1.
+# Active executor for the opencode-go provider. Loaded by the PondEngine executor registry.
 
 function Initialize-Executor {
     $provider = if ($script:HarnessConfig -and $script:HarnessConfig.Provider) { $script:HarnessConfig.Provider } else { 'opencode-go' }
