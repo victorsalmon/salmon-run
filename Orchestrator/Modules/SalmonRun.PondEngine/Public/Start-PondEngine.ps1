@@ -18,6 +18,9 @@
     Maximum minutes a single agent subprocess may run. Default 30.
 .PARAMETER PollIntervalSeconds
     Seconds to sleep when no work is available. Default 300.
+.PARAMETER Streams
+    Optional. An array of PondStream objects. Defaults to a single main-branch
+    stream with the default operator layout.
 #>
 function Start-PondEngine {
     [CmdletBinding()]
@@ -26,7 +29,8 @@ function Start-PondEngine {
         [string]$RepoDir = (Get-SalmonRunRepoRoot),
         [int]$MaxIterations = 20,
         [int]$SubprocessTimeoutMinutes = 30,
-        [int]$PollIntervalSeconds = 300
+        [int]$PollIntervalSeconds = 300,
+        [PondStream[]]$Streams = (New-PondStream -Id 'stream-1' -Branch 'main' -Path $RepoDir)
     )
 
     $context = [PondContext]::new()
@@ -34,7 +38,8 @@ function Start-PondEngine {
     $context.ActiveStreams = @{}
     $context.UsedNamespaces = @{}
     $context.BusyNamespaces = @{}
-    $context.PersistentLanes = [System.Collections.ArrayList]::new()
+    $context.Streams = [System.Collections.ArrayList]::new()
+    foreach ($s in $Streams) { $null = $context.Streams.Add($s) }
     $context.CrashHistory = [System.Collections.Generic.List[datetime]]::new()
     $context.Iteration = 0
     $context.Counts = $null

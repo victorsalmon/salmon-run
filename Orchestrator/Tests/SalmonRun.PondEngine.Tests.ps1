@@ -42,14 +42,25 @@ Describe 'Get-SalmonRunPonds' -Tag 'PondEngine', 'Regression-Only' {
         }
     }
 
-    It 'gives every pond a folder, role, and capacity' {
+    It 'gives every pond a folder, role, and operators' {
         $ponds = Get-SalmonRunPonds
         foreach ($p in $ponds) {
             $p.Folder | Should -Not -BeNullOrEmpty -Because "pond '$($p.Name)' should have a folder"
             $p.Role | Should -Not -BeNullOrEmpty -Because "pond '$($p.Name)' should have a role"
-            $p.Capacity | Should -Not -BeNullOrEmpty -Because "pond '$($p.Name)' should have capacity"
-            $p.Capacity.ParallelCount | Should -BeGreaterOrEqual 1
+            $p.Operators | Should -Not -BeNullOrEmpty -Because "pond '$($p.Name)' should have operators"
+            $p.Operators.ParallelCount | Should -BeGreaterOrEqual 1
         }
+    }
+
+    It 'uses the default operator template' {
+        $code = Get-SalmonRunPonds | Where-Object { $_.Name -eq 'Code' }
+        $code.Operators.ParallelCount | Should -Be 3
+        $review = Get-SalmonRunPonds | Where-Object { $_.Name -eq 'Review' }
+        $review.Operators.ParallelCount | Should -Be 1
+        $audit = Get-SalmonRunPonds | Where-Object { $_.Name -eq 'Audit' }
+        $audit.Operators.ParallelCount | Should -Be 1
+        $qa = Get-SalmonRunPonds | Where-Object { $_.Name -eq 'QA' }
+        $qa.Operators.ParallelCount | Should -Be 1
     }
 
     It 'has success transitions between expected ponds' {
@@ -64,6 +75,13 @@ Describe 'Get-SalmonRunPonds' -Tag 'PondEngine', 'Regression-Only' {
         $map['Project'] | Should -Be 'ProjectReview'
         $map['ProjectReview'] | Should -Be 'Complete'
     }
+
+    It 'parks invalid plans instead of failing them by default' {
+        $ponds = Get-SalmonRunPonds | Where-Object { $_.Name -in @('Code', 'Review') }
+        foreach ($p in $ponds) {
+            $p.Entry.OnInvalid | Should -Be 'Paused' -Because "pond '$($p.Name)' should park invalid plans"
+        }
+    }
 }
 
 Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
@@ -75,5 +93,24 @@ Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
     It 'can construct a PondGroup' {
         $g = [PondGroup]::new()
         $g | Should -Not -BeNullOrEmpty
+    }
+
+    It 'can construct a PondStream with default lanes' {
+        $stream = New-PondStream -Id 'stream-1' -Branch 'main' -Path 'C:\temp\repo'
+        $stream | Should -Not -BeNullOrEmpty
+        $stream.Lanes.Count | Should -Be 6
+    }
+
+    It 'has three coder lanes, one reviewer, one auditor, one qa' {
+        $stream = New-PondStream -Id 'stream-1' -Branch 'main' -Path 'C:\temp\repo'
+        $roles = $stream.Lanes.Values | Group-Object Role | ForEach-Object { @{ $_.Name = $_.Count } }
+        $coder = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'coder' }).Count
+        $reviewer = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'reviewer' }).Count
+        $auditor = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'auditor' }).Count
+        $qa = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'qa' }).Count
+        $coder | Should -Be 3
+        $reviewer | Should -Be 1
+        $auditor | Should -Be 1
+        $qa | Should -Be 1
     }
 }

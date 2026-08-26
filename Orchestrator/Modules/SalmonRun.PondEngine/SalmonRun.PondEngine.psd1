@@ -7,7 +7,7 @@
     PowerShellVersion = '7.0'
     RequiredModules = @('SalmonRun.Orchestrate', 'SalmonRun.Constants')
     ScriptsToProcess = @('Classes/Pond.ps1')
-    FunctionsToExport = @('Get-SalmonRunPonds', 'Start-PondEngine')
+    FunctionsToExport = @('Get-SalmonRunPonds', 'Start-PondEngine', 'New-PondStream')
     CmdletsToExport = @()
     VariablesToExport = @()
     AliasesToExport = @()

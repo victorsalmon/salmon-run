@@ -2,8 +2,8 @@
 
 # PondEngine class definitions
 # A Pond is a generalizable station in the salmon-run workflow. Each pond has
-# a folder, a role, entry gates, capacity limits, a task pipeline, and
-# transitions on success/failure.
+# a folder, a role, entry gates, operator limits, a task pipeline, and
+# transitions on success/failure. Worktrees are modelled as PondStreams.
 
 class PondTask {
     [string]$Name
@@ -20,12 +20,29 @@ class PondEntryGate {
     [bool]$DependencyReady
     [string]$EvidenceGate
     [string[]]$RequiredHeaders
+    [string]$OnInvalid      # e.g. 'Failed', 'Paused', 'Manual', 'Intake' — where to park invalid plans
 }
 
-class PondCapacity {
-    [int]$ParallelCount
-    [int]$MinGuarantee
-    [int]$MaxNewPerIteration
+class PondOperators {
+    [int]$ParallelCount        # concurrent operators for this pond per stream
+    [int]$MinGuarantee         # minimum operators to reserve if work exists
+    [int]$MaxNewPerIteration   # throttle new operators per loop pass
+}
+
+class PondStream {
+    [string]$Id                # stream identifier, e.g. 'stream-1'
+    [string]$Branch            # git branch for this worktree stream
+    [string]$Path              # worktree path on disk
+    [hashtable]$Lanes          # role -> lane objects
+    [bool]$Idle
+}
+
+class PondLane {
+    [string]$Id
+    [string]$Role
+    [string]$StreamId
+    [string]$Path
+    [bool]$Idle
 }
 
 class PondTransition {
@@ -38,13 +55,14 @@ class Pond {
     [string]$Name
     [string]$Folder
     [string]$Role
-    [PondCapacity]$Capacity
+    [PondOperators]$Operators
     [PondEntryGate]$Entry
     [string]$GroupBy
     [PondTask[]]$Tasks
     [PondTransition]$OnSuccess
     [PondTransition]$OnFailure
     [string]$Description
+    [string]$DefaultBranch     # branch this pond uses when not in a multi-stream setup
 }
 
 class PondGroup {
@@ -54,6 +72,7 @@ class PondGroup {
     [System.IO.FileInfo[]]$Files
     [string]$LaneId
     [string]$StreamPath
+    [PondStream]$Stream
 }
 
 class PondContext {
@@ -61,7 +80,7 @@ class PondContext {
     [hashtable]$ActiveStreams
     [hashtable]$UsedNamespaces
     [hashtable]$BusyNamespaces
-    [System.Collections.ArrayList]$PersistentLanes
+    [System.Collections.ArrayList]$Streams
     [System.Collections.Generic.List[datetime]]$CrashHistory
     [int]$Iteration
     [PSCustomObject]$Counts
