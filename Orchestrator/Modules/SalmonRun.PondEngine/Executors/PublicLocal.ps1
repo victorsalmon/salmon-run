@@ -59,6 +59,46 @@ try {
             $content = $content + "`n**Implementation**: completed by public local executor`n"
         }
 
+        # Reviewer checks that the coder left implementation evidence.
+        if ($Role -eq 'reviewer') {
+            if ($content -notmatch '(?im)^\*\*Implementation\*\*:') {
+                throw "Plan '$planName' is missing **Implementation** evidence"
+            }
+            if ($content -notmatch '(?im)^\*\*Reviewed\*\*:') {
+                $content = $content + "`n**Reviewed**: passed by public local reviewer`n"
+            }
+        }
+
+        # Auditor runs a lightweight best-practice/secret scan on the plan.
+        if ($Role -eq 'auditor') {
+            if ($content -notmatch '(?im)^\*\*Reviewed\*\*:') {
+                throw "Plan '$planName' is missing **Reviewed** evidence"
+            }
+            $secretPattern = "(?im)(api[_-]?key|apikey|token|secret|password)\s*[:=]\s*(`"(?:[^`"`r`n]{4,})`"|'(?:[^'`r`n]{4,})')"
+            if ($content -match $secretPattern) {
+                throw "Plan '$planName' appears to contain a credential value"
+            }
+            if ($content -notmatch '(?im)^\*\*Audit\*\*:') {
+                $content = $content + "`n**Audit**: passed by public local auditor`n"
+            }
+        }
+
+        # QA performs a final evidence check before the plan reaches Complete.
+        if ($Role -eq 'qa') {
+            if ($content -notmatch '(?im)^\*\*Implementation\*\*:') {
+                throw "Plan '$planName' is missing **Implementation** evidence"
+            }
+            if ($content -notmatch '(?im)^\*\*Reviewed\*\*:') {
+                throw "Plan '$planName' is missing **Reviewed** evidence"
+            }
+            if ($content -notmatch '(?im)^\*\*Audit\*\*:') {
+                throw "Plan '$planName' is missing **Audit** evidence"
+            }
+            if ($content -notmatch '(?im)^\*\*QA\*\*:') {
+                $content = $content + "`n**QA**: passed by public local qa`n"
+            }
+        }
+
         $content | Set-Content -LiteralPath $planPath -Encoding utf8 -NoNewline
     }
 
