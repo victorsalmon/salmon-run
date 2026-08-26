@@ -15,17 +15,17 @@ $script:CachedHomeDir = $null
     System.String
 #>
 function Get-HomeDir {
+    # Environment variables always win and are not cached, so tests and
+    # containers can override the home directory without needing a cache reset.
+    if (-not [string]::IsNullOrWhiteSpace($env:INTERCLAW_HOME)) { return $env:INTERCLAW_HOME }
+    if (-not [string]::IsNullOrWhiteSpace($env:HOME)) { return $env:HOME }
+
     if ($script:CachedHomeDir) { return $script:CachedHomeDir }
 
-    if (-not [string]::IsNullOrWhiteSpace($env:INTERCLAW_HOME)) {
-        $script:CachedHomeDir = $env:INTERCLAW_HOME
-        return $script:CachedHomeDir
-    }
-
     if ($IsWindows -or $env:OS -eq "Windows_NT") {
-        $result = if (-not [string]::IsNullOrWhiteSpace($env:HOME)) { $env:HOME } elseif (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) { $env:USERPROFILE } else { "C:\Users\node" }
+        $result = if (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) { $env:USERPROFILE } else { "C:\Users\node" }
     } else {
-        $result = if (-not [string]::IsNullOrWhiteSpace($env:HOME)) { $env:HOME } elseif (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) { $env:USERPROFILE } else { "/home/node" }
+        $result = if (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) { $env:USERPROFILE } else { "/home/node" }
     }
     $script:CachedHomeDir = $result
     return $result
@@ -38,13 +38,14 @@ function Get-HomeDir {
     System.String
 #>
 function Get-RepoRoot {
+    # Environment variables always win and are not cached, so tests and
+    # containers can override the repo root without needing a cache reset.
+    if (-not [string]::IsNullOrWhiteSpace($env:REPO_ROOT)) { return $env:REPO_ROOT }
+    if (-not [string]::IsNullOrWhiteSpace($env:REPO_DIR)) { return $env:REPO_DIR }
+
     if ($script:CachedRepoRoot) { return $script:CachedRepoRoot }
-    $dir = Split-Path $PSScriptRoot -Parent
-    $dir = Split-Path $dir -Parent
-    if (-not (Test-Path (Join-Path $dir ".git"))) {
-        $dir = $env:REPO_ROOT
-        if ([string]::IsNullOrWhiteSpace($dir)) { $dir = Get-SalmonRunRepoRoot }
-    }
+
+    $dir = Get-SalmonRunRepoRoot
     $script:CachedRepoRoot = $dir
     return $dir
 }
@@ -56,8 +57,13 @@ function Get-RepoRoot {
     System.String
 #>
 function Get-SalmonRunRepoRoot {
+    # Environment variables always win and are not cached, so tests and
+    # containers can override the repo root without needing a cache reset.
+    $fromEnv = if (-not [string]::IsNullOrWhiteSpace($env:REPO_ROOT)) { $env:REPO_ROOT } elseif (-not [string]::IsNullOrWhiteSpace($env:REPO_DIR)) { $env:REPO_DIR } else { $null }
+    if (-not [string]::IsNullOrWhiteSpace($fromEnv)) { return $fromEnv }
+
     if ($script:CachedRepoRoot) { return $script:CachedRepoRoot }
-    if (-not [string]::IsNullOrWhiteSpace($env:REPO_ROOT)) { $script:CachedRepoRoot = $env:REPO_ROOT; return $script:CachedRepoRoot }
+
     $ScriptRoot = if ($PSScriptRoot) { $PSScriptRoot } else { $PSScriptRoot }
     if (-not $ScriptRoot) { $script:CachedRepoRoot = (Get-Location).Path; return $script:CachedRepoRoot }
     $Current = $ScriptRoot
@@ -70,7 +76,6 @@ function Get-SalmonRunRepoRoot {
         $Current = $Parent
     }
     if ([string]::IsNullOrWhiteSpace($Current) -or $Current -eq "/" -or -not (Test-Path (Join-Path $Current "Skills" "Docker") -PathType Container -ErrorAction SilentlyContinue)) {
-        $fromEnv = if (-not [string]::IsNullOrWhiteSpace($env:REPO_ROOT)) { $env:REPO_ROOT } else { $env:REPO_DIR }
         if (-not [string]::IsNullOrWhiteSpace($fromEnv)) { $Current = $fromEnv }
     }
     $script:CachedRepoRoot = $Current
