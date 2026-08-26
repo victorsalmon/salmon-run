@@ -48,3 +48,7 @@ Use `scripts/Sync-FromCanonical.ps1` to copy canonical source into this repo.
 After copying, run `scripts/Invoke-LeakCheck.ps1` and fix every hit before
 committing. The sync script intentionally does **not** copy the `Tasks/`,
 `docs/`, or private configuration trees.
+
+## Module catalog
+
+See `docs/MODULES.md` for the list of public modules and how to add a new one.
