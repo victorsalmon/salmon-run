@@ -30,6 +30,13 @@ function Invoke-PondTaskMonitorStream {
     $pollSeconds = 5
     $Context.Success = $false
 
+    $pidFile = Join-Path $lanePath '.pid'
+    $pid = $null
+    if (Test-Path -LiteralPath $pidFile) {
+        $pidText = Get-Content -LiteralPath $pidFile -Raw -ErrorAction SilentlyContinue
+        $null = [int]::TryParse($pidText, [ref]$pid)
+    }
+
     # If sentinels already exist, return immediately.
     if (Test-Path -LiteralPath $completeFile) {
         Write-Verbose "Invoke-PondTaskMonitorStream: group '$($group.Namespace)' completed"
@@ -42,6 +49,7 @@ function Invoke-PondTaskMonitorStream {
         return $Context
     }
 
+    $pidGoneCount = 0
     while ((Get-Date) -lt $deadline) {
         Start-Sleep -Seconds $pollSeconds
         if (Test-Path -LiteralPath $completeFile) {
@@ -53,6 +61,20 @@ function Invoke-PondTaskMonitorStream {
             Write-Verbose "Invoke-PondTaskMonitorStream: group '$($group.Namespace)' reported failure"
             $Context.Success = $false
             break
+        }
+
+        # Defensive stale-PID check: if the tracked process is gone and no
+        # sentinel was written, declare a failure so the lane can be retried.
+        if ($pid -and -not (Get-Process -Id $pid -ErrorAction SilentlyContinue)) {
+            $pidGoneCount++
+            if ($pidGoneCount -ge 2) {
+                Write-Verbose "Invoke-PondTaskMonitorStream: group '$($group.Namespace)' process $pid gone without sentinel; marking failed"
+                '1' | Set-Content -LiteralPath $failedFile -Encoding utf8 -NoNewline
+                $Context.Success = $false
+                break
+            }
+        } else {
+            $pidGoneCount = 0
         }
     }
 

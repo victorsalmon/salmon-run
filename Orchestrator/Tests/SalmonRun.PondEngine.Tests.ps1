@@ -446,6 +446,29 @@ Describe 'Pond rescue' -Tag 'PondEngine', 'Regression-Only' {
             Remove-Item $td -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
+
+    It 'rescues stale failed plans back to Code' {
+        $tempDir = Join-Path $TestDrive 'rescue-failed'
+        foreach ($sub in @('Tasks/Code','Tasks/Failed')) {
+            $null = New-Item -ItemType Directory -Path (Join-Path $tempDir $sub) -Force
+        }
+
+        $plan = '2026-08-26-stale-failed.md'
+        $content = "# Plan`n**Status**: ready`n**Scope**: test`n**Challenge**: Local`n"
+        $content | Set-Content -LiteralPath (Join-Path $tempDir "Tasks/Failed/$plan") -Encoding utf8 -NoNewline
+        (Get-Item (Join-Path $tempDir "Tasks/Failed/$plan")).LastWriteTime = (Get-Date).AddSeconds(-90)
+
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Join-Path $tempDir "Tasks/Failed/$plan" | Should -Not -Exist
+            $found = @(Get-ChildItem -Path (Join-Path $tempDir 'Tasks') -Recurse -Filter $plan -File | Select-Object -ExpandProperty FullName)
+            $found.Count | Should -Be 1
+        } finally {
+            $env:SALMON_RUN_HOME = $saved
+        }
+    }
 }
 
 Describe 'Pond capacity' -Tag 'PondEngine', 'Regression-Only' {

@@ -55,9 +55,17 @@ function Start-PondEngine {
         $didWork = $false
 
         # Rescue stale in-progress files before scanning ponds
-        $rescue = Invoke-PondRescue -SourceDir (Join-Path $TaskRoot 'Tasks/Working') -TargetDir (Join-Path $TaskRoot 'Tasks/Code') -StaleThresholdSeconds $PollIntervalSeconds
+        $rescue = Invoke-PondRescue -SourceDir (Join-Path $TaskRoot 'Working') -TargetDir (Join-Path $TaskRoot 'Code') -StaleThresholdSeconds $PollIntervalSeconds
         if ($rescue.Rescued -gt 0) {
             Write-Verbose "PondEngine: rescued $($rescue.Rescued) stale working file(s)"
+            $didWork = $true
+        }
+
+        # Rescue failed plans after a longer cool-down so they can be retried.
+        $failedRescueThreshold = [math]::Max($PollIntervalSeconds * 2, 60)
+        $failedRescue = Invoke-PondRescue -SourceDir (Join-Path $TaskRoot 'Failed') -TargetDir (Join-Path $TaskRoot 'Code') -StaleThresholdSeconds $failedRescueThreshold
+        if ($failedRescue.Rescued -gt 0) {
+            Write-Verbose "PondEngine: rescued $($failedRescue.Rescued) failed file(s)"
             $didWork = $true
         }
 

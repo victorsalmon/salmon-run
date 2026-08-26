@@ -82,9 +82,19 @@ function Start-PondExecutor {
         $pidContent = if ($proc) { $proc.Id.ToString() } else { '0' }
         $pidContent | Set-Content -LiteralPath $pidFile -Encoding utf8 -NoNewline
 
+        $agentId = "pond-executor-$([System.IO.Path]::GetFileName($LanePath))"
+        $heartbeatCmd = Get-Command 'Write-AgentHeartbeat' -ErrorAction SilentlyContinue
+        $heartbeatFile = Join-Path $logDir "$agentId.heartbeat"
+
         $deadline = (Get-Date).AddMinutes($timeoutMinutes)
+        $nextHeartbeat = (Get-Date)
         while ((Get-Date) -lt $deadline -and $proc -and -not $proc.HasExited) {
             Start-Sleep -Seconds 1
+            if ((Get-Date) -ge $nextHeartbeat) {
+                (Get-Date -Format 'o') | Set-Content -LiteralPath $heartbeatFile -Encoding utf8 -NoNewline
+                if ($heartbeatCmd) { try { $null = & $heartbeatCmd $agentId } catch {} }
+                $nextHeartbeat = (Get-Date).AddSeconds(10)
+            }
         }
 
         if ($proc -and -not $proc.HasExited) {
