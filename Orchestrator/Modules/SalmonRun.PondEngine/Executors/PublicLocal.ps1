@@ -9,6 +9,10 @@
     extend it to call their own local agent CLI, while the PondEngine handles
     queueing, routing, and transitions.
 
+    The canonical evidence for each role is written as a timestamped entry
+    in the plan's **PondLog** section. Legacy evidence headers are still
+    written for backward compatibility.
+
     Exit code 0 writes .complete.
     Any non-zero exit or unhandled exception writes .failed.
 #>
@@ -33,6 +37,11 @@ param(
 $ErrorActionPreference = 'Stop'
 
 try {
+    # Dot-source the canonical PlanLog helpers so this executor can run under
+    # Windows PowerShell 5.1 without importing the full module manifest.
+    $script:ModuleRoot = Convert-Path (Join-Path $PSScriptRoot '..')
+    . (Join-Path (Join-Path $script:ModuleRoot 'Public') 'PlanLog.ps1')
+
     if (-not (Test-Path -LiteralPath $LanePath)) {
         throw "Lane path not found: $LanePath"
     }
@@ -43,65 +52,127 @@ try {
     $log += "Repo: $RepoDir"
     $log += "Plans: $($PlanFiles -join ', ')"
 
+    $roleToPond = @{
+        'coder'            = 'Code'
+        'reviewer'         = 'Review'
+        'auditor'          = 'Audit'
+        'qa'               = 'QA'
+        'planner'          = 'Intake'
+        'project'          = 'Project'
+        'project-planner'  = 'Project'
+        'project-reviewer' = 'ProjectReview'
+    }
+    $pondName = if ($roleToPond.ContainsKey($Role)) { $roleToPond[$Role] } else { 'Unknown' }
+
+    function Test-ActionEvidence {
+        param(
+            [Parameter(Mandatory)]
+            [array]$PondLog,
+
+            [Parameter(Mandatory)]
+            [string]$Content,
+
+            [Parameter(Mandatory)]
+            [string]$Action
+        )
+        $hasLog = @($PondLog | Where-Object { $null -ne $_ -and $_.action -eq $Action }).Count -gt 0
+        $legacyMap = @{
+            implement = '(?im)^\*\*Implementation\*\*:'
+            review    = '(?im)^\*\*Reviewed\*\*:'
+            audit     = '(?im)^\*\*Audit\*\*:'
+            qa        = '(?im)^\*\*QA\*\*:'
+        }
+        $hasLegacy = $false
+        if ($legacyMap.ContainsKey($Action)) {
+            $hasLegacy = $Content -match $legacyMap[$Action]
+        }
+        return $hasLog -or $hasLegacy
+    }
+
     foreach ($plan in $PlanFiles) {
         $planName = Split-Path -Leaf $plan
         $planPath = Join-Path $LanePath $planName
         if (-not (Test-Path -LiteralPath $planPath)) { continue }
 
         $content = Get-Content -LiteralPath $planPath -Raw
+        $pondLog = @(Get-PlanPondLog -PlanPath $planPath)
 
         # Mark the plan as worked on by this role.
         if ($content -notmatch '(?im)^\*\*Agent\*\*:') {
             $content = $content + "`n`n**Agent**: $Role`n"
         }
 
-        # Coder role records a minimal implementation note; reviewer/QA/auditor
-        # can extend this block in later ponds.
-        if ($Role -eq 'coder' -and $content -notmatch '(?im)^\*\*Implementation\*\*:') {
+        # Legacy evidence headers are still written for backward compatibility;
+        # the canonical evidence is the timestamped **PondLog** entry appended
+        # at the end of this loop.
+        $hasOldImplementation = $content -match '(?im)^\*\*Implementation\*\*:'
+        $hasOldReviewed       = $content -match '(?im)^\*\*Reviewed\*\*:'
+        $hasOldAudit          = $content -match '(?im)^\*\*Audit\*\*:'
+        $hasOldQA             = $content -match '(?im)^\*\*QA\*\*:'
+
+        # Coder role records an implementation note.
+        if ($Role -eq 'coder' -and -not $hasOldImplementation) {
             $content = $content + "`n**Implementation**: completed by public local executor`n"
         }
 
         # Reviewer checks that the coder left implementation evidence.
         if ($Role -eq 'reviewer') {
-            if ($content -notmatch '(?im)^\*\*Implementation\*\*:') {
+            if (-not (Test-ActionEvidence -PondLog $pondLog -Content $content -Action 'implement')) {
                 throw "Plan '$planName' is missing **Implementation** evidence"
             }
-            if ($content -notmatch '(?im)^\*\*Reviewed\*\*:') {
+            if (-not $hasOldReviewed) {
                 $content = $content + "`n**Reviewed**: passed by public local reviewer`n"
             }
         }
 
         # Auditor runs a lightweight best-practice/secret scan on the plan.
         if ($Role -eq 'auditor') {
-            if ($content -notmatch '(?im)^\*\*Reviewed\*\*:') {
+            if (-not (Test-ActionEvidence -PondLog $pondLog -Content $content -Action 'review')) {
                 throw "Plan '$planName' is missing **Reviewed** evidence"
             }
             $secretPattern = "(?im)(api[_-]?key|apikey|token|secret|password)\s*[:=]\s*(`"(?:[^`"`r`n]{4,})`"|'(?:[^'`r`n]{4,})')"
             if ($content -match $secretPattern) {
                 throw "Plan '$planName' appears to contain a credential value"
             }
-            if ($content -notmatch '(?im)^\*\*Audit\*\*:') {
+            if (-not $hasOldAudit) {
                 $content = $content + "`n**Audit**: passed by public local auditor`n"
             }
         }
 
         # QA performs a final evidence check before the plan reaches Complete.
         if ($Role -eq 'qa') {
-            if ($content -notmatch '(?im)^\*\*Implementation\*\*:') {
+            if (-not (Test-ActionEvidence -PondLog $pondLog -Content $content -Action 'implement')) {
                 throw "Plan '$planName' is missing **Implementation** evidence"
             }
-            if ($content -notmatch '(?im)^\*\*Reviewed\*\*:') {
+            if (-not (Test-ActionEvidence -PondLog $pondLog -Content $content -Action 'review')) {
                 throw "Plan '$planName' is missing **Reviewed** evidence"
             }
-            if ($content -notmatch '(?im)^\*\*Audit\*\*:') {
+            if (-not (Test-ActionEvidence -PondLog $pondLog -Content $content -Action 'audit')) {
                 throw "Plan '$planName' is missing **Audit** evidence"
             }
-            if ($content -notmatch '(?im)^\*\*QA\*\*:') {
+            if (-not $hasOldQA) {
                 $content = $content + "`n**QA**: passed by public local qa`n"
             }
         }
 
         $content | Set-Content -LiteralPath $planPath -Encoding utf8 -NoNewline
+
+        # Append the canonical timestamped PondLog event for this role.
+        $actionMap = @{
+            'coder'    = 'implement'
+            'reviewer' = 'review'
+            'auditor'  = 'audit'
+            'qa'       = 'qa'
+        }
+        if ($actionMap.ContainsKey($Role)) {
+            $null = Add-PlanPondLog -PlanPath $planPath -Entry @{
+                pond   = $pondName
+                role   = $Role
+                action = $actionMap[$Role]
+                detail = "completed by public local executor"
+                agent  = 'PublicLocal'
+            } -ErrorAction Stop
+        }
     }
 
     $log += "[$(Get-Date -Format 'o')] Local executor finished successfully"
