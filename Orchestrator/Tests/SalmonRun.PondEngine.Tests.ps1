@@ -831,3 +831,159 @@ Describe 'DSH executor adapter' -Tag 'PondEngine', 'Regression-Only' {
         }
     }
 }
+
+Describe 'External executor command routing' -Tag 'PondEngine', 'Regression-Only' {
+    It 'produces a devin command' {
+        $profile = [PondExecutionProfile]::new()
+        $profile.Provider = 'devin'
+        $profile.Cli = 'devin'
+        $profile.Model = 'swe-1-7'
+        $profile.Effort = 'medium'
+        $profile.ExecutorFile = 'Devin'
+        $profile.Credentials = @('DEVIN_API_KEY')
+
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'planner' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
+
+        $cmd.Command | Should -Match 'devin run'
+        $cmd.Command | Should -Match 'swe-1-7'
+        $cmd.Command | Should -Match 'work-planner-once'
+
+        $cmd.StartInfo.FilePath | Should -BeIn @('pwsh', 'powershell')
+        $cmd.StartInfo.ArgumentList | Should -Contain 'devin'
+        $cmd.StartInfo.ArgumentList | Should -Contain 'swe-1-7'
+        $cmd.StartInfo.ArgumentList | Should -Contain 'planner'
+        $cmd.Credentials | Should -Contain 'DEVIN_API_KEY'
+    }
+
+    It 'produces an openrouter command' {
+        $profile = [PondExecutionProfile]::new()
+        $profile.Provider = 'openrouter'
+        $profile.Cli = 'openrouter'
+        $profile.Model = 'deepseek/deepseek-v4-pro'
+        $profile.Effort = 'max'
+        $profile.ExecutorFile = 'OpenRouter'
+        $profile.Credentials = @('OPENROUTER_API_KEY')
+
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'auditor' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
+
+        $cmd.Command | Should -Match 'openrouter run'
+        $cmd.Command | Should -Match 'deepseek/deepseek-v4-pro'
+        $cmd.Command | Should -Match 'work-auditor-once'
+
+        $cmd.StartInfo.FilePath | Should -BeIn @('pwsh', 'powershell')
+        $cmd.StartInfo.ArgumentList | Should -Contain 'openrouter'
+        $cmd.StartInfo.ArgumentList | Should -Contain 'deepseek/deepseek-v4-pro'
+        $cmd.StartInfo.ArgumentList | Should -Contain 'auditor'
+        $cmd.Credentials | Should -Contain 'OPENROUTER_API_KEY'
+    }
+
+    It 'produces a deepinfra/codex command' {
+        $profile = [PondExecutionProfile]::new()
+        $profile.Provider = 'deepinfra'
+        $profile.Cli = 'codex'
+        $profile.Model = 'deepseek-ai/DeepSeek-V4-Flash-0731'
+        $profile.Effort = 'medium'
+        $profile.ExecutorFile = 'DeepInfra'
+        $profile.Credentials = @('OPENAI_API_KEY')
+
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'qa' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
+
+        $cmd.Command | Should -Match 'codex run'
+        $cmd.Command | Should -Match 'deepseek-ai/DeepSeek-V4-Flash-0731'
+        $cmd.Command | Should -Match 'work-qa-once'
+
+        $cmd.StartInfo.FilePath | Should -BeIn @('pwsh', 'powershell')
+        $cmd.StartInfo.ArgumentList | Should -Contain 'deepinfra'
+        $cmd.StartInfo.ArgumentList | Should -Contain 'deepseek-ai/DeepSeek-V4-Flash-0731'
+        $cmd.StartInfo.ArgumentList | Should -Contain 'qa'
+        $cmd.Credentials | Should -Contain 'OPENAI_API_KEY'
+    }
+}
+
+Describe 'External executor adapter mocks' -Tag 'PondEngine', 'Regression-Only' {
+    $testCases = @(
+        @{
+            Name        = 'Devin'
+            File        = 'Devin.ps1'
+            Provider    = 'devin'
+            Model       = 'swe-1-7'
+            Effort      = 'medium'
+            Credential  = 'DEVIN_API_KEY'
+        }
+        @{
+            Name        = 'OpenRouter'
+            File        = 'OpenRouter.ps1'
+            Provider    = 'openrouter'
+            Model       = 'deepseek/deepseek-v4-flash'
+            Effort      = 'max'
+            Credential  = 'OPENROUTER_API_KEY'
+        }
+        @{
+            Name        = 'DeepInfra'
+            File        = 'DeepInfra.ps1'
+            Provider    = 'deepinfra'
+            Model       = 'deepseek-ai/DeepSeek-V4-Flash-0731'
+            Effort      = 'medium'
+            Credential  = 'OPENAI_API_KEY'
+        }
+    )
+
+    It 'parses parameters and builds the correct <Name> command' -TestCases $testCases {
+        param($Name, $File, $Provider, $Model, $Effort, $Credential)
+
+        $repoRoot = (Get-Item $PSCommandPath).Directory.Parent.Parent.FullName
+        $scriptPath = Join-Path $repoRoot "Orchestrator/Modules/SalmonRun.PondEngine/Executors/$File"
+
+        $td = New-Item -ItemType Directory -Path (Join-Path $TestDrive "ext-adapter-$Provider-$(Get-Random)") -Force
+        $plan = Join-Path $td 'plan.md'
+        @'
+# Test plan
+
+**PondLog**
+
+```json
+[]
+```
+'@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+
+        $salmonHome = Join-Path $TestDrive "$Provider-home"
+        $null = New-Item -ItemType Directory -Path $salmonHome -Force
+        "$Credential=test-key" | Set-Content -LiteralPath (Join-Path $salmonHome '.env') -Encoding utf8 -NoNewline
+
+        $savedSalmonHome = $env:SALMON_RUN_HOME
+        $savedKey = Get-Item -Path "Env:$Credential" -ErrorAction SilentlyContinue
+        try {
+            $env:SALMON_RUN_HOME = $salmonHome
+
+            Mock Start-Process -MockWith {
+                param($FilePath, $ArgumentList, $WorkingDirectory, $RedirectStandardOutput, $RedirectStandardError, $NoNewWindow, $PassThru)
+                $script:ExtArgs = $ArgumentList
+                return [PSCustomObject]@{
+                    HasExited = $true
+                    ExitCode  = 0
+                    Id        = 1234
+                }
+            }
+
+            . $scriptPath -Role 'coder' -LanePath $td -RepoDir $td -Provider $Provider -Model $Model -Effort $Effort -TimeoutMinutes 5 -PlanFiles @($plan)
+
+            $invokeFn = "Invoke-$Name`Provider"
+            $result = & $invokeFn
+
+            $result | Should -Be 0
+            $script:ExtArgs | Should -Not -BeNullOrEmpty
+            $script:ExtArgs | Should -Contain $Model
+            $script:ExtArgs | Should -Contain 'work-coder-once'
+            $script:ExtArgs | Should -Contain $Effort
+            $script:ExtArgs | Should -Contain '--files'
+            $script:ExtArgs | Should -Contain $plan
+
+            $log = Get-PlanPondLog -PlanPath $plan
+            $log | Should -HaveCount 2
+            $log.action | Should -Contain 'spawn'
+            $log.action | Should -Contain 'external-complete'
+        } finally {
+            $env:SALMON_RUN_HOME = $savedSalmonHome
+        }
+    }
+}
