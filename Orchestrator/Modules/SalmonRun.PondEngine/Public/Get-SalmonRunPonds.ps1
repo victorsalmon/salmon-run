@@ -94,9 +94,9 @@ function Get-SalmonRunPonds {
 
     $ponds += New-Pond -Name 'Code' -Folder 'Tasks/Code' -Role 'coder' -Description 'Implementation of ready plans' -ParallelCount 3 -MinGuarantee 1 -MaxNewPerIteration 3 -DependencyReady -EvidenceGate 'ready' -RequiredHeaders @('Status', 'Scope') -OnInvalid 'Paused' -GroupBy 'Namespace' -Tasks $agentPipeline -OnSuccess 'Review' -OnFailure 'Code'
 
-    $ponds += New-Pond -Name 'Review' -Folder 'Tasks/Review' -Role 'reviewer' -Description 'Verify coder output against plan' -ParallelCount 1 -MinGuarantee 1 -MaxNewPerIteration 1 -EvidenceGate 'implemented' -RequiredHeaders @('Lock') -OnInvalid 'Paused' -GroupBy 'Namespace' -Tasks $agentPipeline -OnSuccess 'Audit' -OnFailure 'Code'
+    $ponds += New-Pond -Name 'Review' -Folder 'Tasks/Review' -Role 'reviewer' -Description 'Verify coder output against plan' -ParallelCount 1 -MinGuarantee 1 -MaxNewPerIteration 1 -EvidenceGate 'implemented' -RequiredHeaders @('Status','Scope') -OnInvalid 'Paused' -GroupBy 'Namespace' -Tasks $agentPipeline -OnSuccess 'Audit' -OnFailure 'Code'
 
-    $ponds += New-Pond -Name 'Audit' -Folder 'Tasks/Audit' -Role 'auditor' -Description 'Best-practice, safety, and code-smell review' -ParallelCount 1 -MaxNewPerIteration 1 -GroupBy 'Namespace' -OnFailure 'Code' -Tasks @(
+    $ponds += New-Pond -Name 'Audit' -Folder 'Tasks/Audit' -Role 'auditor' -Description 'Best-practice, safety, and code-smell review' -ParallelCount 1 -MaxNewPerIteration 1 -EvidenceGate 'reviewed' -RequiredHeaders @('Status','Scope') -GroupBy 'Namespace' -OnFailure 'Code' -Tasks @(
         [PondTask]@{ Name = 'Claim'; Type = 'Group'; Function = 'Invoke-PondTaskClaim' }
         [PondTask]@{ Name = 'Prepare'; Type = 'PerFile'; Function = 'Invoke-PondTaskPrepare' }
         [PondTask]@{ Name = 'ModelRoute'; Type = 'Group'; Function = 'Invoke-PondTaskModelRoute' }
@@ -105,7 +105,7 @@ function Get-SalmonRunPonds {
         [PondTask]@{ Name = 'Transition'; Type = 'Group'; Function = 'Invoke-PondTaskTransition' }
     ) -OnSuccess 'QA'
 
-    $ponds += New-Pond -Name 'QA' -Folder 'Tasks/QA' -Role 'qa' -Description 'Property and mutation test maturation' -ParallelCount 1 -MaxNewPerIteration 1 -GroupBy 'Namespace' -OnFailure 'Code' -Tasks @(
+    $ponds += New-Pond -Name 'QA' -Folder 'Tasks/QA' -Role 'qa' -Description 'Property and mutation test maturation' -ParallelCount 1 -MaxNewPerIteration 1 -EvidenceGate 'qa-ready' -RequiredHeaders @('Status','Scope') -GroupBy 'Namespace' -OnFailure 'Code' -Tasks @(
         [PondTask]@{ Name = 'Claim'; Type = 'Group'; Function = 'Invoke-PondTaskClaim' }
         [PondTask]@{ Name = 'Prepare'; Type = 'PerFile'; Function = 'Invoke-PondTaskPrepare' }
         [PondTask]@{ Name = 'ModelRoute'; Type = 'Group'; Function = 'Invoke-PondTaskModelRoute' }
