@@ -44,7 +44,7 @@
       "cli": "opencode",
       "defaultModel": "opencode-go/ox-alpha-free",
       "defaultEffort": "max",
-      "acceptedEfforts": ["max", "default", "high"],
+      "acceptedEfforts": ["max", "default"],
       "executorFile": "Opencode",
       "credentials": ["OPENCODE_GO_KEY"],
       "models": {

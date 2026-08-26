@@ -85,6 +85,26 @@
       "notes": "OCG model billed at one-sixth normal cost. Daily-tier candidate."
     },
     {
+      "canonicalName": "OCG/Mimo-V2.5-Zen",
+      "harness": "opencode",
+      "provider": "opencode",
+      "model": "opencode/mimo-v2.5-free",
+      "effort": "default",
+      "tier": "Daily",
+      "costRule": "one-sixth",
+      "apiCostPer1KTokens": 0.3,
+      "effectiveCostPer1KTokens": 0.05,
+      "capabilityScore": 58,
+      "benchmarks": {
+        "sweBench": 58.0,
+        "aime2024": 58.0,
+        "terminalBench21": 56.0,
+        "mmlu": 73.0
+      },
+      "cacheContract": "none",
+      "notes": "Zen variant of OCG/Mimo-V2.5 for testing the opencode (Zen) provider path."
+    },
+    {
       "canonicalName": "OCG/Mimo-V2.5",
       "harness": "opencode",
       "provider": "opencode-go",
