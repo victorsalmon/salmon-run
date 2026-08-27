@@ -53,7 +53,7 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 | GitCloud push helpers | 70% | GitHub and Worktree token/push abstractions exist and have tests. Not exercised against live hosts in this appraisal. |
 | Display / Diagnostics / DeployState | 80% | Utility modules present and tested. |
 | Documentation lint (`Invoke-DocLint`) | 85% | Working; README/PUBLIC_PACKAGE/MODULES/EXTENDING references are valid. |
-| Public installer (`install.ps1`) | 95% | Creates `~/.salmon` dirs, `~/.salmon/providers` and `~/.salmon/benchmarks`, copies `Modules` and `Modules` to `~/.salmon/Modules`, wires `PSModulePath`, seeds `.env` and `benchmarks/models.json` from `dot-salmon.example/benchmarks`, validates a fresh `Import-Module SalmonRun.PondEngine`, and has dedicated Pester coverage.
+| Public installer (`install.ps1`) | 95% | Creates `~/.salmon` dirs, `~/.salmon/providers` and `~/.salmon/benchmarks`, copies `Modules/` to `~/.salmon/Modules`, wires `PSModulePath`, seeds `.env` and `benchmarks/models.json` from `dot-salmon.example/benchmarks`, validates a fresh `Import-Module SalmonRun.PondEngine`, and has dedicated Pester coverage.
 | Canonical sync and leak check | 95% | `Sync-FromCanonical.ps1` is parameterized and applies a runtime text scrub. `Invoke-LeakCheck.ps1` scans the whole public package except the checker and sync script themselves, and is covered by positive/negative Pester tests. |
 | Mermaid repo chunking | 90% | `SalmonRun.Mermaid` extracts and chunks Mermaid diagrams; tests pass. |
 | Docker/Swarm orchestration packaging | 85% | Dockerfile, `docker-compose.yml`, `docker-compose.swarm.yml`, and `deploy.ps1` exist; `docker build` succeeds and `docker run -DryRun` works. Swarm deploy not exercised live. |
@@ -65,10 +65,11 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 1. ~~`.worktree/workflows/validate.yml` uses an invalid variable.~~ **Fixed:** `repository.workspace` was replaced with `github.workspace`.
 2. ~~`package.json` repository URL is a placeholder.~~ **Fixed:** URL now points to the public `worktree.ca/clocklobster/salmon-run.git` origin.
 3. ~~`model-router-catalog.json` benchmark URL is a placeholder.~~ **Fixed:** benchmark URL now points to the public `LLM-Bench-Data` repository.
-4. ~~`DependsOn` gating has a failing property test.~~ **Fixed:** all `Pond dependency gating` tests pass; the failure was environmental (stale PowerShell session).
-5. **External provider executors are unproven against live APIs.** The adapters build real CLI commands but have not been run against real OpenCode, Devin, DSH, OpenRouter, or DeepInfra/Codex endpoints.
-6. ~~`Invoke-LeakCheck.ps1` skips `package.json` and all `scripts/` files.~~ **Fixed:** the script now scans the whole package except the checker and sync script themselves, and Pester tests verify positive and negative detection.
-7. **Runtime state in the source working tree.** A large `Tasks/` tree exists locally under the source tree (`<repo-root>\Tasks`). It is `.gitignore`d, so it is not committed, but it shows the orchestrator is currently using the source tree as a runtime home instead of `~/.salmon`. This is an operational hygiene risk.
+4. ~~`DependsOn` gating has a failing property test.~~ **Fixed:** all `Pond dependency gating` tests pass; the failure was environmental (stale PowerShell session and module-cache state).
+5. ~~`Invoke-LeakCheck.ps1` skips `package.json` and all `scripts/` files.~~ **Fixed:** the script now scans the whole package except the checker and sync script themselves, and Pester tests verify positive and negative detection.
+6. ~~`PondEngine` module-loader and `Get-ChildItem | ForEach-Object` dot-source patterns.~~ **Fixed:** module `.psm1` loaders and the `Clear-StaleAgentFiles` file iteration now use explicit `foreach` loops, and the test harness uses manifest-based imports to avoid duplicate module instances.
+7. **External provider executors are unproven against live APIs.** The adapters build real CLI commands but have not been run against real OpenCode, Devin, DSH, OpenRouter, or DeepInfra/Codex endpoints.
+8. **A full `Start-SalmonRun.ps1 -Run` end-to-end smoke run** is still needed in a clean `~/.salmon` home to prove the full lifecycle.
 
 ## Unknowns / manual gates
 

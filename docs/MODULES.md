@@ -37,5 +37,5 @@ The `salmon-run` package is organized under a single `Modules/` tree with two gr
 
 1. Place the module under the appropriate `Modules/` group.
 2. Provide a `*.psd1` manifest, a `*.psm1` loader, and `Public/` / `Private/` scripts.
-3. Add Pester tests in the matching `Tests` directory.
+3. Add Pester tests in the matching `Tests/` directory.
 4. Run the module import and the targeted test file before committing.

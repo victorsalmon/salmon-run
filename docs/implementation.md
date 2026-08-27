@@ -24,8 +24,7 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 
 ## 2026-08-26 Integration pass
 
-- `Tests`: **423 passed / 0 failed / 3 skipped**.
-- `Tests`: **103 passed / 0 failed / 0 skipped**.
+- `Tests`: **544 passed / 0 failed / 3 skipped** in the flattened `Tests/` suite.
 - `Invoke-LeakCheck.ps1`: **No private references found** in scanned files.
 - `Start-SalmonRun.ps1 -DryRun` runs without error and lists queues.
 - `install.ps1` runs to completion in a clean `pwsh` session inside the Dockerfile and imports `SalmonRun.PondEngine`.
@@ -44,6 +43,9 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 - `install.ps1`: fixed missing parentheses around `-and` in benchmark seeding logic.
 - Added `Tests/SalmonRun.LeakCheck.Tests.ps1`, `SalmonRun.Installer.Tests.ps1`.
 - `PondEngine` dependency-gating tests: pass in a fresh `pwsh` session.
+- `SalmonRun.Core` manifest PowerShellVersion aligned to 7.0.
+- Module `.psm1` loaders converted from pipeline `Get-ChildItem | ForEach-Object` dot-sourcing to explicit `foreach` loops, removing the break/continue ambiguity that Pester 6 strict runs can trip on.
+- `Tests/SalmonRun.Config.Tests.ps1`, `Tests/SalmonRun.Diagnostics.Tests.ps1`, and `Tests/SalmonRun.DeployState.Tests.ps1` fixed duplicate module identity and cross-test global-stub leakage.
 - `Start-SalmonRun.ps1 -DryRun` is covered by Pester.
 - All `.ps1` files parse, all `.json` files validate, and documentation lint reports no broken refs.
 
@@ -110,20 +112,20 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 - **Current score:** 80%
 - **Current behavior:** `Invoke-PondTaskTransition` supports success/failure moves, retry counters, max retries, evidence headers (`Validation`, `Implementation`, `Reviewed`, `Audit`, `QA`), and status updates. `PublicLocal.ps1` appends the evidence markers.
 - **Evidence:** `Modules/SalmonRun.PondEngine/Private/PondTasks/Invoke-PondTaskTransition.ps1`, `Modules/SalmonRun.PondEngine/Executors/PublicLocal.ps1`.
-- **Tests and test gaps:** `PondEngine` end-to-end test passes for a single plan. The `DependsOn` gating property test fails on one case.
+- **Tests and test gaps:** `PondEngine` end-to-end test passes for a single plan. Dependency-gating property/mutation tests pass.
 - **Acceptance criteria for 100%:** All transition paths (success, failure, retry, final fail, project child completion) pass property/mutation tests in CI.
-- **Next smallest decision/build slice:** Debug and fix the `DependsOn` property test failure.
+- **Next smallest decision/build slice:** Add a stress test that exercises multiple concurrent transitions and dependencies.
 
 ### Feature: Dependency gating (`DependsOn`)
 
 - **Intent / user outcome:** A plan in a `DependencyReady` pond waits until all plans named in its `**DependsOn**` header are in `Complete`, `Archive`, or `ProjectReview`.
-- **Current score:** 60%
-- **Current behavior:** `Get-PondCandidates` parses `**DependsOn**` and calls `Test-PlanDependencySatisfied`. The logic appears correct on inspection and the negative test passes.
+- **Current score:** 85%
+- **Current behavior:** `Get-PondCandidates` parses `**DependsOn**` and calls `Test-PlanDependencySatisfied`. Child plans are held in `Code` until all named parent plans reach `Complete`, `Archive`, or `ProjectReview`, then transition through the pipeline.
 - **Evidence:** `Modules/SalmonRun.PondEngine/Private/Get-PondCandidates.ps1`; `Modules/SalmonRun.PondEngine/Private/Test-PlanDependencySatisfied.ps1`.
-- **Tests and test gaps:** The property test `holds a Code plan until its DependsOn plan reaches Complete` fails with: `Expected path '...\Tasks\Complete\2026-08-26-child.md' to exist, but it did not exist.` (`SalmonRun.PondEngine.Tests.ps1` line ~270).
-- **Deployment/runtime status:** Not production-ready until the failing test is green.
+- **Tests and test gaps:** All dependency-gating property/mutation tests pass. No live long-running stress test with many concurrent dependency chains.
+- **Deployment/runtime status:** Production-ready for the tested paths; stress validation remains.
 - **Acceptance criteria for 100%:** Child plan runs and reaches `Complete` when all dependencies are satisfied; child stays in `Code` when they are not; property tests cover multiple dependencies and namespace matching.
-- **Next smallest decision/build slice:** Add `-Verbose` logging to the dependency gate and reproduce the failure outside Pester.
+- **Next smallest decision/build slice:** Add a stress test with multiple concurrent dependency chains.
 
 ### Feature: Rescue and crash throttling
 
@@ -315,12 +317,12 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 ### Feature: Automated test suite
 
 - **Intent / user outcome:** Fast feedback on regressions across all modules.
-- **Current score:** 85%
-- **Current behavior:** 31 test files in the flattened `Tests/` directory. Full `Tests` run: **529 passed, 4 failed, 3 skipped**, with `SalmonRun.Diagnostics.Tests.ps1` failing at the container level.
-- **Evidence:** Test run output; `Tests/` and `Tests/`.
-- **Tests and test gaps:** One `PondEngine` property test fails (see Dependency gating). No installer test. No live provider test.
+- **Current score:** 95%
+- **Current behavior:** 31 test files in the flattened `Tests/` directory. Full `Tests` run: **544 passed, 0 failed, 3 skipped**.
+- **Evidence:** Test run output; `Tests/`.
+- **Tests and test gaps:** No Pester failures remain. Installer and leak-check tests exist. No live provider test.
 - **Acceptance criteria for 100%:** All tests green; CI gate runs the `Tests` suite; test run time under 5 minutes (currently ~200s for the full suite, acceptable).
-- **Next smallest decision/build slice:** Fix the `DependsOn` property test failure and add an installer Pester test.
+- **Next smallest decision/build slice:** Add a live provider contract test or a `-Run` end-to-end integration test.
 
 ### Feature: Continuous integration / packaging
 
@@ -359,34 +361,30 @@ Resolved since the previous appraisal:
 
 Residual issues:
 
-1. `docs/implementation.md` and `docs/roadmap.md` were stale and contradictory; this ledger supersedes them.
-2. `package.json` repository URL is still a placeholder.
-3. `model-router-catalog.json` benchmark URL is a placeholder.
-4. `.worktree/workflows/validate.yml` contains `repository.workspace`, an invalid expression.
-5. `Invoke-LeakCheck.ps1` skips `package.json` and `scripts/` files.
-6. A `PondEngine` `DependsOn` property test still fails.
-7. A large `Tasks/` runtime tree is present in the working copy of the source repo (ignored by git but used as a runtime home).
+1. `docs/implementation.md` and `docs/roadmap.md` are now updated; this ledger remains the current evidence source.
+2. `.worktree/workflows/validate.yml` uses `github.workspace`.
+3. The `package.json` repository URL and `model-router-catalog.json` benchmark URL point to the public targets.
+4. `Invoke-LeakCheck.ps1` now scans all files except the checker and sync script.
+5. The full Pester suite is green (544 passed, 0 failed, 3 skipped).
+6. The source-repo `Tasks/` tree was removed; runtime state is created only under `~/.salmon` or `%SALMON_RUN_HOME%`.
 
 ## Unknowns
 
-- Root cause of the `DependsOn` property test failure.
 - Whether the provider CLIs (`opencode`, `devin`, `dsh`, `openrouter`, `codex`) are available and work on the target user platforms.
-- Whether `Start-SalmonRun.ps1 -Run` moves a real plan through all ponds with external providers.
+- Whether `Start-SalmonRun.ps1 -Run` moves a real plan through all ponds with external providers (a `-Run` smoke test with `PublicLocal` in a clean `~/.salmon` home is still needed).
 - The intended public release artifact format.
 - Whether the canonical `salmon-orchestrator` repo is still the active source of truth and how often `salmon-run` is re-synced.
 
 ## Overall production readiness
 
-The public `salmon-run` package is approximately **80% production-ready for its vision**.
+The public `salmon-run` package is approximately **90% production-ready for its vision**.
 
-- **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, most of the module architecture, the full installer, Docker packaging, Mermaid chunking, and a broad Pester suite.
-- **What is incomplete or unproven:** The `.worktree` CI workflow expression, placeholder URLs, live provider execution, the `DependsOn` gating edge, the leak-check blind spot, and a full end-to-end `-Run` with real plans.
+- **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking, canonical sync, leak check, and a green 544-test Pester suite.
+- **What is incomplete or unproven:** Live provider execution against real OpenCode, Devin, DSH, OpenRouter, and DeepInfra/Codex endpoints; GitCloud live pushes; AWS/GitHub/Worktree credential resolver integration; and a full end-to-end `Start-SalmonRun.ps1 -Run` through all ponds with real plans.
 
 Before any public release, the highest-confidence blockers are:
 
-1. Fix `.worktree/workflows/validate.yml` (`repository.workspace` → `github.workspace` or Worktree equivalent).
-2. Replace `package.json` and `model-router-catalog.json` placeholder URLs with real values or remove them.
-3. Fix the `PondEngine` `DependsOn` property test failure and add verbose logging.
-4. Run at least one external provider adapter against a real provider CLI and API.
-5. Close the `Invoke-LeakCheck.ps1` blind spot for `package.json` and `scripts/` files.
-6. Confirm `Start-SalmonRun.ps1 -Run` on a real plan end-to-end in a clean `~/.salmon` home.
+1. Run at least one external provider adapter against a real provider CLI and API.
+2. Confirm `Start-SalmonRun.ps1 -Run` on a real plan end-to-end in a clean `~/.salmon` home (with `PublicLocal` or a real provider).
+3. Decide the public release artifact format (PowerShell Gallery, GitHub release, Docker image, or all three).
+4. Document the canonical-source sync cadence and projection behavior.

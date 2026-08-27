@@ -97,7 +97,7 @@ Each step writes evidence back to the plan:
 
 ### Dependency gating
 
-A plan can list `**DependsOn**` headers. `Test-PlanDependencySatisfied` holds the child in `Code` until all named parent plans are in `Complete`, `Archive`, or `ProjectReview`. This is implemented but has one known edge case in the property tests.
+A plan can list `**DependsOn**` headers. `Test-PlanDependencySatisfied` holds the child in `Code` until all named parent plans are in `Complete`, `Archive`, or `ProjectReview`. Implementation and property tests are green.
 
 ### Project plans
 
@@ -227,12 +227,12 @@ This is intended to feed context into intake/planning ponds.
 - `Invoke-SalmonRunDocLint` checks `docs/`, `AGENTS.md`, and `Skills/**/*.md` for broken file references.
 - `Invoke-SalmonRunAQEBridge` optionally reports results to an AQE bridge when `SALMON_AQE_BRIDGE_URI` is set.
 
-The repo has two test suites:
+The repo has a single flattened test suite under `Tests/`:
 
-- `Tests/` — module and engine tests.
-- `Tests/` — cross-cutting utility module tests.
+- Module and engine tests for the control-plane modules.
+- Cross-cutting utility-module tests for helpers, setup, display, and git/CI.
 
-Both suites pass in the latest appraisal.
+All tests pass in the latest appraisal (544 passed, 0 failed, 3 skipped).
 
 ---
 
@@ -302,7 +302,7 @@ GitHub and Worktree workflows:
 
 The package is split into two module trees. `docs/MODULES.md` has the full catalog. Highlights:
 
-### `Modules/` (control plane)
+### Control-plane modules
 
 - `SalmonRun.PondEngine` — engine, pond classes, dispatch, model routing, executor registry.
 - `SalmonRun.AgentLifecycle` — PID/heartbeat/stale cleanup.
@@ -318,7 +318,7 @@ The package is split into two module trees. `docs/MODULES.md` has the full catal
 - `SalmonRun.Process` — safe `cmd`/`docker`/`aws` invocation.
 - `SalmonRun.WorkflowEvents` — event journal and namespace logs.
 
-### `Modules/` (cross-cutting utilities)
+### Cross-cutting utility modules
 
 - `SalmonRun.DeployState` — setup checkpoint state.
 - `SalmonRun.Diagnostics` — step-by-step diagnostic capture.
@@ -360,8 +360,7 @@ See `docs/PUBLIC_PACKAGE.md` for the full path table.
 
 ### Known rough edges
 
-- A full `Start-SalmonRun.ps1 -Run` through all ponds with real plans has not been exercised end-to-end.
-- Some pre-existing `SalmonRun.Constants` and `SalmonRun.Process` Pester property tests fail in a fresh AQE run and need separate triage.
+- A full `Start-SalmonRun.ps1 -Run` through all ponds with real plans has not been exercised end-to-end in a clean environment.
 
 ---
 

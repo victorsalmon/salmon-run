@@ -46,7 +46,7 @@ Most agentic workflow tools either lock you into a vendor, hide state in a datab
 | **Rescue and crash throttling** | Stale `Working` and cooled `Failed` plans are rescued back to `Code`; recent crashes throttle the engine with exponential backoff. |
 | **Audit and credentials** | `SalmonRun.Audit` writes hash-chain JSONL logs with redaction; `SalmonRun.Credentials` resolves redirects from `~/.salmon/.env` without storing secrets in the repo. |
 | **Mermaid chunking** | `SalmonRun.Mermaid` extracts Mermaid diagrams from markdown and splits them into model-ingestible chunks. |
-| **AQE / testing** | `SalmonRun.AQE` runs the Pester suite and a documentation lint. The Orchestrator suite has **530+ passing** tests and the Docker/Skills suite has **103 passing** tests. |
+| **AQE / testing** | `SalmonRun.AQE` runs the Pester suite and a documentation lint. The flattened `Tests/` suite has **544 passing, 0 failed, 3 skipped**. |
 | **Docker & Swarm packaging** | `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, and `deploy.ps1` support local container and Swarm deploys. |
 | **Canonical sync & leak check** | `scripts/Sync-FromCanonical.ps1` copies from the private source with a runtime scrub; `scripts/Invoke-LeakCheck.ps1` verifies no private references are committed. |
 
@@ -125,7 +125,7 @@ The repo itself only contains code, docs, and tooling. No personal task data, lo
 
 ## Project status
 
-The public package is approximately **80% production-ready for its vision**. It installs, loads, and runs in a fresh PowerShell session and inside Docker. Over **530 tests** pass across the Orchestrator and Docker/Skills suites, the core pond lifecycle is exercised, the local executor works end-to-end, and the external provider adapters build real CLI commands.
+The public package is approximately **90% production-ready for its vision**. It installs, loads, and runs in a fresh PowerShell session and inside Docker. Over **544 tests** pass in the flattened `Tests/` suite with **0 failures**, the core pond lifecycle is exercised, the local executor works end-to-end, and the external provider adapters build real CLI commands.
 
 What is fully validated:
 
@@ -139,11 +139,11 @@ What is fully validated:
 - Module architecture, credentials, audit, locking, agent lifecycle, Mermaid chunking
 - `install.ps1`, Docker build, dry-run, sync, and leak check
 - `.worktree/workflows/validate.yml` expression
+- Full Pester suite green (544 passed, 0 failed, 3 skipped)
 
 What remains hardening:
 
 - Live execution against real provider APIs
-- One `DependsOn` property-test edge case
 - A full end-to-end `Start-SalmonRun.ps1 -Run` with real plans
 
 See [`docs/roadmap.md`](./docs/roadmap.md) and [`docs/implementation.md`](./docs/implementation.md) for the detailed appraisal and remaining blockers.
@@ -187,7 +187,7 @@ You can hand the following prompts to an agent (Devin, Codex, OpenCode, Claude, 
 
 ### Run the test suite
 
-> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the flattened `Tests` suite (`Invoke-Pester -Path 'Tests'`) and report the pass/fail summary. If any tests fail, identify the root cause and propose a fix.
+> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the flattened `Tests/` suite (`Invoke-Pester -Path 'Tests'`) and report the pass/fail summary. The latest run is 544 passed, 0 failed, 3 skipped. If any tests fail, identify the root cause and propose a fix.
 
 ---
 
