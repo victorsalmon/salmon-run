@@ -67,7 +67,7 @@ if ((Test-Path $envExample) -and -not (Test-Path $envDest)) {
 # Seed benchmark schema and sample data if the benchmarks directory is empty
 $benchmarksExampleDir = Join-Path $PSScriptRoot 'dot-salmon.example' 'benchmarks'
 $benchmarksDestDir = Join-Path $RuntimeHome 'benchmarks'
-if (Test-Path $benchmarksExampleDir -and Test-Path $benchmarksDestDir) {
+if ((Test-Path $benchmarksExampleDir) -and (Test-Path $benchmarksDestDir)) {
     $exampleFiles = @('models.schema.json', 'models.json')
     foreach ($f in $exampleFiles) {
         $src = Join-Path $benchmarksExampleDir $f
