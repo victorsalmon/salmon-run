@@ -1,0 +1,2005 @@
+{
+  "_meta": {
+    "description": "Central categorization rules for transaction classification",
+    "version": "3.0.0",
+    "last_updated": "2026-07-01",
+    "change_log": "v3.0.0 — Re-routed all Intersite SaaS/IT subscription vendors and computer components from Software & IT Expenses → [9150] Tech repair, support, subscriptions, peripherals. Insurance GIFI 8620→8690. (2026-07-01 Cowork session)",
+    "version_history": [
+      {
+        "version": "3.0.0",
+        "change_log": "v3.0.0 — Re-routed all Intersite SaaS/IT subscription vendors and computer components from Software & IT Expenses → [9150] Tech repair, support, subscriptions, peripherals. Insurance GIFI 8620→8690.",
+        "effective": "2026-07-01"
+      },
+      {
+        "version": "2.5.0",
+        "change_log": "v2.5.0 — Re-routed REINVESTWEALTH from Software & IT Expenses → Professional Fees for both entities",
+        "effective": "2026-06-30"
+      },
+      {
+        "version": "2.4.0",
+        "change_log": "v2.4.0 — Added [9150] Tech repair, support, subscriptions, peripherals account (93310000000582161); re-routed computer accessories from Software & IT Expenses → 9150",
+        "effective": "2026-06-30"
+      },
+      {
+      {
+        "version": "1.3.0",
+        "change_log": "v1.3.0 — CC payments (ONLINE BANKING TRANSFER) re-routed from Credit Card Charges to Credit Card Payments liability account; Purchase Interest re-routed from Credit Card Charges to Bank Fees; PAD CCRA re-routed from Exclude to Income Tax Expense; added new account IDs",
+        "effective": "2026-06-04"
+      },
+      {
+        "version": "1.4.0",
+        "change_log": "v1.4.0 — CRA tax refund (Tax Refund + CANADA) re-routed from Exclude to Income Tax Expense; ATM Deposit re-routed from Exclude to Shareholder Loan (owner cash contribution)",
+        "effective": "2026-06-04"
+      },
+      {
+        "version": "2.1.0",
+        "change_log": "v2.1.0 — Added confidence field to income_rules (high/medium/low) for auto-categorisation; HIGH patterns auto-classify without user review; generic tax refund and cashback re-routed to Exclude",
+        "effective": "2026-06-05"
+      }
+    ],
+    "entity": "Multi-entity (Intersite + Room Rentals)",
+    "note": "Each rule has an entities[] array for entity filtering. The Get-IncomeClassification and Get-AccountIdFromRules scripts filter by EntitySlug. Account IDs are entity-specific — see the rule's account_id and cross-ref cloud-books-entities.json."
+  },
+  "acct_names": {
+    "93310000000000424": "[8962] Motor vehicles repairs and maintenance",
+    "93310000000000427": "Software & IT Expenses (deprecated — route to [9150])",
+    "93310000000000400": "Office & General Expenses",
+    "93310000000000457": "Repairs and Maintenance",
+    "93310000000135091": "Professional Fees",
+    "93310000000000403": "Advertising And Marketing",
+    "93310000000000409": "Bank Fees and Charges",
+    "93310000000000412": "Credit Card Charges",
+    "93310000000151096": "Insurance",
+    "93310000000000460": "Other Expenses",
+    "93310000000217488": "Lease Expense",
+    "93310000000000421": "Software & IT Expenses",
+    "93310000000146154": "Shareholder Loan",
+    "93310000000146151": "Dividends Paid",
+    "93310000000149102": "Consulting Revenue",
+    "93310000000161002": "Exclude",
+    "93310000000297002": "Income Tax Expense",
+    "93310000000300002": "Credit Card Payments",
+    "151803000000000424": "Automobile Expense",
+    "151803000000000427": "Software & IT Expenses",
+    "151803000000000400": "Office & General Expenses",
+    "151803000000000457": "Repairs and Maintenance",
+    "151803000000000454": "Professional Fees",
+    "151803000000000403": "Advertising And Marketing",
+    "151803000000000409": "Bank Fees and Charges",
+    "151803000000000412": "Credit Card Charges",
+    "151803000000000460": "Other Expenses",
+    "151803000000000421": "Software & IT Expenses",
+    "151803000000000430": "Rent Revenue",
+    "151803000000197002": "Damage Deposits Held",
+    "151803000000245013": "Utilities",
+    "93310000000582161": "[9150] Tech repair, support, subscriptions, peripherals"
+  },
+  "income_rules": [
+    {
+      "priority": 1,
+      "pattern": "WAVE\\s+SV9T|WAVE\\s+PAYMENT",
+      "account_name": "Consulting Revenue",
+      "account_id": "93310000000149102",
+      "income_type": "Income",
+      "confidence": "high",
+      "note": "Wave payment processing — net deposit after fees",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 2,
+      "pattern": "E[\\-\\s]?TRANSFER.*AUTODEPOSIT.*VICTOR|E[\\-\\s]?TRANSFER.*AUTODEPOSIT.*VAS|E[\\-\\s]?TRANSFER.*AUTODEPOSIT.*SALMON",
+      "account_name": "Consulting Revenue",
+      "account_id": "93310000000149102",
+      "income_type": "Income",
+      "confidence": "medium",
+      "note": "⚠️ RBC e-Transfer AUTODEPOSIT shows RECIPIENT name, not sender. Owner name in payee does NOT mean self-transfer. Cross-ref amount against Upscale Havens invoice history. Only reclass to SHL if confirmed as owner-to-self.",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 3,
+      "pattern": "E[\\-\\s]?TRANSFER.*AUTODEPOSIT",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "income_type": "Transfer",
+      "confidence": "medium",
+      "note": "E-Transfer AUTODEPOSIT generic → Shareholder Loan",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 4,
+      "pattern": "E[\\-\\s]?TRANSFER\\s+SENT.*AUROMAITREYI",
+      "account_name": "Lease Expense",
+      "account_id": "93310000000217488",
+      "income_type": "Expense",
+      "confidence": "high",
+      "note": "E-Transfer SENT to AuroMaitreyi → Lease Expense",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 5,
+      "pattern": "E[\\-\\s]?TRANSFER\\s+SENT.*VICTOR|E[\\-\\s]?TRANSFER\\s+SENT.*VAS",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "income_type": "Transfer",
+      "confidence": "high",
+      "note": "E-Transfer SENT to self → Shareholder Loan",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 6,
+      "pattern": "E[\\-\\s]?TRANSFER\\s+SENT",
+      "account_name": "Dividends Paid",
+      "account_id": "93310000000146151",
+      "income_type": "Transfer",
+      "confidence": "medium",
+      "note": "E-Transfer SENT generic → Dividends Paid",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 7,
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER.*VICTOR|ONLINE\\s*BANKING\\s*TRANSFER.*VAS|ONLINE\\s*BANKING\\s*TRANSFER.*SALMON",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "income_type": "Transfer",
+      "confidence": "high",
+      "note": "Online Banking Transfer with owner name → Shareholder Loan",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 8,
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER.*CREDIT\\s+CARD|ONLINE\\s*BANKING\\s*TRANSFER.*MASTERCARD|ONLINE\\s*BANKING\\s*TRANSFER.*VISA|ONLINE\\s*BANKING\\s*TRANSFER.*PAYMENT.*\\-.*THANK",
+      "account_name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "income_type": "Transfer",
+      "confidence": "high",
+      "note": "Online Banking Transfer with CC keywords → Credit Card Payments",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 9,
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "income_type": "Transfer",
+      "confidence": "medium",
+      "amount_min": 1000,
+      "amount_round_only": true,
+      "note": "Online Banking Transfer large round amount → Shareholder Loan (owner injection)",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 10,
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER",
+      "account_name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "income_type": "Transfer",
+      "confidence": "medium",
+      "amount_round_only": true,
+      "note": "Online Banking Transfer small round amount → Credit Card Payment",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 11,
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER",
+      "account_name": "Consulting Revenue",
+      "account_id": "93310000000149102",
+      "income_type": "Income",
+      "confidence": "medium",
+      "note": "Online Banking Transfer non-round amount → Consulting Revenue (client payment)",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 12,
+      "pattern": "TAX\\s*REFUND.*CANADA|CRA\\s*REFUND",
+      "account_name": "Income Tax Expense",
+      "account_id": "93310000000297002",
+      "income_type": "Exclude",
+      "confidence": "high",
+      "note": "CRA tax refund — same account as tax payments",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 13,
+      "pattern": "TAX\\s*REFUND|CASH\\s*BACK",
+      "account_name": "Exclude",
+      "account_id": "93310000000161002",
+      "income_type": "Exclude",
+      "confidence": "high",
+      "note": "Non-CRA tax refund or cashback — route to Exclude",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 14,
+      "pattern": "ATM\\s*DEPOSIT",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "income_type": "Transfer",
+      "confidence": "high",
+      "note": "Cash deposit — owner contribution, treated as shareholder loan",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 15,
+      "pattern": "^INTEREST\\b|INTEREST\\s+(?:EARNED|PAID|INCOME|CREDIT)|^INT\\b",
+      "account_name": "Interest Income",
+      "account_id": "EXTERNAL_InterestIncome",
+      "income_type": "Income",
+      "confidence": "high",
+      "note": "Bank interest income",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 16,
+      "pattern": "PAD\\s*CCRA|CANADA\\s*REVENUE",
+      "account_name": "Income Tax Expense",
+      "account_id": "93310000000297002",
+      "income_type": "Exclude",
+      "confidence": "high",
+      "note": "CRA payment/revenue on credit side — route to Income Tax Expense",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "priority": 1,
+      "pattern": "WAVE\\s+SV9T|WAVE\\s+PAYMENT",
+      "account_name": "Rent Revenue",
+      "account_id": "151803000000000430",
+      "income_type": "Income",
+      "confidence": "high",
+      "note": "Wave payment processing — net deposit after fees",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 2,
+      "pattern": "E[\\-\\s]?TRANSFER.*AUTODEPOSIT.*VICTOR|E[\\-\\s]?TRANSFER.*AUTODEPOSIT.*VAS|E[\\-\\s]?TRANSFER.*AUTODEPOSIT.*SALMON",
+      "account_name": "Rent Revenue",
+      "account_id": "151803000000000430",
+      "income_type": "Income",
+      "confidence": "medium",
+      "note": "⚠️ RBC e-Transfer AUTODEPOSIT shows RECIPIENT name, not sender. Owner name in payee does NOT mean self-transfer. Cross-ref amount against Upscale Havens invoice history. Only reclass to SHL if confirmed as owner-to-self.",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 3,
+      "pattern": "E[\\-\\s]?TRANSFER.*AUTODEPOSIT",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "income_type": "Transfer",
+      "confidence": "medium",
+      "note": "E-Transfer AUTODEPOSIT generic → Shareholder Loan",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 4,
+      "pattern": "E[\\-\\s]?TRANSFER\\s+SENT.*AUROMAITREYI",
+      "account_name": "Lease Expense",
+      "account_id": "93310000000217488",
+      "income_type": "Expense",
+      "confidence": "high",
+      "note": "E-Transfer SENT to AuroMaitreyi → Lease Expense",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 5,
+      "pattern": "E[\\-\\s]?TRANSFER\\s+SENT.*VICTOR|E[\\-\\s]?TRANSFER\\s+SENT.*VAS",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "income_type": "Transfer",
+      "confidence": "high",
+      "note": "E-Transfer SENT to self → Shareholder Loan",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 6,
+      "pattern": "E[\\-\\s]?TRANSFER\\s+SENT",
+      "account_name": "Dividends Paid",
+      "account_id": "93310000000146151",
+      "income_type": "Transfer",
+      "confidence": "medium",
+      "note": "E-Transfer SENT generic → Dividends Paid",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 7,
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER.*VICTOR|ONLINE\\s*BANKING\\s*TRANSFER.*VAS|ONLINE\\s*BANKING\\s*TRANSFER.*SALMON",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "income_type": "Transfer",
+      "confidence": "high",
+      "note": "Online Banking Transfer with owner name → Shareholder Loan",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 8,
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER.*CREDIT\\s+CARD|ONLINE\\s*BANKING\\s*TRANSFER.*MASTERCARD|ONLINE\\s*BANKING\\s*TRANSFER.*VISA|ONLINE\\s*BANKING\\s*TRANSFER.*PAYMENT.*\\-.*THANK",
+      "account_name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "income_type": "Transfer",
+      "confidence": "high",
+      "note": "Online Banking Transfer with CC keywords → Credit Card Payments",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 9,
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "income_type": "Transfer",
+      "confidence": "medium",
+      "amount_min": 1000,
+      "amount_round_only": true,
+      "note": "Online Banking Transfer large round amount → Shareholder Loan (owner injection)",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 10,
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER",
+      "account_name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "income_type": "Transfer",
+      "confidence": "medium",
+      "amount_round_only": true,
+      "note": "Online Banking Transfer small round amount → Credit Card Payment",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 11,
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER",
+      "account_name": "Rent Revenue",
+      "account_id": "151803000000000430",
+      "income_type": "Income",
+      "confidence": "medium",
+      "note": "Online Banking Transfer non-round amount → Consulting Revenue (client payment)",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 12,
+      "pattern": "TAX\\s*REFUND.*CANADA|CRA\\s*REFUND",
+      "account_name": "Income Tax Expense",
+      "account_id": "93310000000297002",
+      "income_type": "Exclude",
+      "confidence": "high",
+      "note": "CRA tax refund — same account as tax payments",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 13,
+      "pattern": "TAX\\s*REFUND|CASH\\s*BACK",
+      "account_name": "Exclude",
+      "account_id": "93310000000161002",
+      "income_type": "Exclude",
+      "confidence": "high",
+      "note": "Non-CRA tax refund or cashback — route to Exclude",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 14,
+      "pattern": "ATM\\s*DEPOSIT",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "income_type": "Transfer",
+      "confidence": "high",
+      "note": "Cash deposit — owner contribution, treated as shareholder loan",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 15,
+      "pattern": "^INTEREST\\b|INTEREST\\s+(?:EARNED|PAID|INCOME|CREDIT)|^INT\\b",
+      "account_name": "Interest Income",
+      "account_id": "EXTERNAL_InterestIncome",
+      "income_type": "Income",
+      "confidence": "high",
+      "note": "Bank interest income",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "priority": 16,
+      "pattern": "PAD\\s*CCRA|CANADA\\s*REVENUE",
+      "account_name": "Income Tax Expense",
+      "account_id": "93310000000297002",
+      "income_type": "Exclude",
+      "confidence": "high",
+      "note": "CRA payment/revenue on credit side — route to Income Tax Expense",
+      "entities": [
+        "room-rentals"
+      ]
+    }
+  ],
+  "description_overrides": [
+    {
+      "match": "WAVE SV9T",
+      "account_name": "Consulting Revenue",
+      "account_id": "93310000000149102",
+      "note": "Wave payment processing — net deposit after fees",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "match": "WAVE PRO",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Wave Pro subscription — SaaS",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "match": "REINVEST WEALTH",
+      "account_name": "Professional Fees",
+      "account_id": "93310000000135091",
+      "note": "AI accounting software",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "match": "WAVE SV9T",
+      "account_name": "Consulting Revenue",
+      "account_id": "151803000000000430",
+      "note": "Wave payment processing — net deposit after fees",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "match": "WAVE PRO",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Wave Pro subscription",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "match": "REINVEST WEALTH",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "AI accounting software",
+      "entities": [
+        "room-rentals"
+      ]
+    }
+  ],
+  "vendor_keyword_rules": [
+    {
+      "pattern": "FREEDOM\\s*MOBILE|FONGO",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Phone service",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "PETRO|SHELL|CHEVRON|CHV\\d+|GAS\\b|CO-OP|CANCO|SUPER\\s*SAVE|ESSO|MOBIL(?!E)",
+      "account_name": "[8962] Motor vehicles repairs and maintenance",
+      "account_id": "93310000000000424",
+      "note": "Fuel",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "KAL[-\\s]*TIRE|LORDCO|IMPARK|PARKING",
+      "account_name": "[8962] Motor vehicles repairs and maintenance",
+      "account_id": "93310000000000424",
+      "note": "Auto repairs/parking",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "ICBC",
+      "account_name": "[8962] Motor vehicles repairs and maintenance",
+      "account_id": "93310000000000424",
+      "note": "Auto insurance",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "ZOHO|INTERSERVER|KILO\\s*CODE|ANOMALY|WAVE\\s*PRO",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Software/IT",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "OPENAIR|OPENROUTER|STRIPE[.-]?Z|PIXELLA|ROOMIES",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "AI/tech service",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "LIGHTSPEED|FREEDOM\\s*MOBILE|TELEPHONE",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Internet/phone",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "MYCLAW|SQUARESPACE|NAMECHEAP|CREATIVE\\s*FABRICA|P\\.SKOOL",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Software",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "BITWARDEN|TIDYCAL|BREEZEDOC|APP.?SUMO|WP.?FORMS",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Software",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "BOLDSIGN|UDEMY",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Software/IT",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "LEGALSHIELD",
+      "account_name": "Professional Fees",
+      "account_id": "93310000000135091",
+      "note": "Legal service",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "SQSP\\*|MOZSEO|NAME.?CHEAP",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Domain/SEO",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "REINVESTWEALTH",
+      "account_name": "Professional Fees",
+      "account_id": "93310000000135091",
+      "note": "Accounting fees — Reinvest Wealth Management",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "SCIENER",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Smart lock hardware/software",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "PAYPAL",
+      "account_name": "Other Expenses",
+      "account_id": "93310000000000460",
+      "note": "Online payment",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "THE\\s*BUGMAN|VERNON\\s*LOCK|OZERTY|SALES\\s*DRAFT",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "93310000000000457",
+      "note": "Property repair",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "PURCHASE\\s*INTEREST",
+      "account_name": "Bank Fees and Charges",
+      "account_id": "93310000000000409",
+      "note": "CC interest",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "AUTOMATIC\\s*PAYMENT",
+      "account_name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "note": "CC auto-payment from chequing — balance sheet",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "PAYMENT\\s*-\\s*THANK\\s*YOU",
+      "account_name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "note": "CC payment from bank — balance sheet",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "STAPLES|BEST\\s*BUY|DOLLARAMA",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Office supplies",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "HOME\\s*DEPOT|DULUX|VISIONS\\s*ELECTRONICS|TEMU",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "93310000000000457",
+      "note": "Repairs/maintenance",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "BC\\s*REGISTR|GOVERNMENT|REGISTRATION",
+      "account_name": "Professional Fees",
+      "account_id": "93310000000135091",
+      "note": "Government/registry",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "CIVIL\\s*RESOLUTION|LEGALSHIELD",
+      "account_name": "Professional Fees",
+      "account_id": "93310000000135091",
+      "note": "Legal/mediation",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "FACEBOOK|META|GOOGLE\\s*ADS|ADS\\b",
+      "account_name": "Advertising And Marketing",
+      "account_id": "93310000000000403",
+      "note": "Advertising",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "COFOODBANK|FOOD\\s*BANK",
+      "account_name": "Advertising And Marketing",
+      "account_id": "93310000000000403",
+      "note": "Charitable donation — used in ads to attract roommates",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "MONTHLY\\s*(FEE|ACCOUNT)|PAY-FILE|CHQ\\s*RETURN",
+      "account_name": "Bank Fees and Charges",
+      "account_id": "93310000000000409",
+      "note": "Bank fee",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "CREDIT\\s*CARD|RBC\\s*CREDIT",
+      "account_name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "note": "CC payment from chequing — balance sheet",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "ALIEXPRESS|NETFLIX|COINAMATIC",
+      "account_name": "Other Expenses",
+      "account_id": "93310000000000460",
+      "note": "Other",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "UPS(CALE)?\\s*HAVENS",
+      "account_name": "Consulting Revenue",
+      "account_id": "93310000000149102",
+      "note": "Consulting income (credits) / adjustment (debits)",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "CLEAN-IT\\s*ALL|THE\\s*BUGMAN|VERNON\\s*LOCK",
+      "account_name": "Other Expenses",
+      "account_id": "93310000000000460",
+      "note": "Services",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "CHV\\d+|CITY\\s*PARK|CLEAN",
+      "account_name": "Other Expenses",
+      "account_id": "93310000000000460",
+      "note": "Other",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER",
+      "account_name": "Exclude",
+      "account_id": "93310000000161002",
+      "note": "Internal transfer — route to Exclude",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "E.?TRANSFER.*AUTODEPOSIT.*(?:VICTOR|VAS)",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "note": "⚠️ RBC shows RECIPIENT name not sender. Verify before classifying. Likely income from Upscale Havens.",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "E.?TRANSFER.*AUTODEPOSIT",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "note": "Owner contribution — but cross-ref RBC e-Transfer note: may be client payment showing as recipient name",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "E.?TRANSFER\\s*SENT.*AUROMAITREYI",
+      "account_name": "Lease Expense",
+      "account_id": "93310000000217488",
+      "note": "Lease payment to property co-owner",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "E.?TRANSFER\\s*SENT.*(?:VAS|VICTOR)",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "note": "Shareholder loan repayment",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "E.?TRANSFER\\s*SENT",
+      "account_name": "Dividends Paid",
+      "account_id": "93310000000146151",
+      "note": "Owner distribution",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER.+\\d+$",
+      "account_name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "note": "CC payment from chequing — balance sheet, not P&L",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "PAD\\s*CCRA",
+      "account_name": "Income Tax Expense",
+      "account_id": "93310000000297002",
+      "note": "CRA corporate income tax payment — P&L expense",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "TAX\\s*REFUND.*CANADA|CRA\\s*REFUND|PAD\\s*CCRA",
+      "account_name": "Income Tax Expense",
+      "account_id": "93310000000297002",
+      "note": "CRA tax refund — same account as tax payments",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "TAX\\s*REFUND|CASH\\s*BACK",
+      "account_name": "Exclude",
+      "account_id": "93310000000161002",
+      "note": "Non-CRA tax refund/cashback — route to Exclude",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "ATM\\s*DEPOSIT",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "note": "Cash deposit — owner contribution, treated as shareholder loan",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "FREEDOM\\s*MOBILE|FONGO",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Phone service",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "PETRO|SHELL|CHEVRON|CHV\\d+|GAS\\b|CO-OP|CANCO|SUPER\\s*SAVE|ESSO|MOBIL(?!E)",
+      "account_name": "Automobile Expense",
+      "account_id": "151803000000000424",
+      "note": "Fuel",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "KAL[-\\s]*TIRE|LORDCO|IMPARK|PARKING",
+      "account_name": "Automobile Expense",
+      "account_id": "151803000000000424",
+      "note": "Auto repairs/parking",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "ICBC",
+      "account_name": "Automobile Expense",
+      "account_id": "151803000000000424",
+      "note": "Auto insurance",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "ZOHO|INTERSERVER|KILO\\s*CODE|ANOMALY|WAVE\\s*PRO",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Software/IT",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "OPENAIR|OPENROUTER|STRIPE[.-]?Z|PIXELLA|ROOMIES",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "AI/tech service",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "LIGHTSPEED|FREEDOM\\s*MOBILE|TELEPHONE",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Internet/phone",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "MYCLAW|SQUARESPACE|NAMECHEAP|CREATIVE\\s*FABRICA|P\\.SKOOL",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Software",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "BITWARDEN|TIDYCAL|BREEZEDOC|APP.?SUMO|WP.?FORMS",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Software",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "BOLDSIGN|UDEMY",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Software/IT",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "LEGALSHIELD",
+      "account_name": "Professional Fees",
+      "account_id": "151803000000000454",
+      "note": "Legal service",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "SQSP\\*|MOZSEO|NAME.?CHEAP",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Domain/SEO",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "REINVESTWEALTH",
+      "account_name": "Professional Fees",
+      "account_id": "151803000000000454",
+      "note": "Accounting fees — Reinvest Wealth Management",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "PAYPAL",
+      "account_name": "Other Expenses",
+      "account_id": "151803000000000460",
+      "note": "Online payment",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "THE\\s*BUGMAN|VERNON\\s*LOCK|OZERTY|SALES\\s*DRAFT",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "151803000000000457",
+      "note": "Property repair",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "PURCHASE\\s*INTEREST",
+      "account_name": "Bank Fees and Charges",
+      "account_id": "151803000000000409",
+      "note": "CC interest",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "AUTOMATIC\\s*PAYMENT",
+      "account_name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "note": "CC auto-payment from chequing — balance sheet",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "PAYMENT\\s*-\\s*THANK\\s*YOU",
+      "account_name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "note": "CC payment from bank — balance sheet",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "STAPLES|BEST\\s*BUY|DOLLARAMA",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Office supplies",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "HOME\\s*DEPOT|DULUX|VISIONS\\s*ELECTRONICS|TEMU",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "151803000000000457",
+      "note": "Repairs/maintenance",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "BC\\s*REGISTR|GOVERNMENT|REGISTRATION",
+      "account_name": "Professional Fees",
+      "account_id": "151803000000000454",
+      "note": "Government/registry",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "CIVIL\\s*RESOLUTION|LEGALSHIELD",
+      "account_name": "Professional Fees",
+      "account_id": "151803000000000454",
+      "note": "Legal/mediation",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "FACEBOOK|META|GOOGLE\\s*ADS|ADS\\b",
+      "account_name": "Advertising And Marketing",
+      "account_id": "151803000000000403",
+      "note": "Advertising",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "COFOODBANK|FOOD\\s*BANK",
+      "account_name": "Advertising And Marketing",
+      "account_id": "151803000000000403",
+      "note": "Charitable donation — used in ads to attract roommates",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "MONTHLY\\s*(FEE|ACCOUNT)|PAY-FILE|CHQ\\s*RETURN",
+      "account_name": "Bank Fees and Charges",
+      "account_id": "151803000000000409",
+      "note": "Bank fee",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "CREDIT\\s*CARD|RBC\\s*CREDIT",
+      "account_name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "note": "CC payment from chequing — balance sheet",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "ALIEXPRESS|NETFLIX|COINAMATIC",
+      "account_name": "Other Expenses",
+      "account_id": "151803000000000460",
+      "note": "Other",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "UPS(CALE)?\\s*HAVENS",
+      "account_name": "Consulting Revenue",
+      "account_id": "151803000000000430",
+      "note": "Consulting income (credits) / adjustment (debits)",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "CLEAN-IT\\s*ALL|THE\\s*BUGMAN|VERNON\\s*LOCK",
+      "account_name": "Other Expenses",
+      "account_id": "151803000000000460",
+      "note": "Services",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "CHV\\d+|CITY\\s*PARK|CLEAN",
+      "account_name": "Other Expenses",
+      "account_id": "151803000000000460",
+      "note": "Other",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER",
+      "account_name": "Exclude",
+      "account_id": "93310000000161002",
+      "note": "Internal transfer — route to Exclude",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "B\\.?C\\.?\\s*HYDRO|BC\\s*HYDRO|BILL PAYMENT.*HYDRO|HYDRO.*POWER",
+      "account_name": "Utilities",
+      "account_id": "151803000000245013",
+      "note": "BC Hydro electric bill — Utilities expense. Account added 2026-06-17.",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "TD\\s+INS|RBC\\s*INS(?:URANCE)?|INSURANCE",
+      "account_name": "Insurance",
+      "account_id": "151803000000000412",
+      "note": "Property insurance — TD Insurance or RBC Insurance",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "E.?TRANSFER.*AUTODEPOSIT.*(?:VICTOR|VAS)",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "note": "⚠️ RBC shows RECIPIENT name not sender. Verify before classifying. Likely income from Upscale Havens.",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "E.?TRANSFER.*AUTODEPOSIT",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "note": "Owner contribution — but cross-ref RBC e-Transfer note: may be client payment showing as recipient name",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "E.?TRANSFER\\s*SENT.*AUROMAITREYI",
+      "account_name": "Lease Expense",
+      "account_id": "93310000000217488",
+      "note": "Lease payment to property co-owner",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "E.?TRANSFER\\s*SENT.*(?:VAS|VICTOR)",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "note": "Shareholder loan repayment",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "E.?TRANSFER\\s*SENT",
+      "account_name": "Dividends Paid",
+      "account_id": "93310000000146151",
+      "note": "Owner distribution",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "ONLINE\\s*BANKING\\s*TRANSFER.+\\d+$",
+      "account_name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "note": "CC payment from chequing — balance sheet, not P&L",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "PAD\\s*CCRA",
+      "account_name": "Income Tax Expense",
+      "account_id": "93310000000297002",
+      "note": "CRA corporate income tax payment — P&L expense",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "TAX\\s*REFUND.*CANADA|CRA\\s*REFUND|PAD\\s*CCRA",
+      "account_name": "Income Tax Expense",
+      "account_id": "93310000000297002",
+      "note": "CRA tax refund — same account as tax payments",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "TAX\\s*REFUND|CASH\\s*BACK",
+      "account_name": "Exclude",
+      "account_id": "93310000000161002",
+      "note": "Non-CRA tax refund/cashback — route to Exclude",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "ATM\\s*DEPOSIT",
+      "account_name": "Shareholder Loan",
+      "account_id": "93310000000146154",
+      "note": "Cash deposit — owner contribution, treated as shareholder loan",
+      "entities": [
+        "room-rentals"
+      ]
+    }
+  ],
+  "amazon_keyword_rules": [
+    {
+      "pattern": "convex side view spot mirror|car side mirror|automotive.*mirror",
+      "account_name": "[8962] Motor vehicles repairs and maintenance",
+      "account_id": "93310000000000424",
+      "note": "Auto parts",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "desk chair|office chair|closet rod|plant hanger|closet hook|closet rod s hanger|hanger hook",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Office supplies",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "file folder|facial tissue|paper towel|toilet paper|garbage bag|dish soap|degreaser|rinse aid",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Supplies",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "lightbulb|bulb|extension cord",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Supplies",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "tape measure|body tape measure",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Office supplies",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "motherboard|ssd|nvme|storage upgrade|pcie|atx|ddr5|m\\.2|windows 11|windows home",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Computer components",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "keyboard.*mouse|headset|speaker|hub|hdmi|usb.*hub|usb.*c|hdmi.*cable|48gbps",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Computer accessories",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "phone battery pack|battery pack|power bank|led display.*battery",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Mobile accessories",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "alarm clock|sunrise alarm|smart wake",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Smart home",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "usb wired mouse|bluetooth mouse",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Computer accessories",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "airtag|airtag compatible|tracking tag",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Tracking device",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "headphone|anc|noise cancelling|anker.*headphone|soundcore",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Audio equipment",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "led desk lamp|desk lamp|led lamp|adjustable brightness.*lamp",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Computer accessories",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "surge protector|surge.*protect|power bar",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Computer accessories",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "temperature sensor|humidity sensor|app notification.*sensor",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Smart home sensor",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "phone battery pack|andriod series|charging.*cable",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "Mobile accessories",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "aluminum body|heatsink|thermal pad|aluminum.*thermal",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "93310000000000457",
+      "note": "Computer/electronics repair",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "ac energy|airtight seal|energy saving.*seal",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "93310000000000457",
+      "note": "HVAC seal",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "threadlocker|permatex",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "93310000000000457",
+      "note": "Hardware/tools",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "garage shelve|shelving|shelves|utility rack|metal.*rack",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "93310000000000457",
+      "note": "Garage/storage",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "feet for home travel use|vent clip|car.*vent.*phone",
+      "account_name": "[8962] Motor vehicles repairs and maintenance",
+      "account_id": "93310000000000424",
+      "note": "Auto accessories",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "patio glass sliding|glass sliding door",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "93310000000000457",
+      "note": "Home repair",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "cargo fly|safari.*travel.*cargo|travel.*bag",
+      "account_name": "Other Expenses",
+      "account_id": "93310000000000460",
+      "note": "Personal purchase",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "stemware wine glass|wine glass holder|glass.*storage",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Kitchen/office",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "velvet cover|removable.*velvet|washable.*cover",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Supplies",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "wide compatibility",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Office supplies",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "blue.?light.*glasses|bluelight.*blocker|eye.*anti.*uv|stylish.*bluelight",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Computer glasses",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "desk.?lamp|adjustable.*brightness|flexible.*placement.*light|led.*lamp",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Office lighting",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "home.*office.*travel|for home.*office",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Office supplies",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "battery.*9v|energizer.*max|9v.*battery",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Batteries",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "regular.?roll|charmin.*toilet|toilet.*paper.*ultra",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Supplies",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "boxing.*gloves.*protective|gloves.*office|safety.*gloves",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Office supplies",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "for.*home.*travel|travel.*photo.*cargo|cargo.*fly|navy.*large",
+      "account_name": "Other Expenses",
+      "account_id": "93310000000000460",
+      "note": "Personal item",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "ediloca.*en870|ssd.*pcie.*gen4|7450mb.*ssd|nvme.*m\\.2.*2280",
+      "account_name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "note": "SSD storage",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "ergomaker.*standing.*desk|electric.*adjustable.*standing.*desk|sit.*stand.*desk|height.*adjustable.*desk",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Standing desk",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "mzg.*storage.*shelve|shelv.*heavy.*duty.*metal|shelving.*unit.*standing",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "93310000000000457",
+      "note": "Shelving/storage",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "philips.*9.*volt|9v.*battery.*smoke|alkaline.*9v",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Batteries",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "hair.*catcher.*bath|sink.*strainer|drain.*protector.*tub",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "93310000000000457",
+      "note": "Plumbing supply",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "greatide.*extension.*cord|flat.*plug.*extension|extension.*cord.*grounded",
+      "account_name": "Office & General Expenses",
+      "account_id": "93310000000000400",
+      "note": "Extension cord",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "return complete|refund total|refund.*issued|your return",
+      "account_name": "Other Expenses",
+      "account_id": "93310000000000460",
+      "note": "Returned item",
+      "entities": [
+        "intersite-consulting"
+      ]
+    },
+    {
+      "pattern": "convex side view spot mirror|car side mirror|automotive.*mirror",
+      "account_name": "Automobile Expense",
+      "account_id": "151803000000000424",
+      "note": "Auto parts",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "desk chair|office chair|closet rod|plant hanger|closet hook|closet rod s hanger|hanger hook",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Office supplies",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "file folder|facial tissue|paper towel|toilet paper|garbage bag|dish soap|degreaser|rinse aid",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Supplies",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "lightbulb|bulb|extension cord",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Supplies",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "tape measure|body tape measure",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Office supplies",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "motherboard|ssd|nvme|storage upgrade|pcie|atx|ddr5|m\\.2|windows 11|windows home",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Computer components",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "keyboard.*mouse|headset|speaker|hub|hdmi|usb.*hub|usb.*c|hdmi.*cable|48gbps",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Computer accessories",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "phone battery pack|battery pack|power bank|led display.*battery",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Mobile accessories",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "alarm clock|sunrise alarm|smart wake",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Smart home",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "usb wired mouse|bluetooth mouse",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Computer accessories",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "airtag|airtag compatible|tracking tag",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Tracking device",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "headphone|anc|noise cancelling|anker.*headphone|soundcore",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Audio equipment",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "temperature sensor|humidity sensor|app notification.*sensor",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Smart home sensor",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "phone battery pack|andriod series|charging.*cable",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "Mobile accessories",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "aluminum body|heatsink|thermal pad|aluminum.*thermal",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "151803000000000457",
+      "note": "Computer/electronics repair",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "ac energy|airtight seal|energy saving.*seal",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "151803000000000457",
+      "note": "HVAC seal",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "threadlocker|permatex",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "151803000000000457",
+      "note": "Hardware/tools",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "garage shelve|shelving|shelves|utility rack|metal.*rack",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "151803000000000457",
+      "note": "Garage/storage",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "feet for home travel use|vent clip|car.*vent.*phone",
+      "account_name": "Automobile Expense",
+      "account_id": "151803000000000424",
+      "note": "Auto accessories",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "patio glass sliding|glass sliding door",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "151803000000000457",
+      "note": "Home repair",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "cargo fly|safari.*travel.*cargo|travel.*bag",
+      "account_name": "Other Expenses",
+      "account_id": "151803000000000460",
+      "note": "Personal purchase",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "stemware wine glass|wine glass holder|glass.*storage",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Kitchen/office",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "velvet cover|removable.*velvet|washable.*cover",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Supplies",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "wide compatibility",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Office supplies",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "blue.?light.*glasses|bluelight.*blocker|eye.*anti.*uv|stylish.*bluelight",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Computer glasses",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "desk.?lamp|adjustable.*brightness|flexible.*placement.*light|led.*lamp",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Office lighting",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "home.*office.*travel|for home.*office",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Office supplies",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "battery.*9v|energizer.*max|9v.*battery",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Batteries",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "regular.?roll|charmin.*toilet|toilet.*paper.*ultra",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Supplies",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "boxing.*gloves.*protective|gloves.*office|safety.*gloves",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Office supplies",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "for.*home.*travel|travel.*photo.*cargo|cargo.*fly|navy.*large",
+      "account_name": "Other Expenses",
+      "account_id": "151803000000000460",
+      "note": "Personal item",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "ediloca.*en870|ssd.*pcie.*gen4|7450mb.*ssd|nvme.*m\\.2.*2280",
+      "account_name": "Software & IT Expenses",
+      "account_id": "151803000000000427",
+      "note": "SSD storage",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "ergomaker.*standing.*desk|electric.*adjustable.*standing.*desk|sit.*stand.*desk|height.*adjustable.*desk",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Standing desk",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "mzg.*storage.*shelve|shelv.*heavy.*duty.*metal|shelving.*unit.*standing",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "151803000000000457",
+      "note": "Shelving/storage",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "philips.*9.*volt|9v.*battery.*smoke|alkaline.*9v",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Batteries",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "hair.*catcher.*bath|sink.*strainer|drain.*protector.*tub",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "151803000000000457",
+      "note": "Plumbing supply",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "greatide.*extension.*cord|flat.*plug.*extension|extension.*cord.*grounded",
+      "account_name": "Office & General Expenses",
+      "account_id": "151803000000000400",
+      "note": "Extension cord",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "return complete|refund total|refund.*issued|your return",
+      "account_name": "Other Expenses",
+      "account_id": "151803000000000460",
+      "note": "Returned item",
+      "entities": [
+        "room-rentals"
+      ]
+    },
+    {
+      "pattern": "sheet|bedding|bamboo.*sheet|viscose.*sheet|cooling.*sheet",
+      "account_name": "Repairs and Maintenance",
+      "account_id": "151803000000000457",
+      "note": "Bedsheets / bedding for rental property",
+      "entities": [
+        "room-rentals"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Pipeline — Business Forecasting</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --card: #ffffff;
+    --border: #dee2e6;
+    --text: #212529;
+    --muted: #6c757d;
+    --accent: #0d6efd;
+    --success: #198754;
+    --danger: #dc3545;
+    --code-bg: #f1f3f5;
+    --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+    padding: 2rem 1rem;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 2rem; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 0.75rem; padding-bottom: 0.25rem; border-bottom: 2px solid var(--accent); }
+  h3 { font-size: 1.15rem; margin: 1.25rem 0 0.5rem; }
+  p, li { margin-bottom: 0.5rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .subtitle { color: var(--muted); font-size: 1rem; margin-bottom: 1.5rem; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1.25rem; margin-bottom: 1rem; box-shadow: var(--shadow);
+  }
+  code, pre {
+    font-family: "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
+    font-size: 0.875rem; background: var(--code-bg); border-radius: 4px;
+  }
+  code { padding: 0.1em 0.3em; }
+  pre {
+    padding: 1rem; overflow-x: auto; line-height: 1.45;
+    border: 1px solid var(--border); margin: 0.75rem 0;
+  }
+  .step { counter-increment: step; }
+  .step h3::before {
+    content: counter(step) ". ";
+    color: var(--accent);
+  }
+  .diagram { counter-reset: step; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 0.75rem 0;
+  }
+  th, td {
+    text-align: left; padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  th { background: var(--code-bg); font-weight: 600; }
+  .badge {
+    display: inline-block; padding: 0.15em 0.5em; font-size: 0.75rem;
+    font-weight: 600; border-radius: 4px; color: #fff;
+  }
+  .badge-safe { background: var(--success); }
+  .badge-warn { background: #ffc107; color: #000; }
+  .badge-data { background: var(--accent); }
+  .arrow { color: var(--muted); font-size: 1.5rem; text-align: center; padding: 0.25rem 0; }
+  .sub {
+    color: var(--muted); font-size: 0.875rem; margin-top: 0.25rem;
+  }
+  footer {
+    margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 0.875rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Privacy Pipeline</h1>
+<p class="subtitle">Client data never reaches the AI model. Merchant names stay on the USB drive.</p>
+
+<div class="card" style="border-left: 4px solid var(--success);">
+  <strong style="color: var(--success);">&#10003; Zero-data-promise guaranteed</strong>
+  <p style="margin-top: 0.25rem;">
+    Raw transaction descriptions are <strong>never</strong> read by the opencode agent.
+    They are hashed before the agent session and restored <em>after</em> the session ends,
+    on your local machine, using a lookup file that never leaves the USB drive.
+  </p>
+</div>
+
+<h2>Architecture</h2>
+
+<div class="card diagram">
+  <p><strong>USB drive</strong> <span class="badge badge-data">stays with client</span></p>
+  <pre style="background: transparent; border: none; padding: 0; font-size: 0.9rem;">
+  raw-bank-2025.csv
+  raw-bank-2026.csv
+        |
+        |  python hash-csv.py --csv raw-bank-2025.csv,raw-bank-2026.csv
+        |                      --output anonymized.csv
+        v
+  anonymized.csv           anonymized-lookup.json
+  (hashed descriptions,    (maps UUID to original
+   UUIDs per row)           description, amount, date)
+        |                         |
+        |  USB &#8594; Laptop        | <strong>stays on USB</strong>
+        v                         v
+  </pre>
+  <p><strong>Laptop</strong> <span class="badge badge-warn">agent has access here</span></p>
+  <pre style="background: transparent; border: none; padding: 0; font-size: 0.9rem;">
+  anonymized.csv
+        |
+        |  income-forecast.py --csv anonymized.csv --balance 25000 --row-ids
+        v
+  forecast.csv
+  (with row_ids column)
+        |
+        |  Laptop &#8594; USB
+        v
+  </pre>
+  <p><strong>USB drive</strong> <span class="badge badge-data">stays with client</span></p>
+  <pre style="background: transparent; border: none; padding: 0; font-size: 0.9rem;">
+  forecast.csv  +  anonymized-lookup.json
+        |
+        |  python rename-csv.py --forecast forecast.csv
+        |                       --lookup anonymized-lookup.json
+        v
+  forecast-restored.csv
+  (original merchant names restored)
+  </pre>
+</div>
+
+<h2>Step-by-Step Workflow</h2>
+
+<div class="step">
+<h3>Pre-process: anonymize the raw CSV</h3>
+<p>Run this on the USB drive <strong>before</strong> connecting it to the laptop with opencode.</p>
+<pre>python hash-csv.py --csv client-bank.csv --output anonymized.csv</pre>
+<table>
+  <tr><th>Flag</th><th>Required</th><th>Default</th><th>Purpose</th></tr>
+  <tr><td><code>--csv</code></td><td>Yes</td><td>&mdash;</td><td>Comma-separated raw CSV file paths</td></tr>
+  <tr><td><code>--output</code> / <code>-o</code></td><td>No</td><td><code>&lt;input&gt;-anonymized.csv</code></td><td>Output anonymized CSV path</td></tr>
+  <tr><td><code>--salt</code></td><td>No</td><td>Random 16-byte hex</td><td>Reuse to produce identical hashes across runs</td></tr>
+</table>
+<p><strong>What it produces:</strong></p>
+<table>
+  <tr><th>File</th><th>Contains</th><th>Where it goes</th></tr>
+  <tr><td><code>anonymized.csv</code></td>
+      <td><code>row_id, date, description_hash, amount, category, type</code></td>
+      <td>Copied to laptop for agent</td></tr>
+  <tr><td><code>anonymized-lookup.json</code></td>
+      <td><code>{salt, rows: {uuid: {original_description, ...}}}</code></td>
+      <td><strong>Stays on USB drive</strong></td></tr>
+</table>
+<p class="sub">The salt is a one-time random key. Same description always produces the same hash (recurring detection works). Without the salt, the hash cannot be reversed.</p>
+</div>
+
+<div class="step">
+<h3>Run the forecast (agent session)</h3>
+<p>The agent on the laptop reads only the anonymized CSV. It never sees merchant names.</p>
+<pre>python income-forecast.py --csv anonymized.csv --balance 25000 --horizon 365 --row-ids</pre>
+<table>
+  <tr><th>Flag</th><th>Purpose</th></tr>
+  <tr><td><code>--row-ids</code></td><td>Emit a <code>row_ids</code> column linking each forecast event to its source transaction UUIDs</td></tr>
+</table>
+<p class="sub">Without <code>--row-ids</code>, the output is identical to before &mdash; no traceability needed if you don't require restoration.</p>
+<p>The output <code>forecast.csv</code> contains hashed descriptions for recurring patterns. The agent can still give business advice based on categories and amounts.</p>
+</div>
+
+<div class="step">
+<h3>Post-process: restore original descriptions</h3>
+<p>Run this on the USB drive <strong>after</strong> copying the forecast back from the laptop.</p>
+<pre>python rename-csv.py --forecast forecast.csv --lookup anonymized-lookup.json</pre>
+<table>
+  <tr><th>Flag</th><th>Required</th><th>Default</th><th>Purpose</th></tr>
+  <tr><td><code>--forecast</code></td><td>Yes</td><td>&mdash;</td><td>Forecast CSV from <code>income-forecast.py --row-ids</code></td></tr>
+  <tr><td><code>--lookup</code></td><td>Yes</td><td>&mdash;</td><td>Lookup JSON from <code>hash-csv.py</code></td></tr>
+  <tr><td><code>--output</code> / <code>-o</code></td><td>No</td><td><code>&lt;forecast&gt;-restored.csv</code></td><td>Output restored CSV path</td></tr>
+</table>
+<p><strong>What changes:</strong></p>
+<table>
+  <tr><th>Column</th><th>Before</th><th>After</th></tr>
+  <tr><td><code>description</code></td><td><code>9e3d2d63ca43...</code> (hash)</td><td><code>Client A Payment</code> (original)</td></tr>
+  <tr><td><code>row_ids</code></td><td><code>uuid1,uuid2,...</code></td><td>Replaced with <code>original_descriptions</code></td></tr>
+</table>
+<p class="sub">Aggregate rows (spontaneous estimates, balance forward) have no UUIDs and pass through unchanged.</p>
+</div>
+
+<h2>How It Works</h2>
+
+<div class="card">
+<h3>Description Hashing</h3>
+<p>Each transaction description is hashed with:</p>
+<pre>SHA-256(salt + description)</pre>
+<p>The result is a full 64-character hex string. Because the salt is random per session:</p>
+<ul>
+  <li><strong>Same merchant, same session</strong> &rarr; identical hash (recurring detection works)</li>
+  <li><strong>Cross-session</strong> &rarr; different hashes (no correlation between sessions)</li>
+  <li><strong>Irreversible</strong> &rarr; without the salt, the original cannot be recovered</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>UUID Traceability</h3>
+<p>Every input row gets a UUID v4. The lookup JSON on the USB drive maps each UUID to:</p>
+<ul>
+  <li>Original description</li>
+  <li>Original date</li>
+  <li>Original amount</li>
+  <li>Original category and type</li>
+</ul>
+<p>When <code>income-forecast.py --row-ids</code> detects a recurring pattern, it collects the UUIDs of all source transactions. The forecast CSV carries these UUIDs. <code>rename-csv.py</code> uses them to restore the original descriptions.</p>
+</div>
+
+<div class="card">
+<h3>What Stays On the USB Drive</h3>
+<p>These files <strong>never</strong> go to the laptop:</p>
+<ul>
+  <li><code>raw-bank-*.csv</code> &mdash; original bank data</li>
+  <li><code>*-lookup.json</code> &mdash; UUID-to-original mapping + salt</li>
+  <li><code>*-restored.csv</code> &mdash; the final output with restored descriptions</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>What the Agent Sees</h3>
+<p>The agent on the laptop only has access to:</p>
+<ul>
+  <li><code>anonymized.csv</code> &mdash; dates, amounts, categories, hashed descriptions, UUIDs</li>
+  <li><code>forecast.csv</code> &mdash; the same hashed descriptions in the output</li>
+</ul>
+<p class="sub" style="margin-top: 0.5rem;"><strong>No merchant names. No client names. No PII.</strong></p>
+</div>
+
+<h2>Multiple Input Files</h2>
+<p>Both engines accept comma-separated file lists. All files are merged into a single anonymized output:</p>
+<pre>python hash-csv.py --csv 2025.csv,2026-Q1.csv,2026-Q2.csv --output merged-anonymized.csv</pre>
+
+<h2>Deterministic Re-Hashing</h2>
+<p>Use <code>--salt</code> to produce the same hashes across runs (useful if you re-anonymize the same data):</p>
+<pre>python hash-csv.py --csv client-bank.csv --output anonymized.csv --salt a1b2c3d4e5f6a7b8</pre>
+<p class="sub">Without <code>--salt</code>, a new random salt is generated each run &rarr; different hashes each time.</p>
+
+<h2>Script Reference</h2>
+<table>
+  <tr><th>Script</th><th>Location</th><th>Purpose</th></tr>
+  <tr>
+    <td><code>hash-csv.py</code></td>
+    <td><code>Skills/Marketer/business-forecasting/hash-csv.py</code></td>
+    <td>Anonymize raw CSV before agent touch</td>
+  </tr>
+  <tr>
+    <td><code>rename-csv.py</code></td>
+    <td><code>Skills/Marketer/business-forecasting/rename-csv.py</code></td>
+    <td>Restore original descriptions after agent session</td>
+  </tr>
+  <tr>
+    <td><code>income-forecast.py</code></td>
+    <td><code>Skills/Marketer/business-forecasting/income-forecast.py</code></td>
+    <td>Core forecast engine (<code>--row-ids</code> flag)</td>
+  </tr>
+</table>
+
+<h2>FAQ</h2>
+
+<div class="card">
+<h3>Can I skip anonymization?</h3>
+<p>Yes. Omit <code>hash-csv.py</code> and don't use <code>--row-ids</code>. The engine works identically without them. The privacy pipeline is optional &mdash; add it when clients need assurance.</p>
+</div>
+
+<div class="card">
+<h3>Does hashing break recurring detection?</h3>
+<p>No. SHA-256 is deterministic: <code>"Starbucks Coffee"</code> always produces the same hash for the same salt. The engine groups identical hashes as recurring patterns &mdash; just like it groups identical merchant names.</p>
+</div>
+
+<div class="card">
+<h3>Is SHA-256 secure enough?</h3>
+<p>Yes. SHA-256 is a NIST-approved cryptographic hash. With a 128-bit random salt, rainbow-table attacks are infeasible. The hash alone cannot be reversed.</p>
+</div>
+
+<div class="card">
+<h3>What about amounts and dates?</h3>
+<p>Dates and amounts are passed through unchanged. They are not PII &mdash; they are necessary for the Monte Carlo engine and do not identify individuals. Only the <code>description</code> column contains merchant/client names.</p>
+</div>
+
+<div class="card">
+<h3>What if I need to re-anonymize the same data?</h3>
+<p>Pass the same <code>--salt</code> to produce identical hashes. The salt is printed at the end of each <code>hash-csv.py</code> run. Save it with the lookup file.</p>
+</div>
+
+<footer>
+  <p>Business Forecasting &mdash; Marketer Domain &mdash; Intersite ORCHESTRATOR</p>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,2 @@
+site,name,url,start,end,page_param,img_selector,referer,delay
+fixture,Demo Comic,http://127.0.0.1:8765/comics/demo/page,1,5,page,,,1

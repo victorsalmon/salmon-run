@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{Title}} - Project Estimate</title>
+<style>
+  :root {
+    --bg-deep: #121214;
+    --bg-surface: #1e293b;
+    --bg-card: #1e293b;
+    --accent: #e11d48;
+    --accent-hover: #be123c;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: #334155;
+    --success: #22c55e;
+    --warning: #eab308;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-display: 'Outfit', 'Inter', -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-sans); background: var(--bg-deep); color: var(--text-primary); line-height: 1.6; padding: 2rem 1rem; }
+  .container { max-width: 800px; margin: 0 auto; }
+  .header { text-align: center; padding: 2rem 1rem; margin-bottom: 2rem; }
+  .header h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .header .meta { color: var(--text-secondary); margin-top: 0.5rem; }
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; backdrop-filter: blur(8px); }
+  .card h2 { font-family: var(--font-display); font-size: 1.125rem; margin-bottom: 1rem; color: var(--text-primary); }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { color: var(--text-secondary); }
+  td.amount { text-align: right; font-variant-numeric: tabular-nums; }
+  .total-row td { font-weight: 700; color: var(--text-primary); border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent); }
+  .total-row td.amount { color: var(--accent); }
+  .summary-box { background: var(--bg-deep); border: 1px solid var(--accent); border-radius: 8px; padding: 1rem; margin: 1rem 0; text-align: center; }
+  .summary-box .total-label { font-size: 0.875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .summary-box .total-value { font-size: 2rem; font-weight: 700; color: var(--accent); font-family: var(--font-display); }
+  .terms { color: var(--text-secondary); font-size: 0.875rem; line-height: 1.8; }
+  .terms h3 { color: var(--text-primary); font-family: var(--font-display); margin-bottom: 0.5rem; }
+  .signature { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+  .signature-line { display: flex; justify-content: space-between; margin-top: 2rem; }
+  .signature-line div { width: 45%; }
+  .signature-line .line { border-bottom: 1px solid var(--text-muted); height: 1px; margin-top: 2rem; }
+  .signature-line .label { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .btn { display: inline-block; background: var(--accent); color: #fff; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600; transition: background 0.2s; margin-top: 1rem; }
+  .btn:hover { background: var(--accent-hover); }
+  @media (max-width: 767px) {
+    .header h1 { font-size: 1.5rem; }
+    .card { padding: 1rem; }
+    table { font-size: 0.875rem; }
+  }
+  @media print {
+    body { background: #fff; color: #000; padding: 0; }
+    .card { border: 1px solid #ddd; break-inside: avoid; }
+    .header h1 { -webkit-text-fill-color: #000; background: none; }
+    .btn { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>{{Title}}</h1>
+    <div class="meta">
+      <p><strong>Client:</strong> {{Client}}</p>
+      <p><strong>Date:</strong> {{Date}}</p>
+      <p><strong>Prepared by:</strong> {{PreparedBy}}</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Scope of Work</h2>
+    <p>{{Scope}}</p>
+  </div>
+
+  <div class="card">
+    <h2>Line Items</h2>
+    <table>
+      <thead><tr><th>Description</th><th>Hours</th><th>Rate</th><th>Subtotal</th></tr></thead>
+      <tbody>{{Items}}</tbody>
+    </table>
+  </div>
+
+  <div class="summary-box">
+    <div class="total-label">Total Estimated Cost</div>
+    <div class="total-value">${{Total}}</div>
+  </div>
+
+  <div class="card terms">
+    <h3>Terms & Conditions</h3>
+    {{Terms}}
+  </div>
+
+  <div class="card signature">
+    <h3>Authorization</h3>
+    <p style="color: var(--text-secondary); font-size: 0.875rem;">By signing below, you authorize the work described above at the estimated cost.</p>
+    <div class="signature-line">
+      <div>
+        <div class="label">Client Signature</div>
+        <div class="line"></div>
+      </div>
+      <div>
+        <div class="label">Date</div>
+        <div class="line"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

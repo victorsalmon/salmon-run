@@ -1,0 +1,18 @@
+{
+  "name": "autocode-delivery",
+  "version": "0.1.0",
+  "description": "Prepare verified changes for review and task handoff.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Autocode Delivery",
+    "shortDescription": "Prepare verified changes for delivery.",
+    "longDescription": "Checks quality evidence, creates a semantic commit and branch handoff, and optionally opens a pull request or updates the Asana task.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Prepare this verified change for review and update its task handoff."
+  }
+}

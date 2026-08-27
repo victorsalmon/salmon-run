@@ -1,0 +1,98 @@
+{
+  "description": "Single source of truth for all organizations and their contexts in the Intersite accounting ecosystem.",
+  "organizations": [
+    {
+      "id": "intersite-consulting-inc",
+      "display_name": "Intersite Consulting Inc.",
+      "slug": "intersite-consulting",
+      "zoho_org_secret": "ZOHO_BOOKS_ORG_INTERSITE",
+      "zoho": {
+        "orgId": "925048093",
+        "accounts": [
+          { "id": "93310000000100019", "name": "rbc-intersite", "label": "RBC Intersite (Chequing 6632)", "zoho_account_id_secret": "ZOHO_BOOKS_INTERSITE_RBC" },
+          { "id": "93310000000100013", "name": "mc-6258", "label": "MC 6258 (MasterCard 6241)", "zoho_account_id_secret": "ZOHO_BOOKS_INTERSITE_6258" }
+        ]
+      },
+      "default_context": "corporate",
+      "contexts": [
+        {
+          "id": "corporate",
+          "display_name": "Intersite Consulting Inc.",
+          "slug": "corporate",
+          "bank": "RBC",
+          "plaid_token_key": "PLAID_ACCESS_TOKEN_RBC",
+          "zoho_bank_account_name": "RBC Intersite Consulting Inc.",
+          "zoho_business_id_secret": null,
+          "properties": [],
+          "is_default": true
+        }
+      ]
+    },
+    {
+      "id": "victor-salmon-room-rentals",
+      "display_name": "Victor Salmon — Room Rentals",
+      "slug": "room-rentals",
+      "zoho_org_secret": "ZOHO_BOOKS_ORG_RENTALS",
+      "zoho": {
+        "orgId": "925004567",
+        "accounts": [
+          { "id": "151803000000101245", "name": "fra", "label": "RBC-FRA 5172549", "zoho_account_id_secret": "ZOHO_BOOKS_ROOMRENTALS_RBC" },
+          { "id": "151803000000101006", "name": "mlm", "label": "TD-MLM 6467010", "zoho_account_id_secret": "ZOHO_BOOKS_ROOMRENTALS_TD" },
+          { "id": "151803000000101153", "name": "tmh", "label": "SCOTIA-TMH 406000697486", "zoho_account_id_secret": "ZOHO_BOOKS_ROOMRENTALS_SCOTIA" },
+          { "id": "151803000000101251", "name": "rbc-visa", "label": "RBC-FRA-6679 Visa", "zoho_account_id_secret": "ZOHO_BOOKS_ROOMRENTALS_VISA" }
+        ]
+      },
+      "default_context": null,
+      "contexts": [
+        {
+          "id": "mlm",
+          "display_name": "MLM (32870 George Ferguson Way, Abbotsford)",
+          "slug": "mlm",
+          "bank": "TD",
+          "plaid_token_key": "PLAID_ACCESS_TOKEN_TD",
+          "zoho_bank_account_name": "TD MLM",
+          "zoho_business_id_secret": null,
+          "properties": [
+            {
+              "address": "210-32870 George Ferguson Way, Abbotsford, BC, V2S 7K1",
+              "tax_account": "Abbotsford"
+            }
+          ],
+          "is_default": false
+        },
+        {
+          "id": "tmh",
+          "display_name": "TMH (31-3800 40th Avenue, Vernon)",
+          "slug": "tmh",
+          "bank": "Scotia",
+          "plaid_token_key": "PLAID_ACCESS_TOKEN_SCOTIA",
+          "zoho_bank_account_name": "Scotia TMH",
+          "zoho_business_id_secret": null,
+          "properties": [
+            {
+              "address": "31-3800 40th Avenue, Vernon, BC, V1T 6S3",
+              "tax_account": "Vernon"
+            }
+          ],
+          "is_default": false
+        },
+        {
+          "id": "fra",
+          "display_name": "FRA (Francis, Vernon)",
+          "slug": "fra",
+          "bank": "RBC",
+          "plaid_token_key": "PLAID_ACCESS_TOKEN_RBC",
+          "zoho_bank_account_name": "RBC Francis",
+          "zoho_business_id_secret": null,
+          "properties": [
+            {
+              "address": "***REMOVED-ADDRESS*** Road, Richmond, BC",
+              "tax_account": "Vernon"
+            }
+          ],
+          "is_default": false
+        }
+      ]
+    }
+  ]
+}

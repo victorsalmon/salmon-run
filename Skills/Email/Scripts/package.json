@@ -1,0 +1,23 @@
+{
+  "name": "@intersite/email-lib",
+  "version": "1.0.0",
+  "description": "Reusable IMAP and SMTP email library — injectable credentials, no hardcoded accounts",
+  "type": "module",
+  "exports": {
+    "./lib/imap": "./lib/imap.mjs",
+    "./lib/smtp": "./lib/smtp.mjs"
+  },
+  "bin": {
+    "check-imap": "./bin/check-imap.mjs",
+    "send-smtp": "./bin/send-smtp.mjs",
+    "test-imap": "./bin/test-imap.mjs"
+  },
+  "scripts": {
+    "test": "node --experimental-test-module-mocks --test"
+  },
+  "dependencies": {
+    "imap": "^0.8.17",
+    "nodemailer": "^9.0.5",
+    "pdfkit": "^0.19.0"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://intersite-orchestrator/Skills/skills.schema.json",
+  "title": "ORCHESTRATOR Skill Registry",
+  "description": "Registry of all skills across ORCHESTRATOR skill systems (OpenCode, ORCHESTRATOR, Bookkeeper, Browserless, Tavily)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "description": "Unique skill identifier in dot-separated hierarchical format (e.g., 'Bookkeeper/zoho/ingest')",
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9_-]*(/[a-z0-9][a-z0-9_-]*)*$"
+      },
+      "path": {
+        "description": "Relative filesystem path to the skill file (.md, .ps1, or .json). May be repo-relative (Skills/, Plugins/, Orchestrator/, Archived/, Infrastructure/), a parent-relative cross-repo path (../), or an absolute Windows path (C:/...).",
+        "type": "string",
+        "pattern": "^(?:(?:Skills|Archived|Infrastructure|Plugins|Orchestrator)(?:/|\\\\)|(?:\\.\\.)(?:/|\\\\)|[A-Za-z]:(?:/|\\\\)).*$"
+      },
+      "container": {
+        "description": "Docker container, MCP server, or runtime namespace that owns this skill.",
+        "type": ["string", "null"],
+        "enum": ["bookkeeping", "any", "docusign", "documentation", "git", "host", "is-api", "matt", "mcp_browserless", "mcp_web", "maintenance", "openclaw", "opencode", "orchestration", "ORCHESTRATOR", "quality", "refactor", "saas-modules", "workflow", null]
+      },
+      "mcp_server": {
+        "description": "MCP server this skill documents.",
+        "type": "string",
+        "enum": ["mcp_opencode", "mcp_aqe", "mcp_web", "mcp_browserless", "mcp_docusign", "ops-funnel-proxy", "is-api"]
+      },
+      "mcp_tools": {
+        "description": "MCP tool names documented or implemented by this skill.",
+        "type": "array",
+        "items": { "type": "string" },
+        "uniqueItems": true
+      },
+      "type": {
+        "description": "Category of skill content",
+        "type": "string",
+        "enum": [
+          "archived", "cowork-utility", "domain-entrypoint", "integration", "methodology",
+          "milestone-check", "mode-workflow", "operational-knowledge", "persona",
+          "pipeline-stage", "reference", "skill", "skill-entrypoint", "skill-trackflow",
+          "test", "tool", "tool-command", "tutorial", "utility", "workflow"
+        ]
+      },
+      "mode": {
+        "description": "For mode-workflow types, the operational mode this entry represents",
+        "type": "string",
+        "enum": ["code", "review", "rescue", "audit", "cowork", "troubleshoot", "redeploy", "plan", "execute"]
+      },
+      "domain": {
+        "description": "For skills belonging to a knowledge domain, the domain name",
+        "type": ["string", "null"],
+        "enum": ["bookkeeping", "aqe", "architecturereview", "audit", "auth", "browserless", "contracts", "cowork", "docker", "frontend", "git", "infrastructure", "lifecycle", "marketer", "matt", "mcp", "misc", "openclaw", "opencode", "ORCHESTRATOR", "ops", "playwright", "web", null]
+      },
+      "track": { "description": "Track name within a domain", "type": "string" },
+      "workflow": { "description": "Workflow name within a track", "type": "string" },
+      "role": {
+        "description": "For persona types, the fleet container persona",
+        "type": "string",
+        "enum": ["orch", "veri", "base"]
+      },
+      "flavor": {
+        "description": "Which skill system this entry belongs to",
+        "type": "string",
+        "enum": ["openclaw", "ORCHESTRATOR", "opencode", "shared"]
+      },
+      "description": { "description": "One-sentence summary", "type": "string", "maxLength": 1000 },
+      "depends_on": { "description": "Other skills that should be read before this one", "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+      "cross_refs": { "description": "Other skills referenced by this skill", "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+      "tags": { "description": "Search/filter tags", "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+      "stale": { "description": "Whether this skill is superseded", "type": "boolean", "default": false },
+      "superseded_by": { "description": "Replacement skill path or name", "type": ["string", "null"] },
+      "last_verified": { "description": "ISO-8601 date last verified", "type": ["string", "null"], "format": "date" },
+      "persona_anchor": { "description": "Immutable identity file for persona types", "type": ["string", "null"],         "pattern": "^Skills/Orchestrator/Personas/[A-Z]+/soul\\.md$" },
+      "shared_refs": { "description": "Files loaded at persona startup", "type": ["array", "null"], "items": { "type": "string" }, "uniqueItems": true },
+      "plugin": { "description": "Runbook plugin this skill belongs to", "type": "string" }
+    },
+    "required": ["name", "path", "container", "type", "description"]
+  }
+}

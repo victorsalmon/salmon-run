@@ -1,0 +1,124 @@
+function Test-PlanHeaderContent {
+    param([AllowEmptyString()][string]$Content)
+    if (-not $Content) { return $false }
+    if ($Content -match '(?m)^\s*#\s+(?:Session\s+Plan|Session|Plan):\s+.+$') { return $true }
+    if ($Content -match '(?m)^\s*#\s+Scheduled Task:\s+.+$' -and
+        $Content -match '(?m)^\s*\*\*Type\*\*:\s*scheduled-task\b' -and
+        $Content -match '(?m)^\s*\*\*Schedule ID\*\*:\s*\S+') { return $true }
+    $plainTitle = $Content -match '(?m)^\s*#\s+[^#\r\n].+$'
+    if (-not $plainTitle) { return $false }
+    $metadataSignals = @(
+        ($Content -match '(?m)^\s*\*\*Repo:?\*\*:?\s*.+$'),
+        ($Content -match '(?m)^\s*\*\*Date:?\*\*:?\s*.+$'),
+        ($Content -match '(?m)^\s*\*\*Origin:?\*\*:?\s*Plan-mode session\b'),
+        ($Content -match '(?m)^\s*##\s+(?:Context|Overview|Task(?:s)?)\b')
+    ) | Where-Object { $_ }
+    return $metadataSignals.Count -ge 2
+}
+
+function ConvertTo-LockHeader {
+    param(
+        [string]$AgentId,
+        [string]$Status,
+        [string]$ExistingContent,
+        [string]$ReleaseTimestamp
+    )
+    if (-not $ReleaseTimestamp -and $Status -eq 'released') {
+        $ReleaseTimestamp = [datetime]::UtcNow.ToString('o')
+    }
+    $now = [datetime]::UtcNow.ToString('o')
+    if ([string]::IsNullOrWhiteSpace($AgentId)) {
+        throw "AgentId cannot be empty — a Lock Header with a blank Agent: is invalid."
+    }
+    $newBlock = @"
+- Agent: $AgentId
+- Locked: $now
+- Status: $Status
+"@
+    if ($Status -eq 'released') {
+        $newBlock += "`n- Released: $ReleaseTimestamp"
+    }
+    if ($ExistingContent -match '(?ms)^\*\*Lock\*\*') {
+        if ($ExistingContent -match '(?ms)^---$') {
+            $lastSep = $ExistingContent.LastIndexOf('---')
+            $before = $ExistingContent.Substring(0, $lastSep)
+            return $before + "---`n" + $newBlock + "`n" + $ExistingContent.Substring($lastSep + 3)
+        }
+        return $ExistingContent + "`n---`n" + $newBlock
+    }
+    # No existing lock header — prepend the block but ALWAYS preserve the body.
+    # Dropping $ExistingContent here produced header-only stubs (plan body lost).
+    return "`n**Lock**`n" + $newBlock + "`n" + $ExistingContent
+}
+$AgentId = $null; $Status = $null; $ExistingContent = $null; $ReleaseTimestamp = $null
+$DryRun = $false; $OutputPath = $null
+if ($args.Count -ge 2) { $AgentId = $args[0]; $Status = $args[1] }
+for ($i = 2; $i -lt $args.Count; $i++) {
+    switch -Wildcard ($args[$i]) {
+        '-ExistingContent' { $ExistingContent = $args[++$i] }
+        '-ReleaseTimestamp' { $ReleaseTimestamp = $args[++$i] }
+        '-DryRun' { $DryRun = $true }
+        '-OutputPath' { $OutputPath = $args[++$i] }
+    }
+}
+if (-not $Status) { Write-Error "Status is required"; exit 1 }
+$result = ConvertTo-LockHeader -AgentId $AgentId -Status $Status -ExistingContent $ExistingContent -ReleaseTimestamp $ReleaseTimestamp
+if ($DryRun) { Write-Output $result }
+elseif ($OutputPath) {
+    # Atomic write contract (see workflow-primitives.md § Lock Header Format):
+    # temp-write + Move-Item (atomic on same volume), then verify the original
+    # plan body survived. A header-only file is a bug, not a valid lock state.
+    if (-not (Test-Path $OutputPath)) { Write-Error "Source file missing: $OutputPath"; exit 2 }
+    $src = Get-Content $OutputPath -Raw -ErrorAction Stop
+    if ([string]::IsNullOrWhiteSpace($src)) { Write-Error "Source file empty or unreadable: $OutputPath"; exit 2 }
+    if ([string]::IsNullOrWhiteSpace($ExistingContent)) { Write-Error "Existing content missing for $OutputPath"; exit 2 }
+    $tempPath = "$OutputPath.tmp.$PID"
+    $result | Set-Content -Path $tempPath -NoNewline -Encoding utf8
+    Move-Item -LiteralPath $tempPath -Destination $OutputPath -Force
+    $written = Get-Content $OutputPath -Raw -ErrorAction SilentlyContinue
+    $bodySurvived = $false
+    if ($written) {
+        if ($ExistingContent) {
+            $bodySurvived = $written.Length -ge $ExistingContent.Length -and (Test-PlanHeaderContent -Content $written)
+        } else {
+            $bodySurvived = Test-PlanHeaderContent -Content $written
+        }
+    }
+    if (-not $bodySurvived) {
+        Write-Host "LOCK_WRITE_TRUNCATION path='$OutputPath' len=$($written.Length) originalLen=$($ExistingContent.Length) — restoring from git" -ForegroundColor Red
+        try {
+            # Directory-agnostic git resolution: locate the work tree from the file's own
+            # location (git -C walks up from $OutputPath's parent), never from the caller's
+            # cwd — restore must work from any working directory (orchestrator-tooling-2 feedback).
+            $repoRoot = git -C (Split-Path -Parent $OutputPath) rev-parse --show-toplevel 2>$null
+            if ($repoRoot) {
+                $relSpec = try { [System.IO.Path]::GetRelativePath($repoRoot, $OutputPath).Replace('\', '/') } catch { $OutputPath }
+                $restored = git -C $repoRoot show "HEAD:$relSpec" 2>$null
+                if (-not $restored) {
+                    # History fallback: the tracked copy may have been moved or displaced by a
+                    # concurrent safe-pull — search all refs before giving up (orchestrator-tooling-2).
+                    # The newest commit touching the path may be its deletion commit, so walk
+                    # candidates newest→oldest and take the first commit where the path resolves.
+                    $candidates = git -C $repoRoot log --all --format='%H' -- "$relSpec" 2>$null
+                    foreach ($candidate in $candidates) {
+                        if (-not $candidate) { continue }
+                        $restored = git -C $repoRoot show "$candidate`:$relSpec" 2>$null
+                        if ($restored) { break }
+                    }
+                }
+            }
+            if ($restored) {
+                $restored | Set-Content -Path $OutputPath -NoNewline -Encoding utf8
+                Write-Host "LOCK_WRITE_RESTORED path='$OutputPath' from git HEAD" -ForegroundColor Yellow
+            } else {
+                # No canonical blob exists anywhere in history — a header-only file is worse
+                # than no file (it can be committed by a concurrent safe-pull checkpoint).
+                Write-Host "LOCK_WRITE_UNRESTORABLE path='$OutputPath' — deleting truncated file and aborting lock" -ForegroundColor Red
+                Remove-Item -LiteralPath $OutputPath -Force -ErrorAction SilentlyContinue
+            }
+        } catch { }
+        exit 3
+    }
+}
+else { Write-Error "Specify -OutputPath or use -DryRun"; exit 1 }
+exit 0

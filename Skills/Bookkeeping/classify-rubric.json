@@ -1,0 +1,60 @@
+{
+  "version": "1.0.0",
+  "description": "Document classification rubric. Type with highest weighted score wins, confidence = score / max_possible.",
+  "classifiers": [
+    {
+      "type": "statement",
+      "confidence_threshold": 0.9,
+      "signals": [
+        { "pattern": "statement period|statement date|opening balance|closing balance", "weight": 0.3 },
+        { "pattern": "transaction date|description|amount", "weight": 0.25 },
+        { "pattern": "total debits|total credits|ending balance", "weight": 0.2 },
+        { "pattern": "\\d{2,4}\\s+pages?|page \\d+ of \\d+", "weight": 0.15 },
+        { "pattern": "chequing|savings|credit card|account statement", "weight": 0.1 }
+      ],
+      "vendor_hints": {
+        "rbc_royal_bank": { "pattern": "RBC\\s|Royal Bank|ROYAL BANK", "type": "statement", "weight_boost": 0.2 },
+        "td_bank": { "pattern": "TD Canada Trust|TD Bank|THE TORONTO-DOMINION", "type": "statement", "weight_boost": 0.2 },
+        "scotiabank": { "pattern": "Scotiabank|Bank of Nova Scotia|SCOTIABANK", "type": "statement", "weight_boost": 0.2 },
+        "mastercard": { "pattern": "Mastercard|MASTERCARD|Credit Card Statement", "type": "statement", "weight_boost": 0.2 }
+      }
+    },
+    {
+      "type": "receipt",
+      "confidence_threshold": 0.9,
+      "signals": [
+        { "pattern": "subtotal|tax|total|amount due", "weight": 0.3 },
+        { "pattern": "qty|quantity|unit price|item", "weight": 0.2 },
+        { "pattern": "merchant|store|vendor", "weight": 0.15 },
+        { "pattern": "receipt|thank you for your purchase", "weight": 0.2 },
+        { "pattern": "\\$\\d+\\.\\d{2}\\s*$", "weight": 0.15 }
+      ],
+      "vendor_hints": {
+        "stripe": { "pattern": "Stripe|stripe\\.com", "type": "receipt", "weight_boost": 0.2 },
+        "amazon": { "pattern": "Amazon\\.ca|amazon\\.com|AMAZON", "type": "receipt", "weight_boost": 0.2 },
+        "homedepot": { "pattern": "Home Depot|HOME DEPOT|homedepot\\.ca", "type": "receipt", "weight_boost": 0.2 },
+        "netflix": { "pattern": "Netflix|NETFLIX", "type": "receipt", "weight_boost": 0.2 },
+        "aliexpress": { "pattern": "AliExpress|ALIEXPRESS", "type": "receipt", "weight_boost": 0.1 }
+      }
+    },
+    {
+      "type": "invoice",
+      "confidence_threshold": 0.9,
+      "signals": [
+        { "pattern": "INVOICE|invoice #|invoice number", "weight": 0.3 },
+        { "pattern": "bill to|ship to|sold to", "weight": 0.2 },
+        { "pattern": "payment terms|due date|net 30|net 15", "weight": 0.2 },
+        { "pattern": "item description|line item|unit cost", "weight": 0.15 },
+        { "pattern": "subtotal|hst|gst|total due", "weight": 0.15 }
+      ],
+      "vendor_hints": {
+        "freedom_mobile": { "pattern": "Freedom Mobile|FREEDOM MOBILE|freedommobile\\.ca", "type": "invoice", "weight_boost": 0.2 },
+        "interserver": { "pattern": "INTERSERVER\\.NET|InterServer|interserver\\.net", "type": "invoice", "weight_boost": 0.2 }
+      }
+    }
+  ],
+  "fallback": {
+    "type": "unknown",
+    "min_confidence": 0.3
+  }
+}

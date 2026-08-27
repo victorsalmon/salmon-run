@@ -1,0 +1,73 @@
+{
+  "_schema": "Canonical opening balances for all Zoho Books accounts. This is the single source of truth — read before any PUT /settings/openingbalances call to avoid destructive overwrites.",
+  "_safeguard": "Before calling PUT /settings/openingbalances, always GET the current state first. If the existing opening_balances list has MORE entries than this file, preserve the extra ones (user-set adjustments). If it has FEWER, restore from this file.",
+  "_updated": "2026-07-07",
+  "_updated_by": "ad-hoc (user request after MC 6258 PRP wiped other opening balances)",
+  "organizations": [
+    {
+      "org_id": "925048093",
+      "org_name": "Intersite Consulting Inc.",
+      "fiscal_year_start": "2025-04-01",
+      "fiscal_year_end": "2026-03-31",
+      "accounts": [
+        {
+          "account_id": "93310000000100019",
+          "account_name": "RBC Intersite (Chequing 6632)",
+          "opening_balance": 6219.99,
+          "entry_date": "2025-03-13",
+          "source": "REFERENCE-intersite-consulting.md ┬º7; Mar 13, 2025 PDF statement",
+          "confidence": "High"
+        },
+        {
+          "account_id": "93310000000100013",
+          "account_name": "MC 6258 (MasterCard 6241)",
+          "opening_balance": 1443.91,
+          "entry_date": "2025-03-11",
+          "source": "mem-Bookkeeper-intersite.md (set via PUT /bankaccounts/...; credit cards may need manual UI entry)",
+          "confidence": "Medium",
+          "note": "Credit card opening balance may not persist via API. Verify in Zoho UI: Banking ΓåÆ MC 6258 ΓåÆ Account Settings ΓåÆ Opening Balance"
+        }
+      ]
+    },
+    {
+      "org_id": "925004567",
+      "org_name": "Room Rentals (Victor Salmon)",
+      "fiscal_year_start": "2026-01-01",
+      "fiscal_year_end": "2026-12-31",
+      "accounts": [
+        {
+          "account_id": "151803000000101245",
+          "account_name": "RBC-FRA-5172549 (Chequing)",
+          "opening_balance": 4162.41,
+          "entry_date": "2026-01-01",
+          "source": "opening-balances-2026.md (traced from Chequing Statement-2549 2026-01-21.pdf)",
+          "confidence": "High"
+        },
+        {
+          "account_id": "151803000000101251",
+          "account_name": "RBC-FRA-6679 Visa",
+          "opening_balance": -88.67,
+          "entry_date": "2026-01-01",
+          "source": "opening-balances-2026.md (Visa Statement-6679 2026-01-09.pdf)",
+          "confidence": "Medium"
+        },
+        {
+          "account_id": "151803000000101006",
+          "account_name": "TD-MLM-6467010 (Chequing)",
+          "opening_balance": 4378.25,
+          "entry_date": "2026-01-01",
+          "source": "opening-balances-2026.md (ABBOTSFORD_9725-6467010_Nov_28-Dec_31_2025.pdf closing balance)",
+          "confidence": "High"
+        },
+        {
+          "account_id": "151803000000101153",
+          "account_name": "SCOTIA-TMH-406000697486 (Chequing)",
+          "opening_balance": 8987.70,
+          "entry_date": "2026-01-01",
+          "source": "opening-balances-2026.md (January 2026 e-statement.pdf ΓÇö Dec 29 deposit carries through Jan 1)",
+          "confidence": "High"
+        }
+      ]
+    }
+  ]
+}

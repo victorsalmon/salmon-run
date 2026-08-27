@@ -1,0 +1,18 @@
+{
+  "name": "autocode-quality",
+  "version": "0.1.0",
+  "description": "Verify changes with tests, diff review, and security checks.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Autocode Quality",
+    "shortDescription": "Produce regression and security evidence.",
+    "longDescription": "Runs the repository's relevant checks, reviews the diff against acceptance criteria, and blocks delivery when evidence is incomplete.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Review this change and produce regression and security evidence."
+  }
+}

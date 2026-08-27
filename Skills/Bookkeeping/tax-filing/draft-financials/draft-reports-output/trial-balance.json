@@ -1,0 +1,126 @@
+{
+  "accounts": [
+    {
+      "name": "Intersite",
+      "account_id": "93310000000100019",
+      "account_type": "Assets",
+      "debit_total": 0.0,
+      "credit_total": 8701.7,
+      "balance": -8701.7
+    },
+    {
+      "name": "Corporate Income Tax Payable",
+      "account_id": "93310000000138058",
+      "account_type": "Liabilities",
+      "debit_total": 0.0,
+      "credit_total": 4400.55,
+      "balance": -4400.55
+    },
+    {
+      "name": "Credit Card Payments",
+      "account_id": "93310000000300002",
+      "account_type": "Liabilities",
+      "debit_total": 12125.32,
+      "credit_total": 0.0,
+      "balance": 12125.32
+    },
+    {
+      "name": "Intersite RBC Business Cash Back Mastercard",
+      "account_id": "93310000000100013",
+      "account_type": "Liabilities",
+      "debit_total": 0.0,
+      "credit_total": 3039.28,
+      "balance": -3039.28
+    },
+    {
+      "name": "Opening Balance Adjustments",
+      "account_id": "93310000000003001",
+      "account_type": "Liabilities",
+      "debit_total": 0.0,
+      "credit_total": 5989.84,
+      "balance": -5989.84
+    },
+    {
+      "name": "[2680] Taxes Payable GST",
+      "account_id": "93310000000129094",
+      "account_type": "Liabilities",
+      "debit_total": 7.45,
+      "credit_total": 0.0,
+      "balance": 7.45
+    },
+    {
+      "name": "Opening Balance Offset",
+      "account_id": "93310000000000385",
+      "account_type": "Equities",
+      "debit_total": 821.35,
+      "credit_total": 0.0,
+      "balance": 821.35
+    },
+    {
+      "name": "Bank Fees and Charges",
+      "account_id": "93310000000000409",
+      "account_type": "Expense",
+      "debit_total": 0.0,
+      "credit_total": 64.92,
+      "balance": -64.92
+    },
+    {
+      "name": "[8521] Advertising And Marketing",
+      "account_id": "93310000000000403",
+      "account_type": "Expense",
+      "debit_total": 40.0,
+      "credit_total": 0.0,
+      "balance": 40.0
+    },
+    {
+      "name": "[8710] Credit Card Charges",
+      "account_id": "93310000000000412",
+      "account_type": "Expense",
+      "debit_total": 313.15,
+      "credit_total": 0.0,
+      "balance": 313.15
+    },
+    {
+      "name": "[8810] Office, General Expenses",
+      "account_id": "93310000000000400",
+      "account_type": "Expense",
+      "debit_total": 3197.32,
+      "credit_total": 0.0,
+      "balance": 3197.32
+    },
+    {
+      "name": "[8860] Professional Fees",
+      "account_id": "93310000000135091",
+      "account_type": "Expense",
+      "debit_total": 0.0,
+      "credit_total": 299.25,
+      "balance": -299.25
+    },
+    {
+      "name": "[9150] Tech repair, support, subscriptions, peripherals",
+      "account_id": "93310000000582161",
+      "account_type": "Expense",
+      "debit_total": 14.06,
+      "credit_total": 0.0,
+      "balance": 14.06
+    },
+    {
+      "name": "[9225] Telephone Expense",
+      "account_id": "93310000000000421",
+      "account_type": "Expense",
+      "debit_total": 191.22,
+      "credit_total": 0.0,
+      "balance": 191.22
+    },
+    {
+      "name": "[9990] Income Tax Expense",
+      "account_id": "93310000000297002",
+      "account_type": "Expense",
+      "debit_total": 4170.4,
+      "credit_total": 0.0,
+      "balance": 4170.4
+    }
+  ],
+  "total_debit": 20880.27,
+  "total_credit": 22495.54
+}
