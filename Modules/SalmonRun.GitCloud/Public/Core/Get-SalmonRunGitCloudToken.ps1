@@ -44,5 +44,28 @@ function Get-SalmonRunGitCloudToken {
         $value = [System.Environment]::GetEnvironmentVariable('SALMON_RUN_GITCLOUD_TOKEN')
     }
 
+    # Fall back to the Salmon Run .env resolver if the token was not in env/SecretEnv.
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        $credCmd = Get-Command 'Get-SalmonRunCredential' -ErrorAction SilentlyContinue
+        if ($credCmd) {
+            try {
+                $value = & $credCmd -Name $EnvVarName
+            } catch {
+                Write-Verbose "Get-SalmonRunGitCloudToken: credential resolver failed for '$EnvVarName': $_"
+            }
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($value) -and $EnvVarName -ne 'SALMON_RUN_GITCLOUD_TOKEN') {
+        $credCmd = Get-Command 'Get-SalmonRunCredential' -ErrorAction SilentlyContinue
+        if ($credCmd) {
+            try {
+                $value = & $credCmd -Name 'SALMON_RUN_GITCLOUD_TOKEN'
+            } catch {
+                Write-Verbose "Get-SalmonRunGitCloudToken: credential resolver failed for 'SALMON_RUN_GITCLOUD_TOKEN': $_"
+            }
+        }
+    }
+
     return $value
 }

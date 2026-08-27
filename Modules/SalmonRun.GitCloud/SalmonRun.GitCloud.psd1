@@ -6,7 +6,7 @@
     CompanyName            = 'Salmon Run'
     Description            = 'Git-hosting abstraction for Salmon Run: token resolution, authenticated push, CI status, and repo secrets for GitHub and Gitea-compatible Worktree hosts.'
     PowerShellVersion      = '7.0'
-    RequiredModules        = @('SalmonRun.Core')
+    RequiredModules        = @('SalmonRun.Core', 'SalmonRun.Credentials')
     FunctionsToExport      = @(
         'Get-SalmonRunGitCloudToken',
         'Select-SalmonRunGitCloudToken',

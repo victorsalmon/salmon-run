@@ -41,6 +41,29 @@ function Get-GitHubToken {
         $value = [System.Environment]::GetEnvironmentVariable('GITHUB_TOKEN')
     }
 
+    # Fall back to the Salmon Run .env resolver.
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        $credCmd = Get-Command 'Get-SalmonRunCredential' -ErrorAction SilentlyContinue
+        if ($credCmd) {
+            try {
+                $value = & $credCmd -Name $EnvVarName
+            } catch {
+                Write-Verbose "Get-GitHubToken: credential resolver failed for '$EnvVarName': $_"
+            }
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($value) -and $EnvVarName -ne 'GITHUB_TOKEN') {
+        $credCmd = Get-Command 'Get-SalmonRunCredential' -ErrorAction SilentlyContinue
+        if ($credCmd) {
+            try {
+                $value = & $credCmd -Name 'GITHUB_TOKEN'
+            } catch {
+                Write-Verbose "Get-GitHubToken: credential resolver failed for 'GITHUB_TOKEN': $_"
+            }
+        }
+    }
+
     return $value
 }
 

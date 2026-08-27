@@ -18,6 +18,20 @@ function Get-WorktreeHost {
         return $env:WORKTREE_HOST
     }
 
+    # Prefer the Salmon Run .env resolver so WORKTREE_HOST can be redirected
+    # through Env, File, AWS, GitHub, or another registered resolver.
+    $credCmd = Get-Command 'Get-SalmonRunCredential' -ErrorAction SilentlyContinue
+    if ($credCmd) {
+        try {
+            $resolved = & $credCmd -Name 'WORKTREE_HOST'
+            if (-not [string]::IsNullOrWhiteSpace($resolved)) {
+                return $resolved
+            }
+        } catch {
+            Write-Verbose "Get-WorktreeHost: credential resolver failed for 'WORKTREE_HOST': $_"
+        }
+    }
+
     $salmonHome = if (Get-Command Get-SalmonHome -ErrorAction SilentlyContinue) {
         Get-SalmonHome
     } else {

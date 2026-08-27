@@ -27,6 +27,18 @@ function Get-WorktreeToken {
         $value = [System.Environment]::GetEnvironmentVariable($EnvVarName)
     }
 
+    # Fall back to the Salmon Run .env resolver.
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        $credCmd = Get-Command 'Get-SalmonRunCredential' -ErrorAction SilentlyContinue
+        if ($credCmd) {
+            try {
+                $value = & $credCmd -Name $EnvVarName
+            } catch {
+                Write-Verbose "Get-WorktreeToken: credential resolver failed for '$EnvVarName': $_"
+            }
+        }
+    }
+
     return $value
 }
 
