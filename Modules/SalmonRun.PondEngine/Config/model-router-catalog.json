@@ -45,26 +45,6 @@
       "notes": "Default in-process local executor for testing and public packaging."
     },
     {
-      "canonicalName": "OCG/Ox-Alpha",
-      "harness": "opencode",
-      "provider": "opencode-go",
-      "model": "opencode-go/ox-alpha-free",
-      "effort": "max",
-      "tier": "Flash",
-      "costRule": "free",
-      "apiCostPer1KTokens": 0.0,
-      "effectiveCostPer1KTokens": 0.0,
-      "capabilityScore": 35,
-      "benchmarks": {
-        "sweBench": 35.0,
-        "aime2024": 35.0,
-        "terminalBench21": 32.0,
-        "mmlu": 50.0
-      },
-      "cacheContract": "none",
-      "notes": "Free OCG model. Intended for Flash-tier plans. Replace benchmark values when the weekly Clock Lobster feed is available."
-    },
-    {
       "canonicalName": "OCG/Hy3",
       "harness": "opencode",
       "provider": "opencode",
@@ -165,10 +145,10 @@
       "notes": "Strongest reasoning model. Reserved for Frontier-tier plans."
     },
     {
-      "canonicalName": "OpenRouter/Deepseek-v4-flash",
-      "harness": "codex",
-      "provider": "openrouter",
-      "model": "deepseek/deepseek-v4-flash",
+      "canonicalName": "DSH/DeepSeek-V4-Flash",
+      "harness": "deepseek",
+      "provider": "dsh",
+      "model": "deepseek-v4-flash",
       "effort": "max",
       "tier": "Complex",
       "costRule": "normal",
@@ -182,13 +162,13 @@
         "mmlu": 0
       },
       "cacheContract": "none",
-      "notes": "OpenRouter DeepSeek V4 Flash. Benchmark data is merged from ~/.salmon/benchmarks at runtime."
+      "notes": "DeepSeek official DeepSeek-V4-Flash via dsh."
     },
     {
-      "canonicalName": "OpenRouter/Deepseek-v4-pro",
-      "harness": "codex",
-      "provider": "openrouter",
-      "model": "deepseek/deepseek-v4-pro-0813",
+      "canonicalName": "DSH/DeepSeek-V4-Pro",
+      "harness": "deepseek",
+      "provider": "dsh",
+      "model": "deepseek-v4-pro",
       "effort": "max",
       "tier": "Frontier",
       "costRule": "normal",
@@ -202,13 +182,53 @@
         "mmlu": 0
       },
       "cacheContract": "none",
-      "notes": "OpenRouter DeepSeek V4 Pro 0813. Benchmark data is merged from ~/.salmon/benchmarks at runtime."
+      "notes": "DeepSeek official DeepSeek-V4-Pro via dsh."
     },
     {
-      "canonicalName": "DeepInfra/DeepSeek-V4-Flash-0731",
-      "harness": "codex",
+      "canonicalName": "OpenRouter/Deepseek-v4-flash",
+      "harness": "deepseek",
+      "provider": "openrouter",
+      "model": "deepseek-v4-flash",
+      "effort": "max",
+      "tier": "Complex",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 0.168,
+      "effectiveCostPer1KTokens": 0.168,
+      "capabilityScore": 84,
+      "benchmarks": {
+        "sweBench": 49.6,
+        "aime2024": 0,
+        "terminalBench21": 58.0,
+        "mmlu": 0
+      },
+      "cacheContract": "none",
+      "notes": "OpenRouter DeepSeek V4 Flash. DSH maps the canonical model to deepseek/deepseek-v4-flash."
+    },
+    {
+      "canonicalName": "OpenRouter/Deepseek-v4-pro",
+      "harness": "deepseek",
+      "provider": "openrouter",
+      "model": "deepseek-v4-pro",
+      "effort": "max",
+      "tier": "Frontier",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 0.87,
+      "effectiveCostPer1KTokens": 0.87,
+      "capabilityScore": 94,
+      "benchmarks": {
+        "sweBench": 55.4,
+        "aime2024": 0,
+        "terminalBench21": 87.9,
+        "mmlu": 0
+      },
+      "cacheContract": "none",
+      "notes": "OpenRouter DeepSeek V4 Pro. DSH maps the canonical model to deepseek/deepseek-v4-pro-0813."
+    },
+    {
+      "canonicalName": "DeepInfra/DeepSeek-V4-Flash",
+      "harness": "deepseek",
       "provider": "deepinfra",
-      "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+      "model": "deepseek-v4-flash",
       "effort": "medium",
       "tier": "Complex",
       "costRule": "normal",
@@ -222,7 +242,27 @@
         "mmlu": 50.0
       },
       "cacheContract": "none",
-      "notes": "DeepInfra DeepSeek V4 Flash 0731. Benchmark data is merged from ~/.salmon/benchmarks at runtime."
+      "notes": "DeepInfra DeepSeek V4 Flash. DSH maps the canonical model to deepseek-ai/DeepSeek-V4-Flash-0731."
+    },
+    {
+      "canonicalName": "DeepInfra/DeepSeek-V4-Pro",
+      "harness": "deepseek",
+      "provider": "deepinfra",
+      "model": "deepseek-v4-pro",
+      "effort": "medium",
+      "tier": "Frontier",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 1.74,
+      "effectiveCostPer1KTokens": 1.74,
+      "capabilityScore": 93,
+      "benchmarks": {
+        "sweBench": 55.4,
+        "aime2024": 0,
+        "terminalBench21": 87.9,
+        "mmlu": 0
+      },
+      "cacheContract": "none",
+      "notes": "DeepInfra DeepSeek V4 Pro. DSH maps the canonical model to deepseek-ai/DeepSeek-V4-Pro."
     }
   ]
 }

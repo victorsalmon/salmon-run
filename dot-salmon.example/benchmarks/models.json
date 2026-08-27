@@ -108,43 +108,6 @@
       },
       "references": []
     },
-    "opencode-go/ox-alpha-free": {
-      "name": "OpenCode Go Ox-Alpha Free",
-      "family": "opencode",
-      "version": "2026-08",
-      "tier": "free",
-      "providers": {
-        "opencode-go": {
-          "model_id": "opencode-go/ox-alpha-free",
-          "input_per_million": 0,
-          "output_per_million": 0,
-          "cost": {
-            "currency": "USD",
-            "cost_rule": "free",
-            "api_cost_per_million": 0,
-            "effective_cost_per_million": 0,
-            "cost_with_thinking_per_million": 0
-          }
-        }
-      },
-      "benchmarks": {
-        "swe_bench_pro": null,
-        "terminal_bench_2_1": null,
-        "aa_intelligence_index": null
-      },
-      "tokenizer_efficiency": 1.78,
-      "speed_tok_per_s": null,
-      "reasoning_effort": null,
-      "thinking_token_ratio": 0,
-      "thinking_tokens": {
-        "avg_per_output_1k": 0,
-        "max_per_output_1k": 0,
-        "notes": "Non-reasoning OpenCode Go free model."
-      },
-      "references": [
-        "https://opencode.ai/zen"
-      ]
-    },
     "opencode-go/mimo-v2.5": {
       "name": "OpenCode Go MiMo-V2.5",
       "family": "minimax",
