@@ -1,7 +1,7 @@
 {
   "routerVersion": 1,
   "lastUpdated": "2026-08-25",
-  "benchmarkUrl": "https://example.com/api/llm-models.json",
+  "benchmarkUrl": "https://raw.githubusercontent.com/victorsalmon/LLM-bench-data/main/models.json",
   "ttlHours": 168,
   "tierThresholds": {
     "Flash": 0,

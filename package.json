@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://example.com/salmon-run/salmon-run.git"
+    "url": "https://worktree.ca/clocklobster/salmon-run.git"
   },
   "scripts": {
     "install": "powershell -ExecutionPolicy Bypass -File ./install.ps1",
