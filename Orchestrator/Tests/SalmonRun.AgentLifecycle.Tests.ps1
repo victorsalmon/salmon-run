@@ -23,7 +23,11 @@ Describe "SalmonRun.AgentLifecycle Module" -Tag "Core" {
         }
 
         $script:TestAgentId = "pester-al-test-agent-888-88"
-        $script:AgentsDir = Join-Path (Get-InterclawRepoRoot) "Tasks\Logs\agents"
+        $script:AgentTestDir = Join-Path $env:TEMP "Interclaw-AgentLifecycle-$(Get-Random)"
+        $null = New-Item -ItemType Directory -Path $script:AgentTestDir -Force
+        $script:SavedSALMON_RUN_HOME_AL = $env:SALMON_RUN_HOME
+        $env:SALMON_RUN_HOME = $script:AgentTestDir
+        $script:AgentsDir = Join-Path (Get-SalmonTaskRoot) "Logs\agents"
 
         function Write-OrchestratorLog { param([string]$Message, [string]$Level) }
     }
@@ -32,6 +36,8 @@ Describe "SalmonRun.AgentLifecycle Module" -Tag "Core" {
     }
     AfterAll {
         Remove-Item "$script:AgentsDir\$script:TestAgentId*" -Force -ErrorAction SilentlyContinue
+        if (Test-Path $script:AgentTestDir) { Remove-Item $script:AgentTestDir -Recurse -Force -ErrorAction SilentlyContinue }
+        if ($script:SavedSALMON_RUN_HOME_AL) { $env:SALMON_RUN_HOME = $script:SavedSALMON_RUN_HOME_AL } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
     }
 
     Context "Write-AgentPidFile" -Tag "AgentLifecycle" {

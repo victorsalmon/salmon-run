@@ -42,6 +42,8 @@ BeforeAll {
     # stubs are a fallback when it is not.
     $script:SavedRepoRoot = $env:REPO_ROOT
     $env:REPO_ROOT = $script:tempDir
+    $script:SavedSalmonRunHome = $env:SALMON_RUN_HOME
+    $env:SALMON_RUN_HOME = $script:tempDir
     if (Get-Command Reset-SalmonRunPathCache -ErrorAction SilentlyContinue) { Reset-SalmonRunPathCache }
     if (Get-Command Reset-InterclawPathCache -ErrorAction SilentlyContinue) { Reset-InterclawPathCache }
 
@@ -49,6 +51,9 @@ BeforeAll {
     # cannot shadow the test stubs.
     function global:Get-SalmonRunRepoRoot { return $script:tempDir }
     function global:Get-InterclawRepoRoot { return $script:tempDir }
+
+    # Load SalmonRun.Paths so Get-SalmonTaskRoot resolves to SALMON_RUN_HOME/Tasks
+    . (Join-Path $script:repoRoot 'Skills/Docker/Modules/SalmonRun.Paths/SalmonRun.Paths.ps1')
 
     # Dot-source dependencies
     . (Join-Path $script:repoRoot 'Orchestrator/Modules/SalmonRun.Core/Public/Write-AtomicFile.ps1')
@@ -75,6 +80,7 @@ AfterAll {
     }
 
     if ($script:SavedRepoRoot) { $env:REPO_ROOT = $script:SavedRepoRoot } else { Remove-Item Env:\REPO_ROOT -ErrorAction SilentlyContinue }
+    if ($script:SavedSalmonRunHome) { $env:SALMON_RUN_HOME = $script:SavedSalmonRunHome } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
     if (Get-Command Reset-SalmonRunPathCache -ErrorAction SilentlyContinue) { Reset-SalmonRunPathCache }
     if (Get-Command Reset-InterclawPathCache -ErrorAction SilentlyContinue) { Reset-InterclawPathCache }
 }

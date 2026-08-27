@@ -13,6 +13,11 @@ BeforeAll {
 
     $script:WfTestDir = Join-Path $env:TEMP "Interclaw-WFModuleTest-$(Get-Random)"
     New-Item -ItemType Directory -Path $script:WfTestDir -Force | Out-Null
+    $script:SavedSalmonRunHome = $env:SALMON_RUN_HOME
+    $env:SALMON_RUN_HOME = $script:WfTestDir
+
+    $pathsPath = [System.IO.Path]::Combine($__repoRoot, "Skills", "Docker", "Modules", "SalmonRun.Paths", "SalmonRun.Paths.ps1")
+    if (Test-Path $pathsPath) { . $pathsPath }
 
     Get-ChildItem -Path $script:WfPublic -Filter '*.ps1' | ForEach-Object {
         . $_.FullName
@@ -37,6 +42,7 @@ Describe "WorkflowEvents tests" -Tag "WorkflowEvents" {
         if (Test-Path $script:WfTestDir) {
             Remove-Item -Recurse -Force $script:WfTestDir
         }
+        if ($script:SavedSalmonRunHome) { $env:SALMON_RUN_HOME = $script:SavedSalmonRunHome } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
     }
 
     Describe "SalmonRun.WorkflowEvents Module Manifest" -Tag "Regression-Only" {

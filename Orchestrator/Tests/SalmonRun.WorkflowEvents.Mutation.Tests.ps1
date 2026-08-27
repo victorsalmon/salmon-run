@@ -23,6 +23,11 @@ BeforeAll {
 
     $script:WfTestDir = Join-Path $env:TEMP "Interclaw-WFMutationTest-$(Get-Random)"
     New-Item -ItemType Directory -Path $script:WfTestDir -Force | Out-Null
+    $script:SavedSalmonRunHome = $env:SALMON_RUN_HOME
+    $env:SALMON_RUN_HOME = $script:WfTestDir
+
+    $pathsPath = Join-Path $repoRoot "Skills" "Docker" "Modules" "SalmonRun.Paths" "SalmonRun.Paths.ps1"
+    if (Test-Path $pathsPath) { . $pathsPath }
 
     Get-ChildItem -Path $script:WfPublic -Filter '*.ps1' | ForEach-Object {
         . $_.FullName
@@ -38,6 +43,7 @@ AfterAll {
     if (Test-Path $script:WfTestDir) {
         Remove-Item -Recurse -Force $script:WfTestDir
     }
+    if ($script:SavedSalmonRunHome) { $env:SALMON_RUN_HOME = $script:SavedSalmonRunHome } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
 }
 
 # ==============================================================================
