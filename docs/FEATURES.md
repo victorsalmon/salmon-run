@@ -118,14 +118,14 @@ A `PondExecutionProfile` has these dimensions:
 | Field | Meaning | Example |
 | --- | --- | --- |
 | `Tier` | Plan difficulty / cost tier | `Flash`, `Daily`, `Complex`, `Frontier`, `Local` |
-| `Harness` | Backend family | `opencode`, `devin`, `deepseek`, `local` |
-| `Provider` | CLI/API that talks to the model | `opencode-go`, `devin`, `dsh`, `openrouter`, `deepinfra`, `local` |
-| `Model` | Provider-specific model slug | `opencode-go/mimo-v2.5`, `opencode-go/deepseek-v4-flash`, `swe-1-7`, `deepseek-v4-flash` |
-| `Effort` | Model effort/depth hint | `max`, `medium`, `default` |
-| `Cli` | The actual executable name | `opencode`, `devin`, `dsh`, `powershell` |
-| `ExecutorFile` | The Salmon Run adapter to launch | `Opencode`, `Devin`, `Dsh`, `PublicLocal` |
+| `Harness` | Backend family | `opencode`, `devin`, `deepseek`, `codex`, `local` |
+| `Provider` | CLI/API that talks to the model | `opencode-go`, `devin`, `dsh`, `openrouter`, `deepinfra`, `codex`, `local` |
+| `Model` | Provider-specific model slug | `opencode-go/mimo-v2.5`, `opencode-go/deepseek-v4-flash`, `swe-1-7`, `deepseek-v4-flash`, `gpt-5.6-luna` |
+| `Effort` | Model effort/depth hint | `max`, `medium`, `default`, `low`, `high` |
+| `Cli` | The actual executable name | `opencode`, `devin`, `dsh`, `codex`, `powershell` |
+| `ExecutorFile` | The Salmon Run adapter to launch | `Opencode`, `Devin`, `Dsh`, `Codex`, `PublicLocal` |
 | `TimeoutMinutes` | Subprocess timeout | `30` |
-| `Credentials` | Credential name(s) to resolve | `OPENCODE_GO_KEY`, `DEVIN_API_KEY`, etc. |
+| `Credentials` | Credential name(s) to resolve | `OPENCODE_GO_KEY`, `DEVIN_API_KEY`, `OPENAI_API_KEY`, etc. |
 
 ### Why "executor"?
 
@@ -144,6 +144,7 @@ See `Modules/SalmonRun.PondEngine/Classes/Pond.ps1`, `Resolve-PondExecutionProfi
 | `Devin.ps1` | Runs the `devin` CLI with `DEVIN_API_KEY`. | Builds real commands; live API not validated. |
 
 | `Dsh.ps1` | Runs `dsh --profile headless` for the `deepseek` harness; routes to official DeepSeek, OpenRouter, or DeepInfra by selecting endpoint, credential, and model slug. | Builds real commands; live API not validated. |
+| `Codex.ps1` | Runs `codex exec -m <model> -C <workdir> -c model_reasoning_effort=<effort> --output-last-message <out> -` with the prompt piped via stdin. Supports `gpt-5.6-luna`, `gpt-5.6-terra`, and `gpt-5.6-sol`. | Live `gpt-5.6-luna` validated. |
 | `Local.ps1` | Legacy stub that delegates to `ExternalPublicSafe.ps1`. | Not a real executor. |
 | `ExternalPublicSafe.ps1` | Public-safe placeholder for providers not yet configured. | Not a real executor. |
 
