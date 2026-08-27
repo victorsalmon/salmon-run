@@ -66,7 +66,8 @@ Describe "SalmonRun.Process Module" -Tag "Process", "Regression-Only" {
             $script:OrigAwsSessionToken = $env:AWS_SESSION_TOKEN
             $script:OrigAwsSsoProfile = $env:AWS_SSO_PROFILE
             $script:OrigUserProfile = $env:USERPROFILE
-            $env:USERPROFILE = Join-Path $TestDrive "home"
+            $script:TestHome = Join-Path $TestDrive "home"
+            $env:USERPROFILE = $script:TestHome
         }
 
         AfterEach {
@@ -74,14 +75,17 @@ Describe "SalmonRun.Process Module" -Tag "Process", "Regression-Only" {
             $env:AWS_SECRET_ACCESS_KEY = $script:OrigAwsSecretKey
             $env:AWS_SESSION_TOKEN = $script:OrigAwsSessionToken
             $env:AWS_SSO_PROFILE = $script:OrigAwsSsoProfile
-            Remove-Item -Path (Join-Path $env:USERPROFILE ".aws") -Recurse -Force -ErrorAction SilentlyContinue
             $env:USERPROFILE = $script:OrigUserProfile
+            # Only clean up the test home under Pester's TestDrive; never the real user home.
+            if ($script:TestHome -and ($script:TestHome -like (Join-Path $env:TEMP '*'))) {
+                Remove-Item -Path $script:TestHome -Recurse -Force -ErrorAction SilentlyContinue
+            }
         }
 
         It "writes temp credentials to ~/.aws/credentials when env vars are set" {
-            $env:AWS_ACCESS_KEY_ID = "AKIATEST"
-            $env:AWS_SECRET_ACCESS_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-            $env:AWS_SESSION_TOKEN = "IQoJb3JpZ2luX2VY0gEaCXVzLWvhc3QtMSJIMEYCIQ"
+            $env:AWS_ACCESS_KEY_ID = "TESTACCESSKEY"
+            $env:AWS_SECRET_ACCESS_KEY = "test-secret-key"
+            $env:AWS_SESSION_TOKEN = "test-session-token"
             $env:AWS_SSO_PROFILE = "interclaw"
 
             $result = Invoke-AwsCommand { cmd /c "echo aws-call-succeeded" } -ThrowOnError:$false
@@ -113,7 +117,7 @@ Describe "SalmonRun.Process Module" -Tag "Process", "Regression-Only" {
 
         It "falls back to [default] profile when AWS_SSO_PROFILE is not set" {
             Remove-Item Env:\AWS_SSO_PROFILE -ErrorAction SilentlyContinue
-            $env:AWS_ACCESS_KEY_ID = "AKIADEFAULT"
+            $env:AWS_ACCESS_KEY_ID = "DEFAULTACCESSKEY"
 
             $result = Invoke-AwsCommand { cmd /c "echo test" } -ThrowOnError:$false
             $result.Success | Should -Be $true
