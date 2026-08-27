@@ -29,7 +29,7 @@ The `salmon-run` package is organized under a single `Modules/` tree with two gr
 | `SalmonRun.DeployState` | Setup checkpoint state for install/upgrade runs. |
 | `SalmonRun.Diagnostics` | Step-by-step diagnostic result capture and reporting. |
 | `SalmonRun.Display` | Console output helpers: parallel section headers and summaries. |
-| `SalmonRun.GitCloud` | Git-hosting abstraction for token resolution, authenticated push, CI status, and repo secrets. Supports GitHub and a generic Gitea-compatible host. |
+| `SalmonRun.GitCloud` | Git-hosting abstraction for token resolution, authenticated push, CI status, and repo secrets. Supports GitHub and a generic Gitea-compatible host. Token resolution now falls back to `SalmonRun.Credentials` so `~/.salmon/.env` can redirect tokens through `Env`, `File`, `AWS`, `GitHub`, or `Worktree` resolvers. |
 | `SalmonRun.Paths` | Resolves canonical Salmon Run paths and repo roots. |
 | `SalmonRun.Ports` | Port allocation and registry helpers. |
 

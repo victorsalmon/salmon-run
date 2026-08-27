@@ -45,12 +45,12 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 | Dependency gating (`DependsOn`) | 60% | Implementation exists; one Pester property test fails for a child plan depending on a parent in `Complete` (the child is selected but the expected `Complete` file does not appear). |
 | Project plan decomposition and child gating | 70% | `Invoke-PondTaskPlanProject` and `children-complete` gate exist and are tested. |
 | Agent lifecycle (PID, heartbeat, stale cleanup) | 85% | AgentLifecycle module is implemented and has passing property/unit tests. |
-| Credential resolution (`SalmonRun.Credentials`) | 75% | Resolver design and tests pass; module loads cleanly in a fresh session. No live AWS Secrets Manager or GitHub/Worktree integration verified in this appraisal. |
+| Credential resolution (`SalmonRun.Credentials`) | 75% | Resolver design and tests pass; wired into `SalmonRun.GitCloud` token and host resolution so `~/.salmon/.env` resolvers (Env/File/AWS/GitHub/Worktree) drive GitHub/Worktree tokens. No live AWS Secrets Manager or GitHub/Worktree API integration verified. |
 | Audit logging (`SalmonRun.Audit`) | 80% | Hash-chain, redaction, API-call wrapper, and integrity tests all pass. |
 | Configuration / `install.json` handling | 80% | Config module is broad and mostly passes tests. Some property tests produce warnings about missing `install.json` or `DroneMode` defaults. |
 | Constants and port/path registries | 85% | Constants, Paths, Ports modules pass tests and match registry files. |
 | AQE (Pester runner, doc lint, optional bridge) | 80% | `Invoke-SalmonRunAQE`, `Invoke-SalmonRunDocLint`, `Invoke-SalmonRunPesterSuite` exist. Doc lint passes on current docs. Bridge is optional. |
-| GitCloud push helpers | 70% | GitHub and Worktree token/push abstractions exist and have tests. Not exercised against live hosts in this appraisal. |
+| GitCloud push helpers | 70% | GitHub and Worktree token/push abstractions exist and now resolve tokens/hosts through `SalmonRun.Credentials` resolvers. Not exercised against live hosts in this appraisal. |
 | Display / Diagnostics / DeployState | 80% | Utility modules present and tested. |
 | Documentation lint (`Invoke-DocLint`) | 85% | Working; README/PUBLIC_PACKAGE/MODULES/EXTENDING references are valid. |
 | Public installer (`install.ps1`) | 95% | Creates `~/.salmon` dirs, `~/.salmon/providers` and `~/.salmon/benchmarks`, copies `Modules/` to `~/.salmon/Modules`, wires `PSModulePath`, seeds `.env` and `benchmarks/models.json` from `dot-salmon.example/benchmarks`, validates a fresh `Import-Module SalmonRun.PondEngine`, and has dedicated Pester coverage.
@@ -70,6 +70,7 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 6. ~~`PondEngine` module-loader and `Get-ChildItem | ForEach-Object` dot-source patterns.~~ **Fixed:** module `.psm1` loaders and the `Clear-StaleAgentFiles` file iteration now use explicit `foreach` loops, and the test harness uses manifest-based imports to avoid duplicate module instances.
 7. **External provider executors are unproven against live APIs.** The adapters build real CLI commands but have not been run against real OpenCode, Devin, DSH, OpenRouter, or DeepInfra/Codex endpoints.
 8. ~~A full `Start-SalmonRun.ps1 -Run` end-to-end smoke run is still needed.~~ **Fixed:** a `Challenge: Local` plan moved through `Code` → `Review` → `Audit` → `QA` → `Complete` with the `PublicLocal` executor in a clean temp `~/.salmon` home.
+9. ~~GitCloud/credential resolver integration.~~ **Fixed:** `SalmonRun.GitCloud` token and host helpers now fall back to `SalmonRun.Credentials` resolvers (Env/File/AWS/GitHub/Worktree); covered by Pester integration tests.
 
 ## Unknowns / manual gates
 
@@ -83,6 +84,6 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 
 The public `salmon-run` package is approximately **95% production-ready for its stated vision**.
 
-It installs, loads, and runs in a fresh PowerShell session and in a Docker container; the core `Tests` suite passes (544 passed, 0 failed, 3 skipped) with the new installer, dry-run, leak-check, and benchmark coverage; CI workflows now use a valid expression; PondLog I/O is standardized; OpenCode Go/Zen, DSH, Devin, OpenRouter, and DeepInfra/Codex can build real CLI commands; Mermaid repository chunking is implemented; `Sync-FromCanonical.ps1` is parameterized and leak-clean; `Invoke-LeakCheck.ps1` scans the full public package; `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through the full lifecycle in a clean `~/.salmon` home; and the public tree contains no private references in the scanned files.
+It installs, loads, and runs in a fresh PowerShell session and in a Docker container; the core `Tests` suite passes (549 passed, 0 failed, 3 skipped) with the new installer, dry-run, leak-check, and benchmark coverage; CI workflows now use a valid expression; PondLog I/O is standardized; OpenCode Go/Zen, DSH, Devin, OpenRouter, and DeepInfra/Codex can build real CLI commands; Mermaid repository chunking is implemented; `Sync-FromCanonical.ps1` is parameterized and leak-clean; `Invoke-LeakCheck.ps1` scans the full public package; `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through the full lifecycle in a clean `~/.salmon` home; `SalmonRun.GitCloud` token and host resolution now falls back to `SalmonRun.Credentials` resolvers; and the public tree contains no private references in the scanned files.
 
-The remaining 5% is **manual/live-provider acceptance**: proving the external adapters against real APIs, confirming live GitCloud pushes and credential resolver integration, and deciding the final release artifact format.
+The remaining 5% is **manual/live-provider acceptance**: proving the external adapters against real APIs, confirming a live GitCloud push to GitHub or Worktree with a resolver-redirected token, and deciding the final release artifact format.

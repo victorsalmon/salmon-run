@@ -200,12 +200,12 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 ### Feature: Credential resolution (`SalmonRun.Credentials`)
 
 - **Intent / user outcome:** Resolve credentials from `~/.salmon/.env` using literal, `Env`, `File`, `AWS`, `GitHub`, `Worktree`, or custom resolvers.
-- **Current score:** 75%
-- **Current behavior:** The design is in place: `Get-SalmonRunCredential`, `Resolve-SalmonRunCredentialValue`, resolvers, and registration. Pester tests pass in the current run.
-- **Evidence:** `Modules/SalmonRun.Credentials/`, `Tests/SalmonRun.Credentials.Tests.ps1`.
-- **Tests and test gaps:** Unit tests pass. No live AWS Secrets Manager or GitHub/Worktree integration verified.
+- **Current score:** 90%
+- **Current behavior:** `Get-SalmonRunCredential`, `Resolve-SalmonRunCredentialValue`, resolvers, and registration are in place and are now consumed by `SalmonRun.GitCloud` token helpers. Unit tests and GitCloud integration-style tests pass.
+- **Evidence:** `Modules/SalmonRun.Credentials/`, `Modules/SalmonRun.GitCloud/`, `Tests/SalmonRun.Credentials.Tests.ps1`, `Tests/SalmonRun.GitCloud.Tests.ps1`.
+- **Tests and test gaps:** Unit and GitCloud resolver tests pass. No live AWS Secrets Manager, GitHub, or Worktree API integration verified.
 - **Acceptance criteria for 100%:** All resolvers pass unit and property tests; integration tests with live `.env` and AWS Secrets Manager.
-- **Next smallest decision/build slice:** Add a contract test that resolves an `Env` and `File` credential in a temp `.salmon` home.
+- **Next smallest decision/build slice:** Add a contract test that resolves an `AWS` credential against a live or moto-local Secrets Manager endpoint.
 
 ### Feature: Audit logging (`SalmonRun.Audit`)
 
@@ -294,10 +294,10 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 ### Feature: GitCloud push helpers (`SalmonRun.GitCloud`)
 
 - **Intent / user outcome:** Abstract token resolution and authenticated pushes for GitHub and Worktree.
-- **Current score:** 70%
-- **Current behavior:** Modules for token selection, CI run status, repo secret setting, and push are implemented. Tests exist but were not exercised against live hosts in this appraisal.
-- **Evidence:** `Modules/SalmonRun.GitCloud/`, `Tests/SalmonRun.GitCloud.Tests.ps1`.
-- **Tests and test gaps:** Tests pass (assuming no live calls). No live contract test.
+- **Current score:** 85%
+- **Current behavior:** Modules for token selection, CI run status, repo secret setting, and push are implemented. `SalmonRun.GitCloud` now depends on `SalmonRun.Credentials`, and `Get-GitHubToken`, `Get-WorktreeToken`, `Get-SalmonRunGitCloudToken`, and `Get-WorktreeHost` fall back to `~/.salmon/.env` resolvers (`Env`, `File`, `AWS`, `GitHub`, `Worktree`) when the token/host is not in an environment variable. New Pester tests verify `File`, `Env`, and literal resolver integration.
+- **Evidence:** `Modules/SalmonRun.GitCloud/`, `Modules/SalmonRun.Credentials/`, `Tests/SalmonRun.GitCloud.Tests.ps1`.
+- **Tests and test gaps:** Unit and integration-style resolver tests pass. No live contract test against GitHub or Worktree.
 - **Acceptance criteria for 100%:** Live pushes and CI status checks against both GitHub and Worktree.
 - **Next smallest decision/build slice:** Add a contract test that pushes to a test repo.
 
@@ -340,7 +340,7 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 - **Intent / user outcome:** Provide a single public entry point for dry-run preview and full pond-engine execution.
 - **Current score:** 95%
 - **Current behavior:** Bootstraps module environment, confirms/creates the runtime task root, lists pond queues (`-DryRun`), writes a `SESSION_START` workflow event, and invokes `Start-PondEngine` (`-Run`). A `-Run` smoke test in a clean temp `~/.salmon` home moved a `Challenge: Local` plan from `Code` → `Review` → `Audit` → `QA` → `Complete` using the `PublicLocal` executor.
-- **Evidence:** `Start-SalmonRun.ps1`; `Tests/SalmonRun.Installer.Tests.ps1`; `docker run --rm salmon-run -DryRun` output; manual `-Run` lifecycle in `C:\Users\RDP\AppData\Local\Temp\salmon-run-live-*`.
+- **Evidence:** `Start-SalmonRun.ps1`; `Tests/SalmonRun.Installer.Tests.ps1`; `docker run --rm salmon-run -DryRun` output; manual `-Run` lifecycle in a clean temp `~/.salmon` home.
 - **Tests and test gaps:** `-DryRun` is covered by Pester. `-Run` has been exercised manually end-to-end with `PublicLocal`; a Pester integration test remains.
 - **Acceptance criteria for 100%:** `-DryRun` and `-Run` exercised in CI; a plan moves through the full lifecycle under `Start-SalmonRun.ps1`.
 - **Next smallest decision/build slice:** Add a Pester integration test that calls `Start-SalmonRun.ps1 -Run` with a `Local`-tier plan and asserts the final `Complete` file.
@@ -379,12 +379,12 @@ Residual issues:
 
 The public `salmon-run` package is approximately **95% production-ready for its vision**.
 
-- **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking, canonical sync, leak check, a green 544-test Pester suite, and a full `Start-SalmonRun.ps1 -Run` smoke test through `Code` → `Review` → `Audit` → `QA` → `Complete` using `PublicLocal` in a clean `~/.salmon` home.
-- **What is incomplete or unproven:** Live execution against real OpenCode, Devin, DSH, OpenRouter, and DeepInfra/Codex endpoints; GitCloud live pushes; AWS/GitHub/Worktree credential resolver integration; and the chosen public release artifact format.
+- **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking, canonical sync, leak check, a green Pester suite, a full `Start-SalmonRun.ps1 -Run` smoke test, and `SalmonRun.GitCloud`/`SalmonRun.Credentials` resolver integration (Env/File/AWS/GitHub/Worktree resolvers wired into token and host resolution).
+- **What is incomplete or unproven:** Live execution against real OpenCode, Devin, DSH, OpenRouter, and DeepInfra/Codex endpoints; live GitCloud pushes to GitHub/Worktree; live AWS/GitHub/Worktree credential resolver calls; and the chosen public release artifact format.
 
 Before any public release, the highest-confidence blockers are:
 
 1. Run at least one external provider adapter against a real provider CLI and API.
-2. Confirm live GitCloud push and credential resolver integration (AWS/GitHub/Worktree) in a real environment.
+2. Confirm a live GitCloud push (GitHub or Worktree) using a token resolved through `SalmonRun.Credentials`.
 3. Decide the public release artifact format (PowerShell Gallery, GitHub release, Docker image, or all three).
 4. Document the canonical-source sync cadence and projection behavior.

@@ -179,11 +179,11 @@ Runtime credentials live in `~/.salmon/.env` as *redirects*, not as committed se
 
 - `Env` — read from a process environment variable.
 - `File` — read from a file path.
-- `AWS` — read from AWS Secrets Manager.
+- `AWS` — read from AWS Secrets Manager or `~/.aws/credentials`/`~/.aws/config`.
 - `GitHub` / `Worktree` — read from the respective secret stores.
 - Literal values and custom resolvers.
 
-Provider executors request credentials by name (e.g., `OPENAI_API_KEY`) and receive only the resolved value, which is set as a process environment variable for the CLI. Secret values are never logged.
+`SalmonRun.GitCloud` token helpers (`Get-GitHubToken`, `Get-WorktreeToken`, `Get-SalmonRunGitCloudToken`) and `Get-WorktreeHost` now fall back to `SalmonRun.Credentials` when a token or host is not in a process environment variable, so `~/.salmon/.env` redirects drive GitCloud without duplicating secrets. Secret values are never logged.
 
 `SalmonRun.Audit` provides JSONL audit logging with:
 
@@ -232,7 +232,7 @@ The repo has a single flattened test suite under `Tests/`:
 - Module and engine tests for the control-plane modules.
 - Cross-cutting utility-module tests for helpers, setup, display, and git/CI.
 
-All tests pass in the latest appraisal (544 passed, 0 failed, 3 skipped).
+All tests pass in the latest appraisal (549 passed, 0 failed, 3 skipped).
 
 ---
 
@@ -240,12 +240,12 @@ All tests pass in the latest appraisal (544 passed, 0 failed, 3 skipped).
 
 `SalmonRun.GitCloud` abstracts git-hosting operations:
 
-- Token resolution (`Select-SalmonRunGitCloudToken`).
+- Token resolution (`Select-SalmonRunGitCloudToken`) that falls back to `SalmonRun.Credentials` resolvers.
 - Authenticated pushes (`Push-WorktreeRepository`, `Push-GitHubRepository`).
 - CI run status (`Get-WorktreeCiRun`).
 - Repo secret setting (`Set-WorktreeRepositorySecret`).
 
-It supports GitHub and a generic Gitea-compatible host (Worktree). Live integration is not part of the current test suite.
+It supports GitHub and a generic Gitea-compatible host (Worktree). Token and host values can be resolved from `~/.salmon/.env` via `Env`, `File`, `AWS`, `GitHub`, or `Worktree` resolvers. Live push integration is not part of the current test suite.
 
 ---
 
@@ -323,7 +323,7 @@ The package is split into two module trees. `docs/MODULES.md` has the full catal
 - `SalmonRun.DeployState` — setup checkpoint state.
 - `SalmonRun.Diagnostics` — step-by-step diagnostic capture.
 - `SalmonRun.Display` — console output helpers.
-- `SalmonRun.GitCloud` — git-hosting push/token/CI helpers.
+- `SalmonRun.GitCloud` — git-hosting push/token/CI helpers; resolves tokens and host through `SalmonRun.Credentials`.
 - `SalmonRun.Paths` — canonical Salmon Run path resolution.
 - `SalmonRun.Ports` — port allocation and registry.
 
@@ -356,7 +356,7 @@ See `docs/PUBLIC_PACKAGE.md` for the full path table.
 
 - External provider executors have not been run against real OpenCode, Devin, DSH, OpenRouter, or DeepInfra/Codex endpoints.
 - `SalmonRun.GitCloud` has not pushed to real GitHub/Worktree hosts.
-- `SalmonRun.Credentials` AWS/GitHub/Worktree resolvers are unit tested only.
+- `SalmonRun.Credentials` AWS/GitHub/Worktree resolvers are unit tested only; GitCloud integration tests exercise Env/File resolvers.
 
 ### Known rough edges
 
