@@ -15,6 +15,17 @@ BeforeAll {
 
     $script:PondEnginePsd1 = Join-Path $__ModulesDir 'SalmonRun.PondEngine' 'SalmonRun.PondEngine.psd1'
     Import-Module $script:PondEnginePsd1 -Force -ErrorAction Stop
+
+    # Isolate the runtime home so provider overlays in the real ~/.salmon do not
+    # leak into these tests. Tests that need a specific runtime layout override
+    # this in their own It blocks.
+    $script:SavedSalmonRunHome = $env:SALMON_RUN_HOME
+    $env:SALMON_RUN_HOME = Join-Path $TestDrive 'salmon-home'
+    $null = New-Item -ItemType Directory -Path $env:SALMON_RUN_HOME -Force
+}
+
+AfterAll {
+    $env:SALMON_RUN_HOME = $script:SavedSalmonRunHome
 }
 
 Describe 'SalmonRun.PondEngine Module Manifest' -Tag 'PondEngine', 'Regression-Only' {

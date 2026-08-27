@@ -42,6 +42,7 @@ $taskDirs = @(
     'Tasks/ProjectReview',
     'Tasks/Schedules',
     'Tasks/Locks',
+    'providers',
     'cache',
     'secrets'
 )

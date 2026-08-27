@@ -3,6 +3,12 @@ function Get-PondExecutorRegistry {
     .SYNOPSIS
         Loads the harness defaults and model-router catalog used by the
         executor registry.
+
+    .DESCRIPTION
+        Reads the built-in harness-defaults.json and model-router-catalog.json
+        from the module's Config directory, then merges any provider overlay
+        files found in ~/.salmon/providers. This lets users add or override
+        harnesses, providers, models, and cost data without editing the repo.
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
@@ -29,6 +35,40 @@ function Get-PondExecutorRegistry {
 
     $harness = Get-Content -LiteralPath $harnessPath -Raw | ConvertFrom-Json -AsHashtable
     $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json -AsHashtable
+
+    # Apply provider overlays from the runtime home.
+    $salmonHome = if (Get-Command Get-SalmonHome -ErrorAction SilentlyContinue) { Get-SalmonHome } else { Join-Path $HOME '.salmon' }
+    $providersDir = Join-Path $salmonHome 'providers'
+    if (Test-Path -LiteralPath $providersDir -PathType Container) {
+        $harnessOverlayKeys = @('harnesses','providers','legacyExecutorMap','skillSearch')
+        $catalogOverlayKeys = @('routerVersion','lastUpdated','benchmarkUrl','ttlHours','tierThresholds','costRules','models')
+
+        foreach ($file in Get-ChildItem -Path $providersDir -Filter '*.json' -File | Sort-Object Name) {
+            try {
+                $overlay = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json -AsHashtable
+                if ($null -eq $overlay) { continue }
+
+                # Explicit split: top-level 'harness' and/or 'catalog' keys.
+                if ($overlay.ContainsKey('harness')) {
+                    $harness = Merge-ProviderOverlay -Base $harness -Overlay $overlay['harness']
+                }
+                if ($overlay.ContainsKey('catalog')) {
+                    $catalog = Merge-ProviderOverlay -Base $catalog -Overlay $overlay['catalog']
+                }
+
+                # Flat overlay: route known keys to the right base.
+                foreach ($key in $overlay.Keys) {
+                    if ($key -in $harnessOverlayKeys) {
+                        $harness = Merge-ProviderOverlay -Base $harness -Overlay @{ $key = $overlay[$key] } -Key $key
+                    } elseif ($key -in $catalogOverlayKeys) {
+                        $catalog = Merge-ProviderOverlay -Base $catalog -Overlay @{ $key = $overlay[$key] } -Key $key
+                    }
+                }
+            } catch {
+                Write-Warning "Get-PondExecutorRegistry: failed to load provider overlay '$($file.FullName)': $_"
+            }
+        }
+    }
 
     return [PSCustomObject]@{
         Harness = $harness

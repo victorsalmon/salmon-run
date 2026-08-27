@@ -61,6 +61,9 @@ class PondExecutionProfile {
     [string]$ExecutorFile
     [int]$TimeoutMinutes
     [string[]]$Credentials
+    [string]$CostRule
+    [double]$ApiCostPer1KTokens
+    [double]$EffectiveCostPer1KTokens
 }
 
 class Pond {

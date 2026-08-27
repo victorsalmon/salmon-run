@@ -58,6 +58,10 @@ function Resolve-PondExecutionProfile {
         $effort = $providerCfg['defaultEffort']
     }
 
+    $costRule = if ($selected.ContainsKey('costRule')) { $selected['costRule'] } else { 'normal' }
+    $apiCost = if ($selected.ContainsKey('apiCostPer1KTokens')) { [double]$selected['apiCostPer1KTokens'] } else { 0.0 }
+    $effectiveCost = if ($selected.ContainsKey('effectiveCostPer1KTokens')) { [double]$selected['effectiveCostPer1KTokens'] } else { 0.0 }
+
     $profile = [PondExecutionProfile]::new()
     $profile.Tier         = $Tier
     $profile.Harness      = $harnessName
@@ -68,6 +72,9 @@ function Resolve-PondExecutionProfile {
     $profile.ExecutorFile = $providerCfg['executorFile']
     $profile.TimeoutMinutes = if ($providerCfg['defaultTimeoutMinutes']) { $providerCfg['defaultTimeoutMinutes'] } else { 30 }
     $profile.Credentials  = [string[]](@($providerCfg['credentials'] | Where-Object { $_ -ne $null }))
+    $profile.CostRule     = $costRule
+    $profile.ApiCostPer1KTokens = $apiCost
+    $profile.EffectiveCostPer1KTokens = $effectiveCost
 
     return $profile
 }
