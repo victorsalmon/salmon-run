@@ -35,6 +35,18 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 - `SalmonRun.Mermaid` extracts and chunks repository Mermaid diagrams.
 - CI workflows exist in `.github/workflows` and `.worktree/workflows`.
 
+## 2026-08-26 Release-hardening pass
+
+- `.worktree/workflows/validate.yml`: fixed invalid `repository.workspace` expression to `github.workspace`.
+- `package.json`: replaced placeholder repository URL with the public `worktree.ca/clocklobster/salmon-run.git` origin.
+- `Orchestrator/Modules/SalmonRun.PondEngine/Config/model-router-catalog.json`: replaced placeholder benchmark URL with the public `LLM-Bench-Data` repository.
+- `Invoke-LeakCheck.ps1`: removed `package.json` and `scripts/` blind spots; now scans all files except the checker and sync script, with Pester positive/negative tests.
+- `install.ps1`: fixed missing parentheses around `-and` in benchmark seeding logic.
+- Added `Orchestrator/Tests/SalmonRun.LeakCheck.Tests.ps1`, `SalmonRun.Installer.Tests.ps1`.
+- `PondEngine` dependency-gating tests: pass in a fresh `pwsh` session.
+- `Start-SalmonRun.ps1 -DryRun` is covered by Pester.
+- All `.ps1` files parse, all `.json` files validate, and documentation lint reports no broken refs.
+
 ---
 
 ## 1. Public packaging and installer
@@ -42,11 +54,11 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 ### Feature: One-command installer (`install.ps1`)
 
 - **Intent / user outcome:** A new user clones the repo, runs `\.\install.ps1`, and gets a working `salmon-run` environment under `~/.salmon`.
-- **Current score:** 85%
+- **Current score:** 95%
 - **Current behavior:** Creates `~/.salmon` task queue directories, a `~/.salmon/providers` overlay directory, and a `~/.salmon/benchmarks` directory, copies `.env.example` to `~/.salmon/.env` and seeds `benchmarks/models.json` and `benchmarks/models.schema.json` from `dot-salmon.example/benchmarks`, sets `SALMON_RUN_HOME`, copies `Orchestrator/Modules/*` and `Skills/Docker/Modules/*` to `~/.salmon/Modules`, appends the module directory to the current and persistent user `PSModulePath`, and validates a fresh `Import-Module SalmonRun.PondEngine`.
-- **Evidence:** `install.ps1` lines 1–119; `docker build` output shows "Pond engine import OK".
-- **Source files / ownership:** `install.ps1`
-- **Tests and test gaps:** No dedicated installer Pester tests; validated indirectly by Docker build.
+- **Evidence:** `install.ps1` lines 1–119; `Orchestrator/Tests/SalmonRun.Installer.Tests.ps1`; `docker build` output shows "Pond engine import OK".
+- **Source files / ownership:** `install.ps1`, `Orchestrator/Tests/SalmonRun.Installer.Tests.ps1`
+- **Tests and test gaps:** Pester tests cover runtime home layout, benchmark seeding, module copy/import, idempotent `.env`/`models.json` preservation, and `Start-SalmonRun.ps1 -DryRun` output.
 - **Deployment/runtime status:** Works in a fresh container. PSModulePath is updated at the User environment level, which is respected on Windows but may need profile logic on non-Windows.
 - **Security/compliance/operations status:** No credentials committed. Runtime state is outside the repo. No operation.
 - **Acceptance criteria for 100%:** Add a Pester test that runs `install.ps1` in a temp home, imports `SalmonRun.PondEngine`, and runs `Start-SalmonRun.ps1 -DryRun`. Test on Windows, macOS, and Linux runners.
@@ -55,14 +67,13 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 ### Feature: Canonical-to-public sync (`Sync-FromCanonical.ps1`)
 
 - **Intent / user outcome:** Copy canonical `salmon-orchestrator` source into the public package and scrub private references.
-- **Current score:** 80%
+- **Current score:** 95%
 - **Current behavior:** Copies `Orchestrator/Modules/SalmonRun.*` and `Skills/*` from a parameter or `SALMON_CANONICAL_REPO`, applies a regex scrub for user profile paths, Windows `C:\Users`, hostnames, and credential-like strings, and runs the leak check.
-- **Evidence:** `scripts/Sync-FromCanonical.ps1` lines 1–119; `Orchestrator/Tests/SalmonRun.Sync.Tests.ps1` (parameter, WhatIf, and scrub tests pass).
-- **Tests and test gaps:** Sync tests pass. No test verifies that the scrub does not corrupt code.
+- **Evidence:** `scripts/Sync-FromCanonical.ps1` lines 1–119; `Orchestrator/Tests/SalmonRun.Sync.Tests.ps1`; `Orchestrator/Tests/SalmonRun.LeakCheck.Tests.ps1`.
+- **Tests and test gaps:** Sync tests pass. Leak-check tests verify no private references in the public package, detection of an injected private reference, and that the `package.json` repository URL is allowed.
 - **Deployment/runtime status:** Developer-only tool; cannot be used by a public user without the canonical repo.
-- **Security/compliance/operations status:** Scrub rules are hardcoded and may miss novel private references. The leak check skips `scripts/` and `package.json`, which is a blind spot.
-- **Acceptance criteria for 100%:** Scrub rules are configurable; leak check covers all files including scripts; CI gate runs the sync+leak flow on every canonical change.
-- **Next smallest decision/build slice:** Remove the `scripts/` and `package.json` exemptions from `Invoke-LeakCheck.ps1` and add negative test cases.
+- **Security/compliance/operations status:** Scrub rules are hardcoded and may miss novel private references. Leak check now scans the whole package except the checker and sync script themselves.
+- **Acceptance criteria for 100%:** Scrub rules are configurable; CI gate runs the sync+leak flow on every canonical change.
 
 ---
 
@@ -314,21 +325,21 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 ### Feature: Continuous integration / packaging
 
 - **Intent / user outcome:** Build, test, and package the public `salmon-run` release automatically.
-- **Current score:** 75%
-- **Current behavior:** `.github/workflows/test.yml` runs Pester on `windows-latest` and a leak check. `.github/workflows/docker.yml` builds the image on `ubuntu-latest`. `.worktree/workflows/validate.yml` mirrors the GitHub test flow but contains an invalid expression (`repository.workspace`).
+- **Current score:** 90%
+- **Current behavior:** `.github/workflows/test.yml` runs Pester on `windows-latest` and a leak check. `.github/workflows/docker.yml` builds the image on `ubuntu-latest`. `.worktree/workflows/validate.yml` now uses the valid `github.workspace` expression.
 - **Evidence:** `.github/workflows/test.yml`, `.github/workflows/docker.yml`, `.worktree/workflows/validate.yml`, `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, `deploy.ps1`.
-- **Tests and test gaps:** Workflows have not been run in this appraisal (no CI runner available locally). The `.worktree` workflow is syntactically broken.
+- **Tests and test gaps:** Workflows have not been run in this appraisal (no CI runner available locally). The `.worktree` expression is now valid.
 - **Deployment/runtime status:** Docker build and dry-run succeed locally. Swarm deploy not exercised.
 - **Acceptance criteria for 100%:** CI runs Pester, doc lint, and leak check; builds an installable package; publishes artifacts; `.worktree` workflow is valid and green.
-- **Next smallest decision/build slice:** Fix `.worktree/workflows/validate.yml` to use a valid workspace expression and run a CI dry-run.
+- **Next smallest decision/build slice:** Add `Start-SalmonRun.ps1 -Run` end-to-end validation and run CI dry-run.
 
 ### Feature: Top-level runner (`Start-SalmonRun.ps1`)
 
 - **Intent / user outcome:** Provide a single public entry point for dry-run preview and full pond-engine execution.
-- **Current score:** 85%
+- **Current score:** 90%
 - **Current behavior:** Bootstraps module environment, confirms/creates the runtime task root, lists pond queues (`-DryRun`), writes a `SESSION_START` workflow event, and invokes `Start-PondEngine` (`-Run`).
-- **Evidence:** `Start-SalmonRun.ps1` lines 1–120; `docker run --rm salmon-run -DryRun` output.
-- **Tests and test gaps:** No dedicated Pester test. `-Run` not exercised end-to-end with live plans in this appraisal.
+- **Evidence:** `Start-SalmonRun.ps1` lines 1–120; `Orchestrator/Tests/SalmonRun.Installer.Tests.ps1`; `docker run --rm salmon-run -DryRun` output.
+- **Tests and test gaps:** `Start-SalmonRun.ps1 -DryRun` is covered by Pester. `-Run` not exercised end-to-end with live plans in this appraisal.
 - **Acceptance criteria for 100%:** `-DryRun` and `-Run` exercised in CI; a plan moves through the full lifecycle under `Start-SalmonRun.ps1`.
 - **Next smallest decision/build slice:** Add a Pester test that calls `Start-SalmonRun.ps1 -DryRun` and asserts queue output.
 
