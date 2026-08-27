@@ -133,7 +133,9 @@ What is fully validated:
 - Plan transitions, retry logic, rescue, capacity, and archival
 - `PublicLocal.ps1` end-to-end smoke runs
 - Model profile resolution and executor command construction for OpenCode, Devin, DSH, OpenRouter, and DeepInfra/Codex
+- OpenRouter and DeepInfra model variants in the model-router catalog with runtime benchmark enrichment
 - Runtime provider overlays and cost-aware profile fields
+- Leak-check hardening (no private refs, package.json repository URL allowed)
 - Module architecture, credentials, audit, locking, agent lifecycle, Mermaid chunking
 - `install.ps1`, Docker build, dry-run, sync, and leak check
 - `.worktree/workflows/validate.yml` expression
@@ -142,7 +144,6 @@ What remains hardening:
 
 - Live execution against real provider APIs
 - One `DependsOn` property-test edge case
-- Replacing placeholder URLs in `package.json` and `model-router-catalog.json`
 - A full end-to-end `Start-SalmonRun.ps1 -Run` with real plans
 
 See [`docs/roadmap.md`](./docs/roadmap.md) and [`docs/implementation.md`](./docs/implementation.md) for the detailed appraisal and remaining blockers.
