@@ -122,13 +122,13 @@
         "mmlu": 75.0
       },
       "cacheContract": "none",
-      "notes": "Current OpenCode Go default for non-DSO harnesses. Good value for Daily-tier work."
+      "notes": "Current OpenCode Go default for OpenCode harnesses. Good value for Daily-tier work."
     },
     {
-      "canonicalName": "DSO/Deepseekv4-flash",
-      "harness": "deepseek",
-      "provider": "dsh",
-      "model": "deepseek-v4-flash",
+      "canonicalName": "OpenCode Go/DeepSeek-V4-Flash",
+      "harness": "opencode",
+      "provider": "opencode-go",
+      "model": "opencode-go/deepseek-v4-flash",
       "effort": "max",
       "tier": "Complex",
       "costRule": "normal",
@@ -142,13 +142,13 @@
         "mmlu": 88.0
       },
       "cacheContract": "deepseek-v4",
-      "notes": "Best value in the budget tier. Selected when the challenge is Complex or higher and an OCG model is not capable enough."
+      "notes": "Best value in the budget tier. Selected when the challenge is Complex or higher and an OpenCode Go model is not capable enough."
     },
     {
-      "canonicalName": "DSO/Deepseekv4-pro",
-      "harness": "deepseek",
-      "provider": "dsh",
-      "model": "deepseek-v4-pro",
+      "canonicalName": "OpenCode Go/DeepSeek-V4-Pro",
+      "harness": "opencode",
+      "provider": "opencode-go",
+      "model": "opencode-go/deepseek-v4-pro",
       "effort": "max",
       "tier": "Frontier",
       "costRule": "normal",

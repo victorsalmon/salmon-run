@@ -528,9 +528,7 @@ Describe 'Pond public executor safety' -Tag 'PondEngine', 'Regression-Only' {
         $executorsDir = Join-Path $repoRoot 'Modules/SalmonRun.PondEngine/Executors'
         $privatePatterns = @(
             'salmon-orchestrator'
-            'dsh-adapter'
             'mcp_opencode'
-            'DSO_ACP_AUTH_API_KEY'
             'OC_STREAM'
             'OC_RESERVATION'
             'OC_PROJECT_ROOT'
@@ -589,7 +587,6 @@ Describe 'OpenCode executor command' -Tag 'PondEngine', 'Regression-Only' {
         $privatePatterns = @(
             'salmon' + '-orchestrator'
             $homePattern
-            'DSO_ACP_AUTH_API_KEY'
             'OC_STREAM'
             'OC_RESERVATION'
             'OC_PROJECT_ROOT'
@@ -728,23 +725,22 @@ Describe 'OpenCode executor adapter' -Tag 'PondEngine', 'Regression-Only' {
     }
 }
 
-Describe 'DSH executor command' -Tag 'PondEngine', 'Regression-Only' {
-    It 'produces a dsh command for Complex without hardcoded private paths' {
+Describe 'OpenCode Go DeepSeek command' -Tag 'PondEngine', 'Regression-Only' {
+    It 'produces an OpenCode Go command for Complex without hardcoded private paths' {
         $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Complex' }
-        $profile.Provider | Should -Be 'dsh'
+        $profile.Provider | Should -Be 'opencode-go'
 
         $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
 
-        $cmd.Command | Should -Match 'dsh run'
-        $cmd.Command | Should -Match 'work-coder-once'
+        $cmd.Command | Should -Match 'opencode run'
         $cmd.Command | Should -Match $profile.Model
+        $cmd.Command | Should -Match '--auto'
 
         $homePattern = [regex]::Escape(('C:', 'Users', 'RDP') -join [IO.Path]::DirectorySeparatorChar)
         $worktreePattern = 'worktree' + '\.' + 'ca'
         $privatePatterns = @(
             'salmon' + '-orchestrator'
             $homePattern
-            'DSH_API_KEY_VALUE'
             $worktreePattern
         )
         $commandText = $cmd.Command
@@ -756,111 +752,29 @@ Describe 'DSH executor command' -Tag 'PondEngine', 'Regression-Only' {
 
         $cmd.StartInfo.FilePath | Should -BeIn @('pwsh', 'powershell')
         $cmd.StartInfo.ArgumentList | Should -Contain '-Provider'
-        $cmd.StartInfo.ArgumentList | Should -Contain 'dsh'
-        $cmd.Credentials | Should -Contain 'DSH_API_KEY'
+        $cmd.StartInfo.ArgumentList | Should -Contain 'opencode-go'
+        $cmd.Credentials | Should -Contain 'OPENCODE_GO_KEY'
     }
 
-    It 'produces a dsh Frontier command' {
+    It 'produces an OpenCode Go Frontier command' {
         $profile = [PondExecutionProfile]::new()
-        $profile.Provider = 'dsh'
-        $profile.Cli = 'dsh'
-        $profile.Model = 'deepseek-v4-pro'
+        $profile.Provider = 'opencode-go'
+        $profile.Cli = 'opencode'
+        $profile.Model = 'opencode-go/deepseek-v4-pro'
         $profile.Effort = 'max'
-        $profile.ExecutorFile = 'Dsh'
-        $profile.Credentials = @('DSH_API_KEY')
+        $profile.ExecutorFile = 'Opencode'
+        $profile.Credentials = @('OPENCODE_GO_KEY')
 
         $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'reviewer' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Review\plan.md') } $profile
 
-        $cmd.Command | Should -Match 'dsh run'
-        $cmd.Command | Should -Match 'deepseek-v4-pro'
-        $cmd.Command | Should -Match 'work-reviewer-once'
+        $cmd.Command | Should -Match 'opencode run'
+        $cmd.Command | Should -Match 'opencode-go/deepseek-v4-pro'
 
         $cmd.StartInfo.FilePath | Should -BeIn @('pwsh', 'powershell')
-        $cmd.StartInfo.ArgumentList | Should -Contain 'dsh'
-        $cmd.StartInfo.ArgumentList | Should -Contain 'deepseek-v4-pro'
+        $cmd.StartInfo.ArgumentList | Should -Contain 'opencode-go'
+        $cmd.StartInfo.ArgumentList | Should -Contain 'opencode-go/deepseek-v4-pro'
         $cmd.StartInfo.ArgumentList | Should -Contain 'reviewer'
-        $cmd.Credentials | Should -Contain 'DSH_API_KEY'
-    }
-}
-
-Describe 'DSH executor adapter' -Tag 'PondEngine', 'Regression-Only' {
-    BeforeEach {
-        $script:DshArgs = $null
-    }
-
-    It 'parses parameters and builds the correct dsh command' {
-        $repoRoot = (Get-Item $PSCommandPath).Directory.Parent.FullName
-        $dsh = Join-Path $repoRoot 'Modules/SalmonRun.PondEngine/Executors/Dsh.ps1'
-
-        $td = New-Item -ItemType Directory -Path (Join-Path $TestDrive "dsh-adapter-$(Get-Random)") -Force
-        $plan = Join-Path $td 'plan.md'
-        @'
-# Test plan
-
-**PondLog**
-
-```json
-[]
-```
-'@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
-
-        $salmonHome = Join-Path $TestDrive 'dsh-home'
-        $null = New-Item -ItemType Directory -Path $salmonHome -Force
-        'DSH_API_KEY=test-key' | Set-Content -LiteralPath (Join-Path $salmonHome '.env') -Encoding utf8 -NoNewline
-
-        $savedSalmonHome = $env:SALMON_RUN_HOME
-        try {
-            $env:SALMON_RUN_HOME = $salmonHome
-
-            Mock Start-Process -MockWith {
-                param($FilePath, $ArgumentList, $WorkingDirectory, $RedirectStandardOutput, $RedirectStandardError, $NoNewWindow, $PassThru)
-                $script:DshArgs = $ArgumentList
-                return [PSCustomObject]@{
-                    HasExited = $true
-                    ExitCode  = 0
-                    Id        = 1234
-                }
-            }
-
-            . $dsh -Role 'coder' -LanePath $td -RepoDir $td -Provider 'dsh' -Model 'deepseek-v4-flash' -Effort 'max' -TimeoutMinutes 5 -PlanFiles @($plan)
-            $result = Invoke-DshProvider
-
-            $result | Should -Be 0
-            $script:DshArgs | Should -Not -BeNullOrEmpty
-            $script:DshArgs | Should -Contain 'deepseek-v4-flash'
-            $script:DshArgs | Should -Contain 'work-coder-once'
-            $script:DshArgs | Should -Contain 'max'
-            $script:DshArgs | Should -Contain '--files'
-            $script:DshArgs | Should -Contain $plan
-
-            $log = Get-PlanPondLog -PlanPath $plan
-            $log | Should -HaveCount 2
-            $log.action | Should -Contain 'spawn'
-            $log.action | Should -Contain 'external-complete'
-        } finally {
-            $env:SALMON_RUN_HOME = $savedSalmonHome
-        }
-    }
-
-    It 'fails when DSH_API_KEY is missing' {
-        $repoRoot = (Get-Item $PSCommandPath).Directory.Parent.FullName
-        $dsh = Join-Path $repoRoot 'Modules/SalmonRun.PondEngine/Executors/Dsh.ps1'
-
-        $td = New-Item -ItemType Directory -Path (Join-Path $TestDrive "dsh-missing-$(Get-Random)") -Force
-        $plan = Join-Path $td 'plan.md'
-        "# Test plan" | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
-
-        $savedSalmonHome = $env:SALMON_RUN_HOME
-        $savedKey = $env:DSH_API_KEY
-        try {
-            $env:SALMON_RUN_HOME = $td
-            $env:DSH_API_KEY = $null
-
-            { . $dsh -Role 'coder' -LanePath $td -RepoDir $td -Provider 'dsh' -Model 'deepseek-v4-flash' -Effort 'max' -PlanFiles @($plan); Invoke-DshProvider } | Should -Throw '*DSH_API_KEY*'
-        } finally {
-            $env:SALMON_RUN_HOME = $savedSalmonHome
-            $env:DSH_API_KEY = $savedKey
-        }
+        $cmd.Credentials | Should -Contain 'OPENCODE_GO_KEY'
     }
 }
 

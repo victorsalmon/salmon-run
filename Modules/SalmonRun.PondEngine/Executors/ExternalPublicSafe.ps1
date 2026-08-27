@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     This file is a drop-in placeholder for external provider executors
-    (OpenCode, Devin, DSH, OpenRouter, DeepInfra, etc.). It does not contain
+    (OpenCode, Devin, OpenRouter, DeepInfra, etc.). It does not contain
     fleet-specific hostnames, credentials, PII, or internal tooling paths.
 
     When invoked directly it:

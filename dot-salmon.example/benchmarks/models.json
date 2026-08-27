@@ -65,7 +65,7 @@
       "type": "pricing",
       "refresh_frequency_days": 1,
       "last_fetched": null,
-      "notes": "Official DeepSeek API pricing for DSH harness."
+      "notes": "Official DeepSeek API pricing for OpenCode Go DeepSeek models."
     },
     "llm_bench_data_github": {
       "name": "LLM-Bench-Data GitHub",
@@ -229,8 +229,8 @@
       "open_weights": true,
       "license": "MIT",
       "providers": {
-        "dsh": {
-          "model_id": "deepseek-v4-flash",
+        "opencode-go": {
+          "model_id": "opencode-go/deepseek-v4-flash",
           "input_per_million": 0.14,
           "output_per_million": 0.28,
           "cached_read_per_million": 0.028,
@@ -405,8 +405,8 @@
       "open_weights": true,
       "license": "MIT",
       "providers": {
-        "dsh": {
-          "model_id": "deepseek-v4-pro",
+        "opencode-go": {
+          "model_id": "opencode-go/deepseek-v4-pro",
           "input_per_million": 0.435,
           "output_per_million": 0.87,
           "cached_read_per_million": 0.003625,

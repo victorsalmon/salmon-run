@@ -58,10 +58,10 @@ Describe 'Model router cost fields' -Tag 'PondEngine', 'Regression-Only' {
         $profile.EffectiveCostPer1KTokens * 6 | Should -BeLessOrEqual ($profile.ApiCostPer1KTokens + 0.01)
     }
 
-    It 'carries normal cost for DSH Frontier models' {
+    It 'carries normal cost for OpenCode Go Frontier models' {
         $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }
 
-        $profile.Provider | Should -Be 'dsh'
+        $profile.Provider | Should -Be 'opencode-go'
         $profile.CostRule | Should -Be 'normal'
         $profile.ApiCostPer1KTokens | Should -BeGreaterThan 0
         $profile.EffectiveCostPer1KTokens | Should -Be ($profile.ApiCostPer1KTokens)
@@ -98,8 +98,8 @@ Describe 'Benchmark data from ~/.salmon/benchmarks' -Tag 'PondEngine', 'Regressi
                     name = 'DeepSeek V4 Pro'
                     family = 'deepseek'
                     providers = @{
-                        dsh = @{
-                            model_id = 'deepseek-v4-pro'
+                        'opencode-go' = @{
+                            model_id = 'opencode-go/deepseek-v4-pro'
                             input_per_million = 0.435
                             output_per_million = 0.87
                             cost = @{
@@ -151,8 +151,8 @@ Describe 'Benchmark data from ~/.salmon/benchmarks' -Tag 'PondEngine', 'Regressi
                     name = 'DeepSeek V4 Pro'
                     family = 'deepseek'
                     providers = @{
-                        dsh = @{
-                            model_id = 'deepseek-v4-pro'
+                        'opencode-go' = @{
+                            model_id = 'opencode-go/deepseek-v4-pro'
                             input_per_million = 0.435
                             output_per_million = 0.87
                             cost = @{
@@ -183,8 +183,8 @@ Describe 'Benchmark data from ~/.salmon/benchmarks' -Tag 'PondEngine', 'Regressi
 
         $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }
 
-        $profile.Provider | Should -Be 'dsh'
-        $profile.Model | Should -Be 'deepseek-v4-pro'
+        $profile.Provider | Should -Be 'opencode-go'
+        $profile.Model | Should -Be 'opencode-go/deepseek-v4-pro'
         $profile.CostRule | Should -Be 'normal'
         $profile.ApiCostPer1KTokens | Should -Be 0.87
         $profile.EffectiveCostPer1KTokens | Should -Be 0.87

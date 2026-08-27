@@ -58,7 +58,7 @@
           "license": { "type": "string" },
           "providers": {
             "type": "object",
-            "description": "Per-provider serving details and cost. Provider keys should match salmon-run provider names (opencode-go, dsh, openrouter, deepinfra, etc.).",
+            "description": "Per-provider serving details and cost. Provider keys should match salmon-run provider names (opencode-go, openrouter, deepinfra, etc.).",
             "additionalProperties": {
               "type": "object",
               "required": ["model_id"],
