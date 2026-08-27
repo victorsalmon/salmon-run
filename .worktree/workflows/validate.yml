@@ -22,13 +22,13 @@ jobs:
       - name: Run Orchestrator/Tests
         shell: pwsh
         run: |
-          $env:PSModulePath = "${{ repository.workspace }}\Orchestrator\Modules;${{ repository.workspace }}\Skills\Docker\Modules;" + $env:PSModulePath
+          $env:PSModulePath = "${{ github.workspace }}\Orchestrator\Modules;${{ github.workspace }}\Skills\Docker\Modules;" + $env:PSModulePath
           Invoke-Pester -Path 'Orchestrator/Tests' -Output Detailed
 
       - name: Run Skills/Docker/Tests
         shell: pwsh
         run: |
-          $env:PSModulePath = "${{ repository.workspace }}\Orchestrator\Modules;${{ repository.workspace }}\Skills\Docker\Modules;" + $env:PSModulePath
+          $env:PSModulePath = "${{ github.workspace }}\Orchestrator\Modules;${{ github.workspace }}\Skills\Docker\Modules;" + $env:PSModulePath
           Invoke-Pester -Path 'Skills/Docker/Tests' -Output Detailed
 
       - name: Leak check
