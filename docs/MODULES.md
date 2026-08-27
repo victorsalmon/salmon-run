@@ -1,11 +1,11 @@
 # salmon-run module catalog
 
-The `salmon-run` package is organized into two module trees:
+The `salmon-run` package is organized under a single `Modules/` tree with two groups:
 
-- `Modules/` — control-plane modules used by the pond engine and runtime.
-- `Modules/` — cross-cutting utility modules used by setup, display, and git/CI helpers.
+- **Control-plane modules** — used by the pond engine and runtime.
+- **Cross-cutting utility modules** — used by setup, display, and git/CI helpers.
 
-## Modules
+## Control-plane modules
 
 | Module | Purpose |
 | :--- | :--- |
@@ -22,7 +22,7 @@ The `salmon-run` package is organized into two module trees:
 | `SalmonRun.Process` | Safe `cmd`/`docker` invocation helpers. |
 | `SalmonRun.WorkflowEvents` | Event journal and mutation/property testing for workflow actions. |
 
-## Modules
+## Cross-cutting utility modules
 
 | Module | Purpose |
 | :--- | :--- |
@@ -35,7 +35,7 @@ The `salmon-run` package is organized into two module trees:
 
 ## Adding a module
 
-1. Place the module under the appropriate `Modules` tree.
+1. Place the module under the appropriate `Modules/` group.
 2. Provide a `*.psd1` manifest, a `*.psm1` loader, and `Public/` / `Private/` scripts.
 3. Add Pester tests in the matching `Tests` directory.
 4. Run the module import and the targeted test file before committing.

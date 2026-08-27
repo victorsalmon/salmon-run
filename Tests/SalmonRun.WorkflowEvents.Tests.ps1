@@ -16,7 +16,7 @@ BeforeAll {
     $script:SavedSalmonRunHome = $env:SALMON_RUN_HOME
     $env:SALMON_RUN_HOME = $script:WfTestDir
 
-    $pathsPath = [System.IO.Path]::Combine($__repoRoot, "Skills", "Docker", "Modules", "SalmonRun.Paths", "SalmonRun.Paths.ps1")
+    $pathsPath = [System.IO.Path]::Combine($__repoRoot, "Modules", "SalmonRun.Paths", "SalmonRun.Paths.ps1")
     if (Test-Path $pathsPath) { . $pathsPath }
 
     Get-ChildItem -Path $script:WfPublic -Filter '*.ps1' | ForEach-Object {

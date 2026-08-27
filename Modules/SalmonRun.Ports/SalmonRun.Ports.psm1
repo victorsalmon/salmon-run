@@ -22,7 +22,7 @@ function Get-PortRegistry {
         $repoRoot = if (Get-Command Get-SalmonRunRepoRoot -ErrorAction SilentlyContinue) {
             Get-SalmonRunRepoRoot
         } elseif ($PSScriptRoot) {
-            $tryPath = Join-Path $PSScriptRoot "..\..\..\.."
+            $tryPath = Join-Path $PSScriptRoot "..\.."
             if (Test-Path (Join-Path $tryPath ".git")) { Resolve-Path $tryPath } else { $null }
         } else { $null }
         if (-not $repoRoot) { $repoRoot = $env:REPO_ROOT }

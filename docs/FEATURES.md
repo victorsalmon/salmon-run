@@ -333,7 +333,7 @@ The package is split into two module trees. `docs/MODULES.md` has the full catal
 
 `salmon-run` keeps the source tree clean:
 
-- The repo contains `Orchestrator/`, `Skills/`, `docs/`, `install.ps1`, `Start-SalmonRun.ps1`, Docker files, and CI workflows.
+- The repo contains `Modules/`, `Skills/`, `docs/`, `Tests/`, `install.ps1`, `Start-SalmonRun.ps1`, Docker files, and CI workflows.
 - All task queues, logs, cache, secrets, and installed modules live under `~/.salmon`.
 - The `Tasks/` folder at the repo root is ignored by git and should not be used for real runtime state.
 

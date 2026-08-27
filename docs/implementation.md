@@ -316,10 +316,10 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 
 - **Intent / user outcome:** Fast feedback on regressions across all modules.
 - **Current score:** 85%
-- **Current behavior:** 22 Orchestrator test files and 6 Skills/Docker test files. Full `Tests` run: **423 passed, 0 failed, 3 skipped**. `Tests`: **103 passed, 0 failed, 0 skipped**.
+- **Current behavior:** 31 test files in the flattened `Tests/` directory. Full `Tests` run: **529 passed, 4 failed, 3 skipped**, with `SalmonRun.Diagnostics.Tests.ps1` failing at the container level.
 - **Evidence:** Test run output; `Tests/` and `Tests/`.
 - **Tests and test gaps:** One `PondEngine` property test fails (see Dependency gating). No installer test. No live provider test.
-- **Acceptance criteria for 100%:** All tests green; CI gate runs both suites; test run time under 5 minutes (currently ~208s for Orchestrator, ~5s for Skills/Docker, acceptable).
+- **Acceptance criteria for 100%:** All tests green; CI gate runs the `Tests` suite; test run time under 5 minutes (currently ~200s for the full suite, acceptable).
 - **Next smallest decision/build slice:** Fix the `DependsOn` property test failure and add an installer Pester test.
 
 ### Feature: Continuous integration / packaging
