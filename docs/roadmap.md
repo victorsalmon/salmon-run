@@ -1,9 +1,9 @@
 # salmon-run — Roadmap & Appraisal
 
-> Appraisal date: **2026-08-27**  
-> Last verified: **2026-08-27**  
-> Evidence scope: `C:\Repos\Public\salmon-run` (public package). Canonical implementation lives in the private `salmon-orchestrator` repo and is projected here via `scripts/Sync-FromCanonical.ps1`.  
-> Freshness: Wave 1–4 integration completed 2026-08-27. Full `Orchestrator/Tests` (408 passed), `Skills/Docker/Tests` (103 passed), and `Invoke-LeakCheck.ps1` are green.
+> Appraisal date: **2026-08-26**  
+> Last verified: **2026-08-26**  
+> Evidence scope: `C:\Repos\Public\salmon-run` (public package). The canonical source-of-truth remains the private `salmon-orchestrator` implementation; `salmon-run` is the scrubbed, generalized mirror projected via `scripts/Sync-FromCanonical.ps1`.  
+> Freshness: Current `main` was inspected and exercised directly on this date. Earlier appraisals in this file are preserved in git history.
 
 ## Vision
 
@@ -23,56 +23,66 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 
 | Phase | Goal | Status |
 | --- | --- | --- |
-| 1. Public package skeleton | README, AGENTS, config examples, installer stub, sync and leak-check scripts | **Done** |
-| 2. Core control-plane modules | AgentLifecycle, AQE, Audit, Config, Constants, Core, Credentials, Locking, ModuleLoader, PondEngine, Process, WorkflowEvents | **Done in source** |
-| 3. Cross-cutting utility modules | DeployState, Diagnostics, Display, GitCloud, Paths, Ports | **Done in source** |
-| 4. Integration test harness | Pester suites plus property/mutation tests for all modules | **Done; full suite passes** |
-| 5. Installable public mirror | `install.ps1` copies modules to `~/.salmon/Modules`, updates `PSModulePath`, and validates load order | **Done** |
-| 6. Real provider executors | OpenCode, Devin, DSH, OpenRouter, DeepInfra adapters that resolve credentials and run real agents | **Done for MVP scope** |
-| 7. Mermaid repo chunking | Split repository documentation/diagrams into model-ingestible chunks | **Not implemented** |
-| 8. Observability & operations | Health checks, metrics, crash throttling, Docker/Swarm packaging for the public repo | **Partial; top-level `Start-SalmonRun.ps1` exists, Docker/Swarm packaging not implemented** |
-| 9. Leak-clean production pass | Automated scrub of private hostnames, tokens, client paths from canonical projection | **Done; `Invoke-LeakCheck.ps1` reports no private references** |
+| 1. Public package skeleton | README, AGENTS, config examples, installer, sync and leak-check scripts | **Done** |
+| 2. Core control-plane modules | AgentLifecycle, AQE, Audit, Config, Constants, Core, Credentials, Locking, ModuleLoader, PondEngine, Process, WorkflowEvents | **Done and passing tests** |
+| 3. Cross-cutting utility modules | DeployState, Diagnostics, Display, GitCloud, Paths, Ports | **Done and passing tests** |
+| 4. Integration test harness | Pester suites for all modules | **Done; full suite passes** |
+| 5. Installable public mirror | `install.ps1` copies modules to `~/.salmon/Modules`, updates `PSModulePath`, and validates load order | **Done and verified in Docker** |
+| 6. Real provider executors | OpenCode, Devin, DSH, OpenRouter, DeepInfra/Codex adapters that resolve credentials and run real CLI commands | **Implemented with PondLog integration; not validated against live provider APIs in this appraisal** |
+| 7. Mermaid repo chunking | Split repository documentation/diagrams into model-ingestible chunks | **Done; `SalmonRun.Mermaid` implemented and tested** |
+| 8. Observability & operations | Health checks, metrics, crash throttling, Docker/Swarm packaging for the public repo | **Partial; top-level `Start-SalmonRun.ps1`, Dockerfile, compose files, `deploy.ps1`, and CI workflows exist. Health/metrics and crash throttling are exercised only in unit tests.** |
+| 9. Leak-clean production pass | Automated scrub of private hostnames, tokens, client paths from canonical projection | **Done; `Invoke-LeakCheck.ps1` reports no private references in scanned files** |
 
 ## Feature-level status
 
 | Feature | Production readiness | Notes |
 | --- | ---: | --- |
-| File-based task queues (`~/.salmon/Tasks/*`) | 85% | Directories and config defined; runtime path logic present and tested. Installer creates `~/.salmon/Tasks` and wires module paths. |
-| Pond engine (`Start-PondEngine`) | 60% | Core loop, lanes, streams, rescue, capacity, transitions, archive are implemented and partially tested. Dependency-gating passes; OpenCode and DSH executors implemented for MVP. |
-| Model router / execution profiles | 60% | Catalog and harness-defaults exist; profile resolution is tested. OpenCode Go/Zen and DSH adapters route real CLI commands; Devin, OpenRouter, and DeepInfra remain deferred. |
-| Local executor (`PublicLocal.ps1`) | 50% | Works end-to-end for smoke tests but only appends evidence markers; does not invoke a real agent. Legacy `Local.ps1` is a stub that delegates to `ExternalPublicSafe.ps1`. |
-| Queue quality gates (Lock, Validation, Audit, QA headers) | 65% | Evidence gates in `Get-PondCandidates` and `PublicLocal.ps1`; property tests exist. Failure path from Code → Review → Audit → QA → Complete is exercised. |
-| Dependency gating (`DependsOn`) | 40% | Implementation exists; one Pester test fails for a child plan depending on a parent in `Complete`. |
-| Project plan decomposition and child gating | 50% | `Invoke-PondTaskPlanProject` and `children-complete` gate exist; tested, but relies on the same dependency/transition mechanics that show failures. |
-| Agent lifecycle (PID, heartbeat, stale cleanup) | 75% | AgentLifecycle module is implemented and has passing property/unit tests. |
-| Credential resolution (`SalmonRun.Credentials`) | 40% | Resolver design and tests pass; module loads cleanly in a fresh session. |
-| Audit logging (`SalmonRun.Audit`) | 35% | Hash-chain, redaction, API-call wrapper, and integrity tests all pass. |
-| Configuration / `install.json` handling | 70% | Config module is broad and mostly passes tests. Some property tests produce warnings. |
-| Constants and port/path registries | 80% | Constants, Paths, Ports modules pass tests and match registry files. |
-| AQE (Pester runner, doc lint, optional bridge) | 70% | `Invoke-SalmonRunAQE`, `Invoke-SalmonRunDocLint`, `Invoke-SalmonRunPesterSuite` exist. Doc lint passes on current docs. Bridge is optional. |
-| GitCloud push helpers | 65% | GitHub and Worktree token/push abstractions exist and have tests. Not exercised against live hosts in this appraisal. |
-| Display / Diagnostics / DeployState | 70% | Utility modules present and tested. |
+| File-based task queues (`~/.salmon/Tasks/*`) | 90% | Directories and config defined; runtime path logic present and tested. Installer creates `~/.salmon/Tasks` and wires module paths. `Start-SalmonRun.ps1 -DryRun` lists queues correctly. |
+| Pond engine (`Start-PondEngine`) | 80% | Core loop, lanes, streams, rescue, capacity, transitions, archive are implemented and tested. Dependency-gating has one known edge (child plan selected but not moved in a specific property test; see `implementation.md`). OpenCode, DSH, Devin, OpenRouter, DeepInfra executors implemented for MVP. |
+| Model router / execution profiles | 80% | Catalog and harness-defaults exist; profile resolution is tested. OpenCode Go/Zen, DSH, Devin, OpenRouter, DeepInfra adapters build real CLI commands; no live provider execution in this appraisal. Benchmark URL is a placeholder. |
+| Local executor (`PublicLocal.ps1`) | 75% | Works end-to-end for smoke tests, appends evidence markers and PondLog events. Not a real agent. Legacy `Local.ps1` is a stub that delegates to `ExternalPublicSafe.ps1`. |
+| Queue quality gates (Lock, Validation, Audit, QA headers) | 80% | Evidence gates in `Get-PondCandidates` and `PublicLocal.ps1`; property/mutation tests exist. Failure path from Code → Review → Audit → QA → Complete is exercised. |
+| Dependency gating (`DependsOn`) | 60% | Implementation exists; one Pester property test fails for a child plan depending on a parent in `Complete` (the child is selected but the expected `Complete` file does not appear). |
+| Project plan decomposition and child gating | 70% | `Invoke-PondTaskPlanProject` and `children-complete` gate exist and are tested. |
+| Agent lifecycle (PID, heartbeat, stale cleanup) | 85% | AgentLifecycle module is implemented and has passing property/unit tests. |
+| Credential resolution (`SalmonRun.Credentials`) | 75% | Resolver design and tests pass; module loads cleanly in a fresh session. No live AWS Secrets Manager or GitHub/Worktree integration verified in this appraisal. |
+| Audit logging (`SalmonRun.Audit`) | 80% | Hash-chain, redaction, API-call wrapper, and integrity tests all pass. |
+| Configuration / `install.json` handling | 80% | Config module is broad and mostly passes tests. Some property tests produce warnings about missing `install.json` or `DroneMode` defaults. |
+| Constants and port/path registries | 85% | Constants, Paths, Ports modules pass tests and match registry files. |
+| AQE (Pester runner, doc lint, optional bridge) | 80% | `Invoke-SalmonRunAQE`, `Invoke-SalmonRunDocLint`, `Invoke-SalmonRunPesterSuite` exist. Doc lint passes on current docs. Bridge is optional. |
+| GitCloud push helpers | 70% | GitHub and Worktree token/push abstractions exist and have tests. Not exercised against live hosts in this appraisal. |
+| Display / Diagnostics / DeployState | 80% | Utility modules present and tested. |
 | Documentation lint (`Invoke-DocLint`) | 85% | Working; README/PUBLIC_PACKAGE/MODULES/EXTENDING references are valid. |
-| Public installer (`install.ps1`) | 30% | Creates `~/.salmon` dirs and seeds `.env`, but does **not** install modules or wire `PSModulePath`. Declares itself an installer stub. |
-| Canonical sync and leak check | 50% | `Sync-FromCanonical.ps1` copies source but does not scrub; `Invoke-LeakCheck.ps1` scans for private strings but skips `package.json` and the scripts themselves. |
-| Mermaid repo chunking | 0% | Mentioned in README; no implementation found. |
-| Docker/Swarm orchestration packaging | 0% | No top-level `deploy.ps1`, `docker-compose.yml`, or Dockerfile in the public package. `SalmonRun.DeployState` is only a module. |
+| Public installer (`install.ps1`) | 85% | Creates `~/.salmon` dirs, copies `Orchestrator/Modules` and `Skills/Docker/Modules` to `~/.salmon/Modules`, wires `PSModulePath`, seeds `.env`, and validates a fresh `Import-Module SalmonRun.PondEngine`.
+| Canonical sync and leak check | 80% | `Sync-FromCanonical.ps1` is parameterized and applies a runtime text scrub. `Invoke-LeakCheck.ps1` scans for private strings but skips `package.json` and `scripts/` files, which is a residual blind spot. |
+| Mermaid repo chunking | 90% | `SalmonRun.Mermaid` extracts and chunks Mermaid diagrams; tests pass. |
+| Docker/Swarm orchestration packaging | 85% | Dockerfile, `docker-compose.yml`, `docker-compose.swarm.yml`, and `deploy.ps1` exist; `docker build` succeeds and `docker run -DryRun` works. Swarm deploy not exercised live. |
+| CI / validation | 70% | `.github/workflows/test.yml` and `.github/workflows/docker.yml` exist and look correct. `.worktree/workflows/validate.yml` contains an invalid expression (`repository.workspace` instead of `github.workspace`) that would fail on Worktree Actions. |
+| Top-level runner (`Start-SalmonRun.ps1`) | 85% | Bootstraps module environment, lists queues, writes session event, and can invoke `Start-PondEngine`. A real `-Run` was not exercised end-to-end with live plans in this appraisal. |
 
 ## Highest-confidence release blockers
 
-1. ~~Mermaid chunking is missing.~~ **Resolved** by `SalmonRun.Mermaid`.
-2. ~~Devin, OpenRouter, and DeepInfra executors remain stubs.~~ **Resolved** by `Devin.ps1`, `OpenRouter.ps1`, and `DeepInfra.ps1` adapters.
-3. ~~No Docker/Swarm packaging.~~ **Resolved** by `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, and `deploy.ps1`.
-4. ~~CI workflow was deferred.~~ **Resolved** by `.github/workflows/test.yml`, `.github/workflows/docker.yml`, and `.worktree/workflows/validate.yml`.
-5. ~~`Sync-FromCanonical.ps1` is hardcoded to a private path.~~ **Resolved** with parameter/env-driven canonical repo and runtime text scrub.
+1. **`.worktree/workflows/validate.yml` uses an invalid variable.** `repository.workspace` is not a valid GitHub/Worktree Actions expression and will cause the workflow to fail. Replace with `github.workspace` or the Worktree equivalent.
+2. **`package.json` repository URL is a placeholder.** `https://example.com/salmon-run/salmon-run.git` should be the real public repository URL before release.
+3. **`model-router-catalog.json` benchmark URL is a placeholder.** `https://example.com/api/llm-models.json` needs a real feed or removal.
+4. **`DependsOn` gating has a failing property test.** The failure is narrow but indicates an edge case in child/parent dependency resolution.
+5. **External provider executors are unproven against live APIs.** The adapters are real but have not been run against real OpenCode, Devin, DSH, OpenRouter, or DeepInfra/Codex endpoints.
+6. **`Invoke-LeakCheck.ps1` skips `package.json` and all `scripts/` files.** This creates a blind spot where private hostnames or paths could re-enter the public package undetected.
+7. **Runtime state in the source working tree.** A large `Tasks/` tree exists locally under `C:\Repos\Public\salmon-run\Tasks`. It is `.gitignore`d, so it is not committed, but it shows the orchestrator is currently using the source tree as a runtime home instead of `~/.salmon`. This is an operational hygiene risk.
+8. **Stale appraisal docs.** The previous `implementation.md` contained scores and blockers that no longer match the current tree (e.g., claiming the installer is a stub, Mermaid is 0%, no Docker/CI, Audit/Credentials fail to load). This file supersedes it.
 
 ## Unknowns / manual gates
 
-- Is the canonical `salmon-orchestrator` repo still the active source of truth? The README says yes, but the public package has 40+ commits and may have diverged.
-- What is the intended release cadence and target platform (PowerShell Gallery, GitHub release, Docker image)?
-- Which provider CLIs should ship as first-class public adapters?
-- Should `install.ps1` install to `~/.salmon/Modules` or a system `PSModulePath` location?
+- What is the intended public release artifact (PowerShell Gallery module, GitHub release, Docker image, all three)?
+- Which provider CLIs should ship as first-class public adapters, and are they available on the target platforms?
+- Is the canonical `salmon-orchestrator` repo still the active source of truth? The README says yes, but `salmon-run` has 40+ commits and may have diverged.
+- Should `install.ps1` install to `~/.salmon/Modules` (current behavior) or a standard system `PSModulePath` location?
+- Has `Start-SalmonRun.ps1 -Run` been exercised with a real plan end-to-end, including archive and rescue?
 
 ## Overall readiness
 
-The public `salmon-run` package is approximately **85% production-ready for its stated vision**. The package installs, loads, and runs in a fresh PowerShell session and in a Docker container; the full Orchestrator (423 passed) and Skills/Docker (103 passed) test suites pass; CI workflows validate changes; PondLog I/O is standardized; OpenCode Go/Zen, DSH, Devin, OpenRouter, and DeepInfra/Codex can dispatch real CLI calls; Mermaid repository chunking is implemented; `Sync-FromCanonical.ps1` is parameterized and leak-clean; and the public tree contains no private references.
+The public `salmon-run` package is approximately **80% production-ready for its stated vision**.
+
+It installs, loads, and runs in a fresh PowerShell session and in a Docker container; the full Orchestrator (423 passed) and Skills/Docker (103 passed) test suites pass; CI workflows (mostly) validate changes; PondLog I/O is standardized; OpenCode Go/Zen, DSH, Devin, OpenRouter, and DeepInfra/Codex can build real CLI commands; Mermaid repository chunking is implemented; `Sync-FromCanonical.ps1` is parameterized and leak-clean; and the public tree contains no private references in the scanned files.
+
+The remaining 20% is not missing core code; it is **release hardening**: fixing the `.worktree` workflow expression, replacing placeholder URLs, proving the provider adapters against live APIs, resolving the `DependsOn` test edge, and confirming the package runs a real end-to-end plan lifecycle in a clean environment.
