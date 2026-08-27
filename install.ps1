@@ -64,6 +64,14 @@ if ((Test-Path $envExample) -and -not (Test-Path $envDest)) {
     Write-Host "Seeded $envDest from .env.example; edit it with your credential redirects." -ForegroundColor Yellow
 }
 
+# Seed the git credential directory (docs + token placeholder) if it does not already exist
+$gitExampleDir = Join-Path $PSScriptRoot 'dot-salmon.example' 'git'
+$gitDestDir = Join-Path $RuntimeHome 'git'
+if ((Test-Path $gitExampleDir) -and -not (Test-Path $gitDestDir)) {
+    Copy-Item -Path $gitExampleDir -Destination $gitDestDir -Recurse -Force
+    Write-Host "Seeded $gitDestDir from dot-salmon.example/git; replace worktree-api-token with your token." -ForegroundColor Yellow
+}
+
 # Seed benchmark schema and sample data if the benchmarks directory is empty
 $benchmarksExampleDir = Join-Path $PSScriptRoot 'dot-salmon.example' 'benchmarks'
 $benchmarksDestDir = Join-Path $RuntimeHome 'benchmarks'
