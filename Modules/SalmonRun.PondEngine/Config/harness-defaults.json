@@ -15,6 +15,10 @@
     "deepseek": {
       "description": "DeepSeek V4 models via DSH through configured inference providers",
       "defaultProvider": "dsh"
+    },
+    "codex": {
+      "description": "OpenAI Codex CLI using GPT-5.6 Luna/Terra/Sol",
+      "defaultProvider": "codex"
     }
   },
   "providers": {
@@ -110,6 +114,20 @@
         "deepseek-ai/DeepSeek-V4-Flash": { "defaultEffort": "medium" },
         "deepseek-ai/DeepSeek-V4-Flash-0731": { "defaultEffort": "medium" },
         "deepseek-ai/DeepSeek-V4-Pro": { "defaultEffort": "medium" }
+      }
+    },
+    "codex": {
+      "cli": "codex",
+      "defaultModel": "gpt-5.6-luna",
+      "defaultEffort": "low",
+      "acceptedEfforts": ["low", "medium", "high"],
+      "executorFile": "Codex",
+      "credentials": ["OPENAI_API_KEY"],
+      "models": {
+        "gpt-5.6-luna": { "defaultEffort": "low" },
+        "gpt-5.6-terra": { "defaultEffort": "medium" },
+        "gpt-5.6-sol": { "defaultEffort": "high" },
+        "gpt-5.6": { "defaultEffort": "medium" }
       }
     }
   },

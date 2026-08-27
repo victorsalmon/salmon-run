@@ -263,6 +263,66 @@
       },
       "cacheContract": "none",
       "notes": "DeepInfra DeepSeek V4 Pro. DSH maps the canonical model to deepseek-ai/DeepSeek-V4-Pro."
+    },
+    {
+      "canonicalName": "Codex/GPT-5.6-Luna",
+      "harness": "codex",
+      "provider": "codex",
+      "model": "gpt-5.6-luna",
+      "effort": "low",
+      "tier": "Flash",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 0.0007,
+      "effectiveCostPer1KTokens": 0.0007,
+      "capabilityScore": 60,
+      "benchmarks": {
+        "sweBench": 50.0,
+        "aime2024": 0,
+        "terminalBench21": 70.0,
+        "mmlu": 0
+      },
+      "cacheContract": "none",
+      "notes": "OpenAI Codex CLI with gpt-5.6-luna for fast, repeatable subtasks."
+    },
+    {
+      "canonicalName": "Codex/GPT-5.6-Terra",
+      "harness": "codex",
+      "provider": "codex",
+      "model": "gpt-5.6-terra",
+      "effort": "medium",
+      "tier": "Daily",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 0.007,
+      "effectiveCostPer1KTokens": 0.007,
+      "capabilityScore": 75,
+      "benchmarks": {
+        "sweBench": 55.0,
+        "aime2024": 0,
+        "terminalBench21": 80.0,
+        "mmlu": 0
+      },
+      "cacheContract": "none",
+      "notes": "OpenAI Codex CLI with gpt-5.6-terra for everyday implementation."
+    },
+    {
+      "canonicalName": "Codex/GPT-5.6-Sol",
+      "harness": "codex",
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "tier": "Frontier",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 0.0175,
+      "effectiveCostPer1KTokens": 0.0175,
+      "capabilityScore": 92,
+      "benchmarks": {
+        "sweBench": 58.0,
+        "aime2024": 0,
+        "terminalBench21": 88.0,
+        "mmlu": 0
+      },
+      "cacheContract": "none",
+      "notes": "OpenAI Codex CLI with gpt-5.6-sol for complex architecture and review."
     }
   ]
 }

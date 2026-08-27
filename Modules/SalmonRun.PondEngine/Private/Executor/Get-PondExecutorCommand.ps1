@@ -55,6 +55,8 @@ function Get-PondExecutorCommand {
         "dsh --profile headless --provider $($Profile.Provider) --model $($Profile.Model) --prompt <plans>"
     } elseif ($Profile.Provider -eq 'devin') {
         "devin --prompt-file $fileArgs --model $($Profile.Model) -p"
+    } elseif ($Profile.Provider -eq 'codex' -or $Profile.Harness -eq 'codex') {
+        "codex exec -m $($Profile.Model) -C <RepoDir> -c model_reasoning_effort=$($Profile.Effort) --output-last-message <out> - < $fileArgs"
     } else {
         "$($Profile.Cli) run --command work-$Role-once --model $($Profile.Model) --effort $($Profile.Effort) --files $fileArgs"
     }

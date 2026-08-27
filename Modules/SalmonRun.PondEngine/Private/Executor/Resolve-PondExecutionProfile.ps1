@@ -11,18 +11,30 @@ function Resolve-PondExecutionProfile {
         [ValidateSet('Flash','Daily','Complex','Frontier','Local')]
         [string]$Tier,
 
+        [string]$Harness,
+
         [string[]]$PlanFiles
     )
 
     $registry = Get-PondExecutorRegistry
     $catalog = $registry.Catalog
-    $harness = $registry.Harness
+    $harnessDefaults = $registry.Harness
 
     # Prefer a model whose declared tier exactly matches the plan tier.
     $candidates = @($catalog.models | Where-Object { $_.tier -eq $Tier })
     if ($candidates.Count -eq 0) {
         # Fall back to Daily if no exact match is configured.
         $candidates = @($catalog.models | Where-Object { $_.tier -eq 'Daily' })
+    }
+
+    # If a harness is requested, restrict candidates to that family before
+    # scoring. This lets callers ask for a specific harness (e.g. opencode or
+    # codex) without the default capability-score tie going elsewhere.
+    if (-not [string]::IsNullOrWhiteSpace($Harness)) {
+        $candidates = @($candidates | Where-Object { $_.harness -eq $Harness })
+        if ($candidates.Count -eq 0) {
+            throw "Resolve-PondExecutionProfile: no model found for tier '$Tier' and harness '$Harness'."
+        }
     }
 
     # Choose the highest-scoring model for the tier.
@@ -36,16 +48,16 @@ function Resolve-PondExecutionProfile {
 
     # Validate and normalize against harness-defaults.json.
     $harnessName = $selected.harness
-    if (-not $harness['harnesses'].ContainsKey($harnessName)) {
+    if (-not $harnessDefaults['harnesses'].ContainsKey($harnessName)) {
         throw "Resolve-PondExecutionProfile: unknown harness '$harnessName'."
     }
-    $harnessCfg = $harness['harnesses'][$harnessName]
+    $harnessCfg = $harnessDefaults['harnesses'][$harnessName]
 
     $provider = $selected.provider
-    if (-not $harness['providers'].ContainsKey($provider)) {
+    if (-not $harnessDefaults['providers'].ContainsKey($provider)) {
         throw "Resolve-PondExecutionProfile: unknown provider '$provider' for harness '$harnessName'."
     }
-    $providerCfg = $harness['providers'][$provider]
+    $providerCfg = $harnessDefaults['providers'][$provider]
 
     $model = $selected.model
     if ($providerCfg['models'] -and -not $providerCfg['models'].ContainsKey($model)) {
