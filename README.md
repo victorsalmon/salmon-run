@@ -8,11 +8,12 @@
 
 ## What it is, in one minute
 
-The whole system is built around three simple ideas:
+The whole system is built around a few simple ideas:
 
 1. **Plans are files.** Every unit of work is a markdown file in a queue folder under `~/.salmon/Tasks`. Headers like `Status`, `Scope`, `Challenge`, and `DependsOn` drive behavior.
 2. **Ponds are workflow stages.** Each pond watches a folder, picks up eligible plans, spawns an executor, and moves the plan to the next pond on success or `Failed` on error.
 3. **Executors are provider adapters.** A *harness* is a backend family (OpenCode, Devin, DeepSeek, Codex), a *provider* is the CLI/API it talks to, and an *executor* is the PowerShell adapter that actually runs the session and writes completion sentinels.
+4. **The catalog is override-friendly.** Drop JSON files in `~/.salmon/providers/*.json` to add or override harnesses, providers, models, and cost data without touching the repo.
 
 That separation means you can add a new model or provider without touching the engine, and you can run the entire pipeline locally with the `PublicLocal` smoke-test executor before you connect a real external API.
 
@@ -38,12 +39,14 @@ Most agentic workflow tools either lock you into a vendor, hide state in a datab
 | **File-based Kanban queues** | Plans are markdown files in `~/.salmon/Tasks/{Intake,Code,Review,Audit,QA,Complete,Archive,Failed,Working,Project,ProjectReview,Manual,Handoffs,Temp,Schedules,Logs}`. |
 | **Pond engine** | `Start-PondEngine` runs a configurable loop of ponds, each with entry gates, task pipelines, parallelism limits, and success/failure transitions. |
 | **Model routing** | `Resolve-PondExecutionProfile` selects a `Harness` × `Provider` × `Model` × `Effort` based on the plan's `Challenge` tier and a JSON catalog. |
+| **Runtime provider overlays** | Drop JSON files in `~/.salmon/providers/*.json` to extend or override `harness-defaults.json` and `model-router-catalog.json` at runtime. |
+| **Cost-aware routing** | Execution profiles carry `CostRule`, `ApiCostPer1KTokens`, and `EffectiveCostPer1KTokens` so the engine can reason about free, discounted, and normal-cost models. |
 | **Executor adapters** | `PublicLocal.ps1` runs in-process smoke tests; `Opencode.ps1`, `Devin.ps1`, `Dsh.ps1`, `OpenRouter.ps1`, and `DeepInfra.ps1` build real CLI commands for external providers. |
 | **Quality gates** | Evidence headers (`Implementation`, `Reviewed`, `Audit`, `QA`) and `PondLog` events are checked before a plan can advance. `DependsOn` and `children-complete` gating handle dependencies and project plans. |
 | **Rescue and crash throttling** | Stale `Working` and cooled `Failed` plans are rescued back to `Code`; recent crashes throttle the engine with exponential backoff. |
 | **Audit and credentials** | `SalmonRun.Audit` writes hash-chain JSONL logs with redaction; `SalmonRun.Credentials` resolves redirects from `~/.salmon/.env` without storing secrets in the repo. |
 | **Mermaid chunking** | `SalmonRun.Mermaid` extracts Mermaid diagrams from markdown and splits them into model-ingestible chunks. |
-| **AQE / testing** | `SalmonRun.AQE` runs the Pester suite and a documentation lint. The Orchestrator suite has **423 passing** tests and the Docker/Skills suite has **103 passing** tests. |
+| **AQE / testing** | `SalmonRun.AQE` runs the Pester suite and a documentation lint. The Orchestrator suite has **530+ passing** tests and the Docker/Skills suite has **103 passing** tests. |
 | **Docker & Swarm packaging** | `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, and `deploy.ps1` support local container and Swarm deploys. |
 | **Canonical sync & leak check** | `scripts/Sync-FromCanonical.ps1` copies from the private source with a runtime scrub; `scripts/Invoke-LeakCheck.ps1` verifies no private references are committed. |
 
@@ -122,7 +125,7 @@ The repo itself only contains code, docs, and tooling. No personal task data, lo
 
 ## Project status
 
-The public package is approximately **80% production-ready for its vision**. It installs, loads, and runs in a fresh PowerShell session and inside Docker. The full test suites pass, the core pond lifecycle is exercised, the local executor works end-to-end, and the external provider adapters build real CLI commands.
+The public package is approximately **80% production-ready for its vision**. It installs, loads, and runs in a fresh PowerShell session and inside Docker. Over **530 tests** pass across the Orchestrator and Docker/Skills suites, the core pond lifecycle is exercised, the local executor works end-to-end, and the external provider adapters build real CLI commands.
 
 What is fully validated:
 
@@ -130,6 +133,7 @@ What is fully validated:
 - Plan transitions, retry logic, rescue, capacity, and archival
 - `PublicLocal.ps1` end-to-end smoke runs
 - Model profile resolution and executor command construction for OpenCode, Devin, DSH, OpenRouter, and DeepInfra/Codex
+- Runtime provider overlays and cost-aware profile fields
 - Module architecture, credentials, audit, locking, agent lifecycle, Mermaid chunking
 - `install.ps1`, Docker build, dry-run, sync, and leak check
 
