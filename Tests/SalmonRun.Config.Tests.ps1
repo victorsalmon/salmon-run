@@ -4,10 +4,8 @@ BeforeAll {
     $repoRoot = (Get-Item $PSCommandPath).Directory.Parent.FullName
     $salmonModules = Join-Path $repoRoot "Modules"
 
-    . (Join-Path $salmonModules "SalmonRun.Core\SalmonRun.Core.ps1")
-    function Write-SetupLog { param($Message, $Level) }
-    function Invoke-NativeCommand { param($Command) return [pscustomobject]@{ Success = $false } }
-    . (Join-Path $salmonModules "SalmonRun.Config\SalmonRun.Config.ps1")
+    Get-Module SalmonRun.Config -All | Remove-Module -Force -ErrorAction SilentlyContinue
+    Import-Module (Join-Path $salmonModules "SalmonRun.Config\SalmonRun.Config.psd1") -Force -DisableNameChecking -Scope Global
 }
 
 Describe "SalmonRun.Config Module" -Tag "Config" {

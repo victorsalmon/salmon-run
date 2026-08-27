@@ -3,10 +3,9 @@
 # Load the modules at the file scope so Pester can resolve InModuleScope during
 # discovery and the path-override environment variables take effect immediately.
 $__moduleDir = $PSScriptRoot
-$__pathsPsd1 = Join-Path $__moduleDir '..' 'Modules' 'SalmonRun.Paths' 'SalmonRun.Paths.psd1'
-$__diagPs1 = Join-Path $__moduleDir '..' 'Modules' 'SalmonRun.Diagnostics' 'SalmonRun.Diagnostics.ps1'
-if (Test-Path $__pathsPsd1) { Import-Module -Name $__pathsPsd1 -Force -DisableNameChecking }
-if (Test-Path $__diagPs1) { . $__diagPs1 }
+$__diagPsd1 = Join-Path $__moduleDir '..' 'Modules' 'SalmonRun.Diagnostics' 'SalmonRun.Diagnostics.psd1'
+Get-Module SalmonRun.Diagnostics -All | Remove-Module -Force -ErrorAction SilentlyContinue
+if (Test-Path $__diagPsd1) { Import-Module -Name $__diagPsd1 -Force -DisableNameChecking -Scope Global }
 
 Describe "SalmonRun.Diagnostics Module FunctionsToExport" -Tag "Diagnostics", "Regression-Only" {
     It "exports the 4 expected functions" {
@@ -23,17 +22,6 @@ Describe "SalmonRun.Diagnostics Module FunctionsToExport" -Tag "Diagnostics", "R
 
 Describe "SalmonRun.Diagnostics Module" -Tag "Diagnostics" {
     BeforeAll {
-        $modulePath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Diagnostics\SalmonRun.Diagnostics.ps1'
-        . $modulePath
-
-        $pathsPsd1 = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Paths\SalmonRun.Paths.psd1'
-        try { Import-Module -Name $pathsPsd1 -Force -ErrorAction Stop } catch { try { . (Join-Path $PSScriptRoot '..\Modules\SalmonRun.Paths\SalmonRun.Paths.ps1') } catch { } }
-
-        $corePath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Core\SalmonRun.Core.ps1'
-        try { . $corePath } catch { Write-Debug "Core module load skipped: $_" }
-        $statePath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Core\SalmonRun.Core.State.ps1'
-        try { . $statePath } catch { Write-Debug "Core state load skipped: $_" }
-
         $script:TestTempDir = Join-Path $env:TEMP "SalmonRun-DiagnosticsTests-$(Get-Random)"
         if ($script:TestTempDir) {
             New-Item -ItemType Directory -Path $script:TestTempDir -Force | Out-Null
@@ -220,12 +208,22 @@ Describe "SalmonRun.Diagnostics Module" -Tag "Diagnostics" {
             $env:HOME = $script:TestTempDir
             $env:REPO_ROOT = $script:FakeRepoRoot
             $env:SALMON_RUN_HOME = $script:FakeRepoRoot
+            if (Get-Command 'Reset-SalmonRunPathCache' -ErrorAction SilentlyContinue) {
+                Reset-SalmonRunPathCache
+            } elseif (Get-Command 'Reset-InterclawPathCache' -ErrorAction SilentlyContinue) {
+                Reset-InterclawPathCache
+            }
         }
 
         AfterAll {
             if ($script:SavedReportsHome) { $env:HOME = $script:SavedReportsHome } else { Remove-Item Env:\HOME -ErrorAction SilentlyContinue }
             if ($script:SavedReportsRepoRoot) { $env:REPO_ROOT = $script:SavedReportsRepoRoot } else { Remove-Item Env:\REPO_ROOT -ErrorAction SilentlyContinue }
             if ($script:SavedReportsSalmonHome) { $env:SALMON_RUN_HOME = $script:SavedReportsSalmonHome } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
+            if (Get-Command 'Reset-SalmonRunPathCache' -ErrorAction SilentlyContinue) {
+                Reset-SalmonRunPathCache
+            } elseif (Get-Command 'Reset-InterclawPathCache' -ErrorAction SilentlyContinue) {
+                Reset-InterclawPathCache
+            }
         }
 
         It "returns container path when it exists" {
