@@ -24,8 +24,8 @@ function Test-AgentAlive {
         $HeartbeatStaleThresholdSeconds = (Get-InterclawConstants).AgentHeartbeatStaleThresholdSeconds
     }
 
-    $repoRoot = Get-InterclawRepoRoot
-    $agentDir = Join-Path $repoRoot "Tasks/Logs/agents"
+    $taskRoot = Get-SalmonTaskRoot
+    $agentDir = Join-Path $taskRoot "Logs/agents"
     $pidPath = Join-Path $agentDir "$AgentId.pid"
     $hbPath = Join-Path $agentDir "$AgentId.heartbeat"
 

@@ -1,12 +1,12 @@
 function Write-AlignmentAuditLog {
     param([string]$Domain,[string]$Action,[string]$Detail="",[string]$Severity="info")
     try {
-        $RepoRoot = if (Get-Command Get-SalmonRunRepoRoot -ErrorAction SilentlyContinue) {
-            Get-SalmonRunRepoRoot
+        $TaskRoot = if (Get-Command Get-SalmonTaskRoot -ErrorAction SilentlyContinue) {
+            Get-SalmonTaskRoot
         } else {
-            Join-Path $HOME "salmon-run"
+            Join-Path $HOME ".salmon" "Tasks"
         }
-        $LogDir = Join-Path $RepoRoot "Tasks\Logs"
+        $LogDir = Join-Path $TaskRoot "Logs"
         $Date = (Get-Date -Format 'yyyy-MM-dd')
         $LogPath = Join-Path $LogDir "alignment-audit-$Date.jsonl"
         $null = New-Item -ItemType Directory -Path $LogDir -Force

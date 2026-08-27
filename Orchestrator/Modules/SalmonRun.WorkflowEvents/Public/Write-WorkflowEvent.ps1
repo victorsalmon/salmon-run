@@ -54,8 +54,8 @@ function Write-WorkflowEvent {
     )
 
     $Files = @() + $Files
-    $repoRoot = & (Get-Item function:Get-SalmonRunRepoRoot)
-    $eventsDir = Join-Path $repoRoot "Tasks" "Logs"
+    $taskRoot = Get-SalmonTaskRoot
+    $eventsDir = Join-Path $taskRoot "Logs"
     $logFile = Join-Path $eventsDir "workflow-events.log"
 
     if ($Clear.IsPresent) {

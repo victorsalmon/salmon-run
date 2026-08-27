@@ -167,7 +167,7 @@ function Test-Step {
 function Get-ReportsDir {
     $ContainerPath = Join-Path (Get-HomeDir) ".ORCHESTRATOR" "workspace" "reports"
     if (Test-Path $ContainerPath) { return $ContainerPath }
-    $HostPath = Join-Path (Join-Path (Get-RepoRoot) "Tasks") "Logs"
+    $HostPath = Join-Path (Get-SalmonTaskRoot) "Logs"
     if (-not (Test-Path $HostPath)) {
         $null = New-Item -ItemType Directory -Path $HostPath -Force
     }

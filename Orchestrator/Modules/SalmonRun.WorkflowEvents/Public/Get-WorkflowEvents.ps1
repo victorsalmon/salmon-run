@@ -27,8 +27,8 @@ function Get-WorkflowEvents {
         return @()
     }
 
-    $repoRoot = & (Get-Item function:Get-SalmonRunRepoRoot)
-    $logFile = Join-Path $repoRoot "Tasks" "Logs" "workflow-events.log"
+    $taskRoot = Get-SalmonTaskRoot
+    $logFile = Join-Path $taskRoot "Logs" "workflow-events.log"
 
     if (-not (Test-Path $logFile)) {
         return @()
@@ -44,7 +44,7 @@ function Get-WorkflowEvents {
         }
         $acquired = $true
 
-        $offsetsDir = Join-Path $repoRoot "Tasks" "Logs" ".offsets"
+        $offsetsDir = Join-Path $taskRoot "Logs" ".offsets"
         $null = New-Item -ItemType Directory -Path $offsetsDir -Force
 
         $offsetFile = Join-Path $offsetsDir "$AgentId.offset"

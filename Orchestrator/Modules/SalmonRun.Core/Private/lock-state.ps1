@@ -41,8 +41,8 @@ function Get-LockState {
     .OUTPUTS
         Hashtable with an 'agents' key containing agent → lock entries.
     #>
-    $repoRoot = Get-SalmonRunRepoRoot
-    $script:LockStatePath = Join-Path $repoRoot "Tasks" "Locks" "lock-state.json"
+    $taskRoot = Get-SalmonTaskRoot
+    $script:LockStatePath = Join-Path $taskRoot "Locks" "lock-state.json"
     if (Test-Path $script:LockStatePath) {
         try {
             $content = Get-Content -Path $script:LockStatePath -Raw -Encoding utf8 -ErrorAction Stop

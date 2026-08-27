@@ -22,10 +22,10 @@ Describe "SalmonRun.Locking Module" -Tag "Locking", "Regression-Only" {
         $aliases | Should -Contain "Reserve-Namespace"
     }
 
-    It "has no RequiredModules (avoids circular dependency with SalmonRun.Core)" {
+    It "requires SalmonRun.Paths for task root resolution" {
         $manifestPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Locking\SalmonRun.Locking.psd1'
         $manifest = Import-PowerShellDataFile -Path $manifestPath
-        $manifest.RequiredModules | Should -BeNullOrEmpty
+        $manifest.RequiredModules | Should -Contain 'SalmonRun.Paths'
     }
 }
 
@@ -33,6 +33,8 @@ Describe "Lock-File behavioral tests" -Tag "Locking", "Regression-Only" {
     BeforeAll {
         $script:LockTestDir = Join-Path $env:TEMP "Interclaw-LockingTests-$(Get-Random)"
         $null = New-Item -ItemType Directory -Path $script:LockTestDir -Force
+        $script:SavedSALMON_RUN_HOME = $env:SALMON_RUN_HOME
+        $env:SALMON_RUN_HOME = $script:LockTestDir
 
         $pathsModule = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Paths\SalmonRun.Paths.ps1'
         if (Test-Path -LiteralPath $pathsModule) { . $pathsModule }
@@ -50,11 +52,11 @@ Describe "Lock-File behavioral tests" -Tag "Locking", "Regression-Only" {
             Get-ChildItem -Path $lockingPrivateDir -Filter '*.ps1' | ForEach-Object { . $_.FullName }
         }
 
-        Set-Content -Path function:Get-SalmonRunRepoRoot -Value { param() $script:LockTestDir } -Force
         function global:Get-InterclawConstants { @{ NamespaceReclaimThresholdSeconds = 120 } }
     }
     AfterAll {
         if (Test-Path $script:LockTestDir) { Remove-Item -Recurse -Force $script:LockTestDir }
+        if ($script:SavedSALMON_RUN_HOME) { $env:SALMON_RUN_HOME = $script:SavedSALMON_RUN_HOME } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
     }
     AfterEach {
         Remove-Item "$script:LockTestDir/Tasks/Locks" -Recurse -Force -ErrorAction SilentlyContinue

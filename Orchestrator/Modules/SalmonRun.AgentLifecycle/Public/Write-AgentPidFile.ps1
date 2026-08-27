@@ -16,8 +16,8 @@ function Write-AgentPidFile {
         [Parameter(Mandatory)]
         [string]$AgentId
     )
-    $repoRoot = Get-InterclawRepoRoot
-    $agentDir = Join-Path $repoRoot "Tasks/Logs/agents"
+    $taskRoot = Get-SalmonTaskRoot
+    $agentDir = Join-Path $taskRoot "Logs/agents"
     $null = New-Item -ItemType Directory -Path $agentDir -Force
     $pidPath = Join-Path $agentDir "$AgentId.pid"
     $PID.ToString() | Write-AtomicFile -Path $pidPath -Encoding utf8

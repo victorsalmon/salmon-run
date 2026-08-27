@@ -85,7 +85,7 @@ function Export-SetupErrors {
 
     $Date = Get-Date -Format "yyyy.MM.dd-HHmmss"
     $ReportsDir = Get-ReportsDir
-    $TasksDir = Join-Path (Get-InterclawRepoRoot) "Tasks"
+    $TasksDir = Get-SalmonTaskRoot
 
     $MarkdownPath = Join-Path $ReportsDir "$Date-$ReportLabel.md"
     $TasksFilePath = Join-Path (Join-Path $TasksDir "Logs") "$Date-$ReportLabel.md"
@@ -177,7 +177,7 @@ function New-SetupErrorsTasksFile {
     if ($script:InterclawErrors.Count -eq 0) { return }
 
     $Date = Get-Date -Format "yyyy.MM.dd-HHmmss"
-    $LogsDir = Join-Path (Join-Path (Get-InterclawRepoRoot) "Tasks") "Logs"
+    $LogsDir = Join-Path (Get-SalmonTaskRoot) "Logs"
     if (-not (Test-Path $LogsDir)) { $null = New-Item -ItemType Directory -Path $LogsDir -Force }
     $TaskPath = Join-Path $LogsDir "$Date-setup-errors.md"
 

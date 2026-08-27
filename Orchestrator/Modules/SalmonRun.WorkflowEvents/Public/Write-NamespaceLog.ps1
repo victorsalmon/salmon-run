@@ -52,11 +52,11 @@ function Write-NamespaceLog {
     )
 
     $Files = @() + $Files
-    $repoRoot = try { & (Get-Item function:Get-SalmonRunRepoRoot -ErrorAction Stop) } catch { $PWD.Path }
-    $logFile = Join-Path $repoRoot 'Tasks' 'Logs' "$Namespace.log"
+    $taskRoot = try { Get-SalmonTaskRoot } catch { $PWD.Path }
+    $logFile = Join-Path $taskRoot 'Logs' "$Namespace.log"
 
     try {
-        $null = New-Item -ItemType Directory -Path (Join-Path $repoRoot 'Tasks' 'Logs') -Force
+        $null = New-Item -ItemType Directory -Path (Join-Path $taskRoot 'Logs') -Force
 
         $event = @{
             id     = (Get-Date -Format 'yyyyMMddHHmmssfff') + '-' + [System.IO.Path]::GetRandomFileName().Substring(0, 8)

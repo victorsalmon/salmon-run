@@ -6,9 +6,9 @@
     Author = 'Salmon Run'
     Description = 'File and namespace locking primitives for Interclaw — Lock-File, Unlock-File, Register-Namespace, Remove-NamespaceReservation, lock state tracking, and deadlock detection.'
     PowerShellVersion = '7.0'
-    # SalmonRun.Constants and SalmonRun.Core are loaded at runtime (in .psm1) to
-    # avoid circular dependency — Core also requires Locking. Do NOT add RequiredModules.
-    RequiredModules = @()
+    # SalmonRun.Paths is required for Get-SalmonTaskRoot; Constants and Core are
+    # loaded at runtime to avoid circular dependency — Core also requires Locking.
+    RequiredModules = @('SalmonRun.Paths')
     FunctionsToExport = @(
         'Lock-File'
         'Unlock-File'

@@ -38,8 +38,8 @@ function Lock-File {
         [int]$MaxWaitMs = 5000
     )
 
-    $repoRoot = Get-SalmonRunRepoRoot
-    $locksDir = Join-Path $repoRoot "Tasks" "Locks"
+    $taskRoot = Get-SalmonTaskRoot
+    $locksDir = Join-Path $taskRoot "Locks"
     $null = New-Item -ItemType Directory -Path $locksDir -Force
 
     if (-not $FileNames -or $FileNames.Count -eq 0) { return $true }

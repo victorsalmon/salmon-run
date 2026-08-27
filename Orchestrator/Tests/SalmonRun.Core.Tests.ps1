@@ -117,6 +117,8 @@ Describe "WorkflowEvents" -Tag "Core" {
     BeforeAll {
         $script:TestEventsDir = Join-Path $env:TEMP "Interclaw-WorkflowEvents-$(Get-Random)"
         $null = New-Item -ItemType Directory -Path $script:TestEventsDir -Force
+        $script:SavedSALMON_RUN_HOME = $env:SALMON_RUN_HOME
+        $env:SALMON_RUN_HOME = $script:TestEventsDir
         $diagnosticsPath = Join-Path $PSScriptRoot '..\..\Skills\Docker\Modules\SalmonRun.Diagnostics\SalmonRun.Diagnostics.ps1'
         if (Test-Path $diagnosticsPath) { . $diagnosticsPath }
         $helpersPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Core\SalmonRun.Core.ps1'
@@ -139,6 +141,7 @@ Describe "WorkflowEvents" -Tag "Core" {
         if ($script:SavedRepoRoot) {
             Set-Content -Path function:Get-SalmonRunRepoRoot -Value $script:SavedRepoRoot -Force -ErrorAction SilentlyContinue
         }
+        if ($script:SavedSALMON_RUN_HOME) { $env:SALMON_RUN_HOME = $script:SavedSALMON_RUN_HOME } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
         if ($script:SavedAgentId) { $env:OC_RESERVATION_AGENT_ID = $script:SavedAgentId } else { Remove-Item Env:\OC_RESERVATION_AGENT_ID -ErrorAction SilentlyContinue }
     }
     AfterEach {
@@ -411,6 +414,11 @@ Describe "Invoke-AgentPollingLoop" -Tag "Core" {
 
 Describe "Agent PID / Heartbeat Helpers" -Tag "Core" {
     BeforeAll {
+        $script:AgentTestDir = Join-Path $env:TEMP "Interclaw-AgentHelpers-$(Get-Random)"
+        $null = New-Item -ItemType Directory -Path $script:AgentTestDir -Force
+        $script:SavedSALMON_RUN_HOME_Agent = $env:SALMON_RUN_HOME
+        $env:SALMON_RUN_HOME = $script:AgentTestDir
+
         $diagnosticsPath = Join-Path $PSScriptRoot '..\..\Skills\Docker\Modules\SalmonRun.Diagnostics\SalmonRun.Diagnostics.ps1'
         if (Test-Path $diagnosticsPath) { . $diagnosticsPath }
 
@@ -428,13 +436,15 @@ Describe "Agent PID / Heartbeat Helpers" -Tag "Core" {
         }
 
         $script:TestAgentId = "pester-test-agent-999-99"
-        $script:AgentsDir = Join-Path (Get-InterclawRepoRoot) "Tasks\Logs\agents"
+        $script:AgentsDir = Join-Path (Get-SalmonTaskRoot) "Logs\agents"
     }
     AfterEach {
         Remove-Item "$script:AgentsDir\$script:TestAgentId*" -Force -ErrorAction SilentlyContinue
     }
     AfterAll {
         Remove-Item "$script:AgentsDir\$script:TestAgentId*" -Force -ErrorAction SilentlyContinue
+        if (Test-Path $script:AgentTestDir) { Remove-Item $script:AgentTestDir -Recurse -Force -ErrorAction SilentlyContinue }
+        if ($script:SavedSALMON_RUN_HOME_Agent) { $env:SALMON_RUN_HOME = $script:SavedSALMON_RUN_HOME_Agent } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
     }
 
     Context "Write-AgentPidFile" -Tag "Core" {
@@ -656,6 +666,8 @@ Describe "Lock-File / Unlock-File" -Tag "Core", "Regression-Only" {
     BeforeAll {
         $script:LockTestDir = Join-Path $env:TEMP "Interclaw-FileLock-$(Get-Random)"
         $null = New-Item -ItemType Directory -Path $script:LockTestDir -Force
+        $script:SavedSALMON_RUN_HOME_Locking = $env:SALMON_RUN_HOME
+        $env:SALMON_RUN_HOME = $script:LockTestDir
 
         $helpersPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Core\SalmonRun.Core.ps1'
         . $helpersPath
@@ -682,6 +694,7 @@ Describe "Lock-File / Unlock-File" -Tag "Core", "Regression-Only" {
         if ($script:GetInterclawRepoRootOrig) {
             $null = Set-Content -Path function:Get-SalmonRunRepoRoot -Value $script:GetInterclawRepoRootOrig -Force
         }
+        if ($script:SavedSALMON_RUN_HOME_Locking) { $env:SALMON_RUN_HOME = $script:SavedSALMON_RUN_HOME_Locking } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
     }
     AfterEach {
         Remove-Item "$script:LockTestDir/Tasks/Locks" -Recurse -Force -ErrorAction SilentlyContinue
@@ -759,6 +772,8 @@ Describe "Register-Namespace / Remove-NamespaceReservation" -Tag "Core", "Regres
     BeforeAll {
         $script:NsTestDir = Join-Path $env:TEMP "Interclaw-NsReserve-$(Get-Random)"
         $null = New-Item -ItemType Directory -Path $script:NsTestDir -Force
+        $script:SavedSALMON_RUN_HOME_Ns = $env:SALMON_RUN_HOME
+        $env:SALMON_RUN_HOME = $script:NsTestDir
 
         $helpersPath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Core\SalmonRun.Core.ps1'
         . $helpersPath
@@ -794,6 +809,7 @@ Describe "Register-Namespace / Remove-NamespaceReservation" -Tag "Core", "Regres
         if ($script:NsGetInterclawRepoRootOrig) {
             Set-Content -Path function:Get-SalmonRunRepoRoot -Value $script:NsGetInterclawRepoRootOrig -Force
         }
+        if ($script:SavedSALMON_RUN_HOME_Ns) { $env:SALMON_RUN_HOME = $script:SavedSALMON_RUN_HOME_Ns } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
     }
     AfterEach {
         Remove-Item "$script:NsTestDir/Tasks/Locks" -Recurse -Force -ErrorAction SilentlyContinue

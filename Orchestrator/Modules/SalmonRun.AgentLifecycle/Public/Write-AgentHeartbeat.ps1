@@ -16,8 +16,8 @@ function Write-AgentHeartbeat {
         [Parameter(Mandatory)]
         [string]$AgentId
     )
-    $repoRoot = Get-InterclawRepoRoot
-    $agentDir = Join-Path $repoRoot "Tasks/Logs/agents"
+    $taskRoot = Get-SalmonTaskRoot
+    $agentDir = Join-Path $taskRoot "Logs/agents"
     try {
         $null = New-Item -ItemType Directory -Path $agentDir -Force
         $hbPath = Join-Path $agentDir "$AgentId.heartbeat"

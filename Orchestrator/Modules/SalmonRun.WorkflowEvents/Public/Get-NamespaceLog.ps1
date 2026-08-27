@@ -32,8 +32,8 @@ function Get-NamespaceLog {
         [switch]$ListNamespaces
     )
 
-    $repoRoot = try { & (Get-Item function:Get-SalmonRunRepoRoot -ErrorAction Stop) } catch { $PWD.Path }
-    $logsDir = Join-Path $repoRoot 'Tasks' 'Logs'
+    $taskRoot = try { Get-SalmonTaskRoot } catch { $PWD.Path }
+    $logsDir = Join-Path $taskRoot 'Logs'
 
     if ($ListNamespaces.IsPresent) {
         return Get-ChildItem -Path $logsDir -Filter '*.log' -ErrorAction SilentlyContinue |

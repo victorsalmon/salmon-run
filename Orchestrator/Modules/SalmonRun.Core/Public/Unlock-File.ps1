@@ -16,8 +16,8 @@ function Unlock-File {
         [string[]]$FileNames
     )
 
-    $repoRoot = Get-SalmonRunRepoRoot
-    $locksDir = Join-Path $repoRoot "Tasks" "Locks"
+    $taskRoot = Get-SalmonTaskRoot
+    $locksDir = Join-Path $taskRoot "Locks"
 
     foreach ($name in $FileNames) {
         $lockPath = Join-Path $locksDir "$name.lock"

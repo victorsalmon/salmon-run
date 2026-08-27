@@ -18,8 +18,8 @@ function Clear-StaleAgentFiles {
         [int]$HeartbeatStaleThresholdSeconds = 120,
         [switch]$RemoveLogs
     )
-    $repoRoot = Get-InterclawRepoRoot
-    $agentDir = Join-Path $repoRoot "Tasks/Logs/agents"
+    $taskRoot = Get-SalmonTaskRoot
+    $agentDir = Join-Path $taskRoot "Logs/agents"
     if (-not (Test-Path $agentDir)) { return [PSCustomObject]@{ RemovedCount = 0; RemovedFiles = @() } }
 
     $removedFiles = [System.Collections.Generic.List[string]]::new()

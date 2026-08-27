@@ -34,6 +34,8 @@ BeforeAll {
     # Create a temp agent dir for hermetic tests
     $script:tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "agent-lifecycle-prop-test-$(Get-Random)"
     $null = New-Item -ItemType Directory -Path $script:tempDir -Force
+    $script:SavedSALMON_RUN_HOME_AgentLifecycle = $env:SALMON_RUN_HOME
+    $env:SALMON_RUN_HOME = $script:tempDir
     $script:agentsDir = Join-Path $script:tempDir "Tasks/Logs/agents"
     $null = New-Item -ItemType Directory -Path $script:agentsDir -Force
 
@@ -60,6 +62,7 @@ AfterAll {
     }
 
     if ($script:SavedRepoRoot) { $env:REPO_ROOT = $script:SavedRepoRoot } else { Remove-Item Env:\REPO_ROOT -ErrorAction SilentlyContinue }
+    if ($script:SavedSALMON_RUN_HOME_AgentLifecycle) { $env:SALMON_RUN_HOME = $script:SavedSALMON_RUN_HOME_AgentLifecycle } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
     if (Get-Command Reset-SalmonRunPathCache -ErrorAction SilentlyContinue) { Reset-SalmonRunPathCache }
     if (Get-Command Reset-InterclawPathCache -ErrorAction SilentlyContinue) { Reset-InterclawPathCache }
 }

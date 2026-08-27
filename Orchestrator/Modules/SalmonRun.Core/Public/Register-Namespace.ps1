@@ -25,8 +25,8 @@ function Register-Namespace {
         [string]$AgentId
     )
 
-    $repoRoot = Get-SalmonRunRepoRoot
-    $locksDir = Join-Path $repoRoot "Tasks" "Locks"
+    $taskRoot = Get-SalmonTaskRoot
+    $locksDir = Join-Path $taskRoot "Locks"
     $null = New-Item -ItemType Directory -Path $locksDir -Force
 
     $reservationPath = Join-Path $locksDir "namespace-$NamespacePrefix.reserved"

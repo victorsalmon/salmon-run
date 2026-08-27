@@ -20,8 +20,8 @@ function Remove-NamespaceReservation {
         [string]$AgentId = ($env:OC_RESERVATION_AGENT_ID, "<unknown>" -ne $null -ne "")[0]
     )
 
-    $repoRoot = Get-SalmonRunRepoRoot
-    $reservationPath = Join-Path $repoRoot "Tasks" "Locks" "namespace-$NamespacePrefix.reserved"
+    $taskRoot = Get-SalmonTaskRoot
+    $reservationPath = Join-Path $taskRoot "Locks" "namespace-$NamespacePrefix.reserved"
     Remove-Item -Path $reservationPath -Force -ErrorAction SilentlyContinue
     Remove-LockHeld -AgentId $AgentId -LockType "namespace" -LockName $NamespacePrefix
 }

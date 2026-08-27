@@ -216,13 +216,16 @@ Describe "SalmonRun.Diagnostics Module" -Tag "Diagnostics" {
             $script:FakeRepoRoot = Join-Path $script:TestTempDir "FakeRepo"
             $script:SavedReportsHome = $env:HOME
             $script:SavedReportsRepoRoot = $env:REPO_ROOT
+            $script:SavedReportsSalmonHome = $env:SALMON_RUN_HOME
             $env:HOME = $script:TestTempDir
             $env:REPO_ROOT = $script:FakeRepoRoot
+            $env:SALMON_RUN_HOME = $script:FakeRepoRoot
         }
 
         AfterAll {
             if ($script:SavedReportsHome) { $env:HOME = $script:SavedReportsHome } else { Remove-Item Env:\HOME -ErrorAction SilentlyContinue }
             if ($script:SavedReportsRepoRoot) { $env:REPO_ROOT = $script:SavedReportsRepoRoot } else { Remove-Item Env:\REPO_ROOT -ErrorAction SilentlyContinue }
+            if ($script:SavedReportsSalmonHome) { $env:SALMON_RUN_HOME = $script:SavedReportsSalmonHome } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
         }
 
         It "returns container path when it exists" {
