@@ -35,7 +35,7 @@ Describe 'Model router cost fields' -Tag 'PondEngine', 'Regression-Only' {
         $profile.EffectiveCostPer1KTokens | Should -BeLessOrEqual $profile.ApiCostPer1KTokens
     }
 
-    It 'carries free cost for Local and falls back to a discounted model for Flash tiers' {
+    It 'carries free cost for Local and non-zero cost for Flash tiers' {
         $local = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Local' }
         $flash = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Flash' }
 
@@ -43,13 +43,13 @@ Describe 'Model router cost fields' -Tag 'PondEngine', 'Regression-Only' {
         $local.ApiCostPer1KTokens | Should -Be 0.0
         $local.EffectiveCostPer1KTokens | Should -Be 0.0
 
-        $flash.CostRule | Should -Be 'one-sixth'
+        $flash.CostRule | Should -Be 'normal'
         $flash.ApiCostPer1KTokens | Should -BeGreaterThan 0
         $flash.EffectiveCostPer1KTokens | Should -BeGreaterThan 0
     }
 
     It 'carries discounted cost for OpenCode Go Daily models' {
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' }
+        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' -Harness 'opencode' }
 
         $profile.Provider | Should -Be 'opencode-go'
         $profile.CostRule | Should -Be 'one-sixth'

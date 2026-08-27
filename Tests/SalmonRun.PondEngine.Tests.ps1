@@ -198,10 +198,17 @@ Describe 'Pond executor registry' -Tag 'PondEngine', 'Regression-Only' {
         $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' }
         $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
         $cmd.ExecutorPath | Should -Exist
-        $cmd.Command | Should -Match 'opencode run'
         $cmd.Command | Should -Match $profile.Model
-        $cmd.Command | Should -Match '--variant'
-        $cmd.Command | Should -Match '--auto'
+
+        if ($profile.Cli -eq 'opencode') {
+            $cmd.Command | Should -Match 'opencode run'
+            $cmd.Command | Should -Match '--variant'
+            $cmd.Command | Should -Match '--auto'
+        } elseif ($profile.Cli -eq 'codex') {
+            $cmd.Command | Should -Match 'codex exec'
+            $cmd.Command | Should -Match 'model_reasoning_effort'
+            $cmd.Command | Should -Match '--output-last-message'
+        }
     }
 
     It 'writes a .run sentinel when spawning an agent' {
@@ -572,7 +579,7 @@ Describe 'Pond capacity' -Tag 'PondEngine', 'Regression-Only' {
 
 Describe 'OpenCode executor command' -Tag 'PondEngine', 'Regression-Only' {
     It 'produces an opencode-go command without hardcoded private paths' {
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Flash' }
+        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Complex' }
         $profile.Provider | Should -Be 'opencode-go'
 
         $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
@@ -838,6 +845,28 @@ Describe 'External executor command routing' -Tag 'PondEngine', 'Regression-Only
         $cmd.StartInfo.ArgumentList | Should -Contain 'deepseek-v4-flash'
         $cmd.StartInfo.ArgumentList | Should -Contain 'qa'
         $cmd.Credentials | Should -Contain 'DEEPINFRA_API_KEY'
+    }
+
+    It 'produces a codex command' {
+        $profile = [PondExecutionProfile]::new()
+        $profile.Provider = 'codex'
+        $profile.Cli = 'codex'
+        $profile.Model = 'gpt-5.6-luna'
+        $profile.Effort = 'low'
+        $profile.ExecutorFile = 'Codex'
+        $profile.Credentials = @('OPENAI_API_KEY')
+
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
+
+        $cmd.Command | Should -Match 'codex exec'
+        $cmd.Command | Should -Match 'gpt-5.6-luna'
+        $cmd.Command | Should -Match 'model_reasoning_effort=low'
+
+        $cmd.StartInfo.FilePath | Should -BeIn @('pwsh', 'powershell')
+        $cmd.StartInfo.ArgumentList | Should -Contain 'gpt-5.6-luna'
+        $cmd.StartInfo.ArgumentList | Should -Contain 'codex'
+        $cmd.StartInfo.ArgumentList | Should -Contain 'low'
+        $cmd.Credentials | Should -Contain 'OPENAI_API_KEY'
     }
 }
 
