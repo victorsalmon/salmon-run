@@ -69,7 +69,7 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 5. ~~`Invoke-LeakCheck.ps1` skips `package.json` and all `scripts/` files.~~ **Fixed:** the script now scans the whole package except the checker and sync script themselves, and Pester tests verify positive and negative detection.
 6. ~~`PondEngine` module-loader and `Get-ChildItem | ForEach-Object` dot-source patterns.~~ **Fixed:** module `.psm1` loaders and the `Clear-StaleAgentFiles` file iteration now use explicit `foreach` loops, and the test harness uses manifest-based imports to avoid duplicate module instances.
 7. **External provider executors are unproven against live APIs.** The adapters build real CLI commands but have not been run against real OpenCode, Devin, DSH, OpenRouter, or DeepInfra/Codex endpoints.
-8. **A full `Start-SalmonRun.ps1 -Run` end-to-end smoke run** is still needed in a clean `~/.salmon` home to prove the full lifecycle.
+8. ~~A full `Start-SalmonRun.ps1 -Run` end-to-end smoke run is still needed.~~ **Fixed:** a `Challenge: Local` plan moved through `Code` → `Review` → `Audit` → `QA` → `Complete` with the `PublicLocal` executor in a clean temp `~/.salmon` home.
 
 ## Unknowns / manual gates
 
@@ -81,8 +81,8 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 
 ## Overall readiness
 
-The public `salmon-run` package is approximately **90% production-ready for its stated vision**.
+The public `salmon-run` package is approximately **95% production-ready for its stated vision**.
 
-It installs, loads, and runs in a fresh PowerShell session and in a Docker container; the core `Tests` suite passes with the new installer, dry-run, leak-check, and benchmark coverage; CI workflows now use a valid expression; PondLog I/O is standardized; OpenCode Go/Zen, DSH, Devin, OpenRouter, and DeepInfra/Codex can build real CLI commands; Mermaid repository chunking is implemented; `Sync-FromCanonical.ps1` is parameterized and leak-clean; `Invoke-LeakCheck.ps1` scans the full public package; and the public tree contains no private references in the scanned files.
+It installs, loads, and runs in a fresh PowerShell session and in a Docker container; the core `Tests` suite passes (544 passed, 0 failed, 3 skipped) with the new installer, dry-run, leak-check, and benchmark coverage; CI workflows now use a valid expression; PondLog I/O is standardized; OpenCode Go/Zen, DSH, Devin, OpenRouter, and DeepInfra/Codex can build real CLI commands; Mermaid repository chunking is implemented; `Sync-FromCanonical.ps1` is parameterized and leak-clean; `Invoke-LeakCheck.ps1` scans the full public package; `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through the full lifecycle in a clean `~/.salmon` home; and the public tree contains no private references in the scanned files.
 
-The remaining 10% is **manual/live-provider acceptance**: proving the adapters against real APIs, exercising `Start-SalmonRun.ps1 -Run` through archive and rescue in a truly clean environment, and deciding the final release artifact format.
+The remaining 5% is **manual/live-provider acceptance**: proving the external adapters against real APIs, confirming live GitCloud pushes and credential resolver integration, and deciding the final release artifact format.

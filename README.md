@@ -125,7 +125,7 @@ The repo itself only contains code, docs, and tooling. No personal task data, lo
 
 ## Project status
 
-The public package is approximately **90% production-ready for its vision**. It installs, loads, and runs in a fresh PowerShell session and inside Docker. Over **544 tests** pass in the flattened `Tests/` suite with **0 failures**, the core pond lifecycle is exercised, the local executor works end-to-end, and the external provider adapters build real CLI commands.
+The public package is approximately **95% production-ready for its vision**. It installs, loads, and runs in a fresh PowerShell session and inside Docker. Over **544 tests** pass in the flattened `Tests/` suite with **0 failures**, the core pond lifecycle is exercised, `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through `Code` → `Review` → `Audit` → `QA` → `Complete` in a clean `~/.salmon` home, and the external provider adapters build real CLI commands.
 
 What is fully validated:
 
@@ -143,8 +143,9 @@ What is fully validated:
 
 What remains hardening:
 
-- Live execution against real provider APIs
-- A full end-to-end `Start-SalmonRun.ps1 -Run` with real plans
+- Live execution against real provider APIs (OpenCode, Devin, DSH, OpenRouter, DeepInfra/Codex)
+- GitCloud live pushes to GitHub/Worktree
+- AWS/GitHub/Worktree credential resolver integration
 
 See [`docs/roadmap.md`](./docs/roadmap.md) and [`docs/implementation.md`](./docs/implementation.md) for the detailed appraisal and remaining blockers.
 

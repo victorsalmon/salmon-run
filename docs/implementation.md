@@ -338,12 +338,12 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 ### Feature: Top-level runner (`Start-SalmonRun.ps1`)
 
 - **Intent / user outcome:** Provide a single public entry point for dry-run preview and full pond-engine execution.
-- **Current score:** 90%
-- **Current behavior:** Bootstraps module environment, confirms/creates the runtime task root, lists pond queues (`-DryRun`), writes a `SESSION_START` workflow event, and invokes `Start-PondEngine` (`-Run`).
-- **Evidence:** `Start-SalmonRun.ps1` lines 1–120; `Tests/SalmonRun.Installer.Tests.ps1`; `docker run --rm salmon-run -DryRun` output.
-- **Tests and test gaps:** `Start-SalmonRun.ps1 -DryRun` is covered by Pester. `-Run` not exercised end-to-end with live plans in this appraisal.
+- **Current score:** 95%
+- **Current behavior:** Bootstraps module environment, confirms/creates the runtime task root, lists pond queues (`-DryRun`), writes a `SESSION_START` workflow event, and invokes `Start-PondEngine` (`-Run`). A `-Run` smoke test in a clean temp `~/.salmon` home moved a `Challenge: Local` plan from `Code` → `Review` → `Audit` → `QA` → `Complete` using the `PublicLocal` executor.
+- **Evidence:** `Start-SalmonRun.ps1`; `Tests/SalmonRun.Installer.Tests.ps1`; `docker run --rm salmon-run -DryRun` output; manual `-Run` lifecycle in `C:\Users\RDP\AppData\Local\Temp\salmon-run-live-*`.
+- **Tests and test gaps:** `-DryRun` is covered by Pester. `-Run` has been exercised manually end-to-end with `PublicLocal`; a Pester integration test remains.
 - **Acceptance criteria for 100%:** `-DryRun` and `-Run` exercised in CI; a plan moves through the full lifecycle under `Start-SalmonRun.ps1`.
-- **Next smallest decision/build slice:** Add a Pester test that calls `Start-SalmonRun.ps1 -DryRun` and asserts queue output.
+- **Next smallest decision/build slice:** Add a Pester integration test that calls `Start-SalmonRun.ps1 -Run` with a `Local`-tier plan and asserts the final `Complete` file.
 
 ---
 
@@ -371,20 +371,20 @@ Residual issues:
 ## Unknowns
 
 - Whether the provider CLIs (`opencode`, `devin`, `dsh`, `openrouter`, `codex`) are available and work on the target user platforms.
-- Whether `Start-SalmonRun.ps1 -Run` moves a real plan through all ponds with external providers (a `-Run` smoke test with `PublicLocal` in a clean `~/.salmon` home is still needed).
+- Whether an external-provider plan (OpenCode, Devin, DSH, OpenRouter, DeepInfra/Codex) runs end-to-end under `Start-SalmonRun.ps1 -Run`.
 - The intended public release artifact format.
 - Whether the canonical `salmon-orchestrator` repo is still the active source of truth and how often `salmon-run` is re-synced.
 
 ## Overall production readiness
 
-The public `salmon-run` package is approximately **90% production-ready for its vision**.
+The public `salmon-run` package is approximately **95% production-ready for its vision**.
 
-- **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking, canonical sync, leak check, and a green 544-test Pester suite.
-- **What is incomplete or unproven:** Live provider execution against real OpenCode, Devin, DSH, OpenRouter, and DeepInfra/Codex endpoints; GitCloud live pushes; AWS/GitHub/Worktree credential resolver integration; and a full end-to-end `Start-SalmonRun.ps1 -Run` through all ponds with real plans.
+- **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking, canonical sync, leak check, a green 544-test Pester suite, and a full `Start-SalmonRun.ps1 -Run` smoke test through `Code` → `Review` → `Audit` → `QA` → `Complete` using `PublicLocal` in a clean `~/.salmon` home.
+- **What is incomplete or unproven:** Live execution against real OpenCode, Devin, DSH, OpenRouter, and DeepInfra/Codex endpoints; GitCloud live pushes; AWS/GitHub/Worktree credential resolver integration; and the chosen public release artifact format.
 
 Before any public release, the highest-confidence blockers are:
 
 1. Run at least one external provider adapter against a real provider CLI and API.
-2. Confirm `Start-SalmonRun.ps1 -Run` on a real plan end-to-end in a clean `~/.salmon` home (with `PublicLocal` or a real provider).
+2. Confirm live GitCloud push and credential resolver integration (AWS/GitHub/Worktree) in a real environment.
 3. Decide the public release artifact format (PowerShell Gallery, GitHub release, Docker image, or all three).
 4. Document the canonical-source sync cadence and projection behavior.

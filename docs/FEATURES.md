@@ -360,7 +360,7 @@ See `docs/PUBLIC_PACKAGE.md` for the full path table.
 
 ### Known rough edges
 
-- A full `Start-SalmonRun.ps1 -Run` through all ponds with real plans has not been exercised end-to-end in a clean environment.
+- A full `Start-SalmonRun.ps1 -Run` with an external-provider plan has not been exercised end-to-end in a clean environment. The `PublicLocal` smoke-test path is validated.
 
 ---
 
