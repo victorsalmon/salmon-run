@@ -149,4 +149,85 @@ Describe "SalmonRun.GitCloud Module" -Tag "GitCloud", "Regression-Only" {
             $result.Name | Should -Be 'TEST'
         }
     }
+
+    Context "Credential resolver integration" {
+        BeforeEach {
+            $script:__savedSalmonHome = $env:SALMON_RUN_HOME
+            $script:__savedWorktreeHost = $env:WORKTREE_HOST
+            $script:__savedWorktreeToken = $env:WORKTREE_REPO_RW_ACCESS_TOKEN
+            $script:__savedGitHubToken = $env:GITHUB_TOKEN
+            $script:__savedGitHubTokenRead = $env:GITHUB_TOKEN_READ
+            $script:__savedGitHubTokenWrite = $env:GITHUB_TOKEN_WRITE
+            $script:__savedGitHubTokenPush = $env:GITHUB_TOKEN_PUSH
+            $script:__savedGitHubTokenStored = $env:GITHUB_TOKEN_STORED
+            $script:__savedGenericGitCloudToken = $env:SALMON_RUN_GITCLOUD_TOKEN
+            $script:__savedGitCloudTokenRead = $env:SALMON_RUN_GITCLOUD_TOKEN_READ
+            $script:__savedGitCloudTokenWrite = $env:SALMON_RUN_GITCLOUD_TOKEN_WRITE
+            $script:__savedGitCloudTokenPush = $env:SALMON_RUN_GITCLOUD_TOKEN_PUSH
+
+            $env:SALMON_RUN_HOME = $TestDrive
+            Remove-Item Env:\WORKTREE_HOST -ErrorAction SilentlyContinue
+            Remove-Item Env:\WORKTREE_REPO_RW_ACCESS_TOKEN -ErrorAction SilentlyContinue
+            Remove-Item Env:\GITHUB_TOKEN -ErrorAction SilentlyContinue
+            Remove-Item Env:\GITHUB_TOKEN_READ -ErrorAction SilentlyContinue
+            Remove-Item Env:\GITHUB_TOKEN_WRITE -ErrorAction SilentlyContinue
+            Remove-Item Env:\GITHUB_TOKEN_PUSH -ErrorAction SilentlyContinue
+            Remove-Item Env:\GITHUB_TOKEN_STORED -ErrorAction SilentlyContinue
+            Remove-Item Env:\SALMON_RUN_GITCLOUD_TOKEN -ErrorAction SilentlyContinue
+            Remove-Item Env:\SALMON_RUN_GITCLOUD_TOKEN_READ -ErrorAction SilentlyContinue
+            Remove-Item Env:\SALMON_RUN_GITCLOUD_TOKEN_WRITE -ErrorAction SilentlyContinue
+            Remove-Item Env:\SALMON_RUN_GITCLOUD_TOKEN_PUSH -ErrorAction SilentlyContinue
+        }
+
+        AfterEach {
+            if ($null -ne $script:__savedSalmonHome) { $env:SALMON_RUN_HOME = $script:__savedSalmonHome } else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
+            if ($null -ne $script:__savedWorktreeHost) { $env:WORKTREE_HOST = $script:__savedWorktreeHost } else { Remove-Item Env:\WORKTREE_HOST -ErrorAction SilentlyContinue }
+            if ($null -ne $script:__savedWorktreeToken) { $env:WORKTREE_REPO_RW_ACCESS_TOKEN = $script:__savedWorktreeToken } else { Remove-Item Env:\WORKTREE_REPO_RW_ACCESS_TOKEN -ErrorAction SilentlyContinue }
+            if ($null -ne $script:__savedGitHubToken) { $env:GITHUB_TOKEN = $script:__savedGitHubToken } else { Remove-Item Env:\GITHUB_TOKEN -ErrorAction SilentlyContinue }
+            if ($null -ne $script:__savedGitHubTokenRead) { $env:GITHUB_TOKEN_READ = $script:__savedGitHubTokenRead } else { Remove-Item Env:\GITHUB_TOKEN_READ -ErrorAction SilentlyContinue }
+            if ($null -ne $script:__savedGitHubTokenWrite) { $env:GITHUB_TOKEN_WRITE = $script:__savedGitHubTokenWrite } else { Remove-Item Env:\GITHUB_TOKEN_WRITE -ErrorAction SilentlyContinue }
+            if ($null -ne $script:__savedGitHubTokenPush) { $env:GITHUB_TOKEN_PUSH = $script:__savedGitHubTokenPush } else { Remove-Item Env:\GITHUB_TOKEN_PUSH -ErrorAction SilentlyContinue }
+            if ($null -ne $script:__savedGitHubTokenStored) { $env:GITHUB_TOKEN_STORED = $script:__savedGitHubTokenStored } else { Remove-Item Env:\GITHUB_TOKEN_STORED -ErrorAction SilentlyContinue }
+            if ($null -ne $script:__savedGenericGitCloudToken) { $env:SALMON_RUN_GITCLOUD_TOKEN = $script:__savedGenericGitCloudToken } else { Remove-Item Env:\SALMON_RUN_GITCLOUD_TOKEN -ErrorAction SilentlyContinue }
+            if ($null -ne $script:__savedGitCloudTokenRead) { $env:SALMON_RUN_GITCLOUD_TOKEN_READ = $script:__savedGitCloudTokenRead } else { Remove-Item Env:\SALMON_RUN_GITCLOUD_TOKEN_READ -ErrorAction SilentlyContinue }
+            if ($null -ne $script:__savedGitCloudTokenWrite) { $env:SALMON_RUN_GITCLOUD_TOKEN_WRITE = $script:__savedGitCloudTokenWrite } else { Remove-Item Env:\SALMON_RUN_GITCLOUD_TOKEN_WRITE -ErrorAction SilentlyContinue }
+            if ($null -ne $script:__savedGitCloudTokenPush) { $env:SALMON_RUN_GITCLOUD_TOKEN_PUSH = $script:__savedGitCloudTokenPush } else { Remove-Item Env:\SALMON_RUN_GITCLOUD_TOKEN_PUSH -ErrorAction SilentlyContinue }
+        }
+
+        It "Get-WorktreeToken resolves a File-resolver token from ~/.salmon/.env" {
+            $tokenFile = Join-Path $TestDrive 'worktree-token.txt'
+            'file-resolved-token' | Set-Content -LiteralPath $tokenFile -Encoding utf8 -NoNewline
+            "WORKTREE_REPO_RW_ACCESS_TOKEN=File $tokenFile" | Set-Content -LiteralPath (Join-Path $TestDrive '.env') -Encoding utf8 -NoNewline
+
+            Get-WorktreeToken | Should -Be 'file-resolved-token'
+        }
+
+        It "Get-GitHubToken resolves an Env-resolver token from ~/.salmon/.env" {
+            $env:GITHUB_TOKEN_STORED = 'env-resolved-token'
+            'GITHUB_TOKEN=Env GITHUB_TOKEN_STORED' | Set-Content -LiteralPath (Join-Path $TestDrive '.env') -Encoding utf8 -NoNewline
+
+            Get-GitHubToken | Should -Be 'env-resolved-token'
+        }
+
+        It "Get-SalmonRunGitCloudToken resolves a typed token from ~/.salmon/.env" {
+            $env:SALMON_RUN_GITCLOUD_TOKEN_READ_STORED = 'typed-resolved-token'
+            'SALMON_RUN_GITCLOUD_TOKEN_READ=Env SALMON_RUN_GITCLOUD_TOKEN_READ_STORED' | Set-Content -LiteralPath (Join-Path $TestDrive '.env') -Encoding utf8 -NoNewline
+
+            Get-SalmonRunGitCloudToken -TokenType 'READ' | Should -Be 'typed-resolved-token'
+        }
+
+        It "Get-SalmonRunGitCloudToken falls back to the generic token from ~/.salmon/.env" {
+            $env:SALMON_RUN_GITCLOUD_TOKEN_STORED = 'generic-resolved-token'
+            'SALMON_RUN_GITCLOUD_TOKEN=Env SALMON_RUN_GITCLOUD_TOKEN_STORED' | Set-Content -LiteralPath (Join-Path $TestDrive '.env') -Encoding utf8 -NoNewline
+
+            Get-SalmonRunGitCloudToken -TokenType 'PUSH' | Should -Be 'generic-resolved-token'
+        }
+
+        It "Get-WorktreeHost resolves WORKTREE_HOST from ~/.salmon/.env" {
+            'WORKTREE_HOST=https://git.example' | Set-Content -LiteralPath (Join-Path $TestDrive '.env') -Encoding utf8 -NoNewline
+
+            $url = Get-SalmonRunGitCloudRemoteUrl -Provider Worktree -Owner 'example' -Repo 'salmon-run'
+            $url | Should -Be 'https://git.example/example/salmon-run.git'
+        }
+    }
 }
