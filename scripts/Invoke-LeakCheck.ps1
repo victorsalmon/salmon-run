@@ -35,7 +35,9 @@ $hits = Get-ChildItem -Path $SearchRoot -File -Recurse |
 
 # package.json may legitimately reference the public worktree origin; ignore
 # only the repository URL line, not other lines.
+$publicOriginRe = 'worktree\.ca/clocklobster/salmon-run'
 $hits = $hits | Where-Object {
+    if ($_.Line -match $publicOriginRe) { return $false }
     -not ($_.Filename -eq 'package.json' -and $_.Line -match '"url"')
 }
 
