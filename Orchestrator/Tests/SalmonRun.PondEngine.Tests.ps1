@@ -196,10 +196,10 @@ Describe 'Pond executor registry' -Tag 'PondEngine', 'Regression-Only' {
         $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' }
         $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
         $cmd.ExecutorPath | Should -Exist
-        $cmd.Command | Should -Match "work-coder-once"
+        $cmd.Command | Should -Match 'opencode run'
         $cmd.Command | Should -Match $profile.Model
-        $cmd.Credentials | Should -Not -BeNullOrEmpty
-        $cmd.Credentials | Should -Contain 'OPENCODE_GO_KEY'
+        $cmd.Command | Should -Match '--variant'
+        $cmd.Command | Should -Match '--auto'
     }
 
     It 'writes a .run sentinel when spawning an agent' {
@@ -578,9 +578,10 @@ Describe 'OpenCode executor command' -Tag 'PondEngine', 'Regression-Only' {
         $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
 
         $cmd.Command | Should -Match 'opencode run'
-        $cmd.Command | Should -Match 'work-coder-once'
         $cmd.Command | Should -Match $profile.Model
         $cmd.Command | Should -Match $profile.Effort
+        $cmd.Command | Should -Match '--variant'
+        $cmd.Command | Should -Match '--auto'
 
         $homePattern = [regex]::Escape(('C:', 'Users', 'RDP') -join [IO.Path]::DirectorySeparatorChar)
         $privatePatterns = @(
@@ -616,7 +617,8 @@ Describe 'OpenCode executor command' -Tag 'PondEngine', 'Regression-Only' {
 
         $cmd.Command | Should -Match 'opencode run'
         $cmd.Command | Should -Match 'opencode/hy3-free'
-        $cmd.Command | Should -Match 'work-reviewer-once'
+        $cmd.Command | Should -Match '--variant'
+        $cmd.Command | Should -Match '--auto'
 
         $cmd.StartInfo.FilePath | Should -BeIn @('pwsh', 'powershell')
         $cmd.StartInfo.ArgumentList | Should -Contain 'opencode'
@@ -665,15 +667,17 @@ Describe 'OpenCode executor adapter' -Tag 'PondEngine', 'Regression-Only' {
                 }
             }
 
-            . $opencode -Role 'coder' -LanePath $td -RepoDir $td -Provider 'opencode-go' -Model 'opencode-go/ox-alpha-free' -Effort 'max' -TimeoutMinutes 5 -PlanFiles @($plan)
+            . $opencode -Role 'coder' -LanePath $td -RepoDir $td -Provider 'opencode-go' -Model 'opencode-go/mimo-v2.5' -Effort 'max' -TimeoutMinutes 5 -PlanFiles @($plan)
             $result = Invoke-OpencodeProvider
 
             $result | Should -Be 0
             $script:OpencodeArgs | Should -Not -BeNullOrEmpty
-            $script:OpencodeArgs | Should -Contain 'opencode-go/ox-alpha-free'
-            $script:OpencodeArgs | Should -Contain 'work-coder-once'
+            $script:OpencodeArgs | Should -Contain 'opencode-go/mimo-v2.5'
+            $script:OpencodeArgs | Should -Contain '--model'
+            $script:OpencodeArgs | Should -Contain '--variant'
             $script:OpencodeArgs | Should -Contain 'max'
-            $script:OpencodeArgs | Should -Contain '--files'
+            $script:OpencodeArgs | Should -Contain '--auto'
+            $script:OpencodeArgs | Should -Contain '-f'
             $script:OpencodeArgs | Should -Contain $plan
 
             $log = Get-PlanPondLog -PlanPath $plan
@@ -685,13 +689,21 @@ Describe 'OpenCode executor adapter' -Tag 'PondEngine', 'Regression-Only' {
         }
     }
 
-    It 'fails when OPENCODE_GO_KEY is missing' {
+    It 'runs without OPENCODE_GO_KEY for free-tier models' {
         $repoRoot = (Get-Item $PSCommandPath).Directory.Parent.Parent.FullName
         $opencode = Join-Path $repoRoot 'Orchestrator/Modules/SalmonRun.PondEngine/Executors/Opencode.ps1'
 
         $td = New-Item -ItemType Directory -Path (Join-Path $TestDrive "opencode-missing-$(Get-Random)") -Force
         $plan = Join-Path $td 'plan.md'
-        "# Test plan" | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+        @'
+# Test plan
+
+**PondLog**
+
+```json
+[]
+```
+'@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
 
         $savedSalmonHome = $env:SALMON_RUN_HOME
         $savedKey = $env:OPENCODE_GO_KEY
@@ -699,7 +711,14 @@ Describe 'OpenCode executor adapter' -Tag 'PondEngine', 'Regression-Only' {
             $env:SALMON_RUN_HOME = $td
             $env:OPENCODE_GO_KEY = $null
 
-            { . $opencode -Role 'coder' -LanePath $td -RepoDir $td -Provider 'opencode' -Model 'opencode/hy3-free' -Effort 'max' -PlanFiles @($plan); Invoke-OpencodeProvider } | Should -Throw '*OPENCODE_GO_KEY*'
+            Mock Start-Process -MockWith {
+                return [PSCustomObject]@{ HasExited = $true; ExitCode = 0; Id = 1234 }
+            }
+
+            . $opencode -Role 'coder' -LanePath $td -RepoDir $td -Provider 'opencode' -Model 'opencode/hy3-free' -Effort 'max' -PlanFiles @($plan)
+            $result = Invoke-OpencodeProvider
+
+            $result | Should -Be 0
         } finally {
             $env:SALMON_RUN_HOME = $savedSalmonHome
             $env:OPENCODE_GO_KEY = $savedKey
