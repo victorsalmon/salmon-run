@@ -46,6 +46,7 @@ function Invoke-Docker {
     param(
         [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
         [string[]]$DockerArgs,
+        [Parameter(ValueFromPipeline)]
         [string]$StdinInput
     )
     $prevNativeErr = $global:PSNativeCommandUseErrorActionPreference
