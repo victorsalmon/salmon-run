@@ -136,13 +136,13 @@ What is fully validated:
 - Runtime provider overlays and cost-aware profile fields
 - Module architecture, credentials, audit, locking, agent lifecycle, Mermaid chunking
 - `install.ps1`, Docker build, dry-run, sync, and leak check
+- `.worktree/workflows/validate.yml` expression
 
 What remains hardening:
 
 - Live execution against real provider APIs
 - One `DependsOn` property-test edge case
 - Replacing placeholder URLs in `package.json` and `model-router-catalog.json`
-- Fixing a `.worktree/workflows/validate.yml` expression
 - A full end-to-end `Start-SalmonRun.ps1 -Run` with real plans
 
 See [`docs/roadmap.md`](./docs/roadmap.md) and [`docs/implementation.md`](./docs/implementation.md) for the detailed appraisal and remaining blockers.
