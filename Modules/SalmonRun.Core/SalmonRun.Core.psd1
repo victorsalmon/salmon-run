@@ -7,7 +7,7 @@
     CompanyName       = 'Salmon Run'
     Copyright         = '(c) Salmon Run. All rights reserved.'
     Description       = 'SalmonRun core module: minimal functions that remain in Core (agent polling loop, dockerfile validation).'
-    PowerShellVersion = '5.1'
+    PowerShellVersion = '7.0'
     # Core is a facade re-exporting Paths, Ports, Diagnostics — see SalmonRun.Core.ps1 for loading logic
     RequiredModules = @('SalmonRun.Paths', 'SalmonRun.Ports', 'SalmonRun.Diagnostics', 'SalmonRun.Locking')
     FunctionsToExport = @(
