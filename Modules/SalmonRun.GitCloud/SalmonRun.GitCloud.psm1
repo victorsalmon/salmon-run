@@ -1,11 +1,11 @@
 $script:ModuleRoot = $PSScriptRoot
 
-Get-ChildItem -Path (Join-Path $script:ModuleRoot 'Private') -Filter '*.ps1' -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
-    . $_.FullName
+foreach ($f in Get-ChildItem -Path (Join-Path $script:ModuleRoot 'Private') -Filter '*.ps1' -Recurse -ErrorAction SilentlyContinue) {
+    . $f.FullName
 }
 
-Get-ChildItem -Path (Join-Path $script:ModuleRoot 'Public') -Filter '*.ps1' -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
-    . $_.FullName
+foreach ($f in Get-ChildItem -Path (Join-Path $script:ModuleRoot 'Public') -Filter '*.ps1' -Recurse -ErrorAction SilentlyContinue) {
+    . $f.FullName
 }
 
 Export-ModuleMember -Function @(

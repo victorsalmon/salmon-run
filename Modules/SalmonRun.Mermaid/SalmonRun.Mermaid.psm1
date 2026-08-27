@@ -11,10 +11,14 @@ $script:ModuleRoot = $PSScriptRoot
 
 $__privatePath = Join-Path $script:ModuleRoot 'Private'
 if (Test-Path $__privatePath) {
-    Get-ChildItem -Path "$__privatePath\*.ps1" -Recurse -ErrorAction SilentlyContinue | ForEach-Object { . $_.FullName }
+    foreach ($f in Get-ChildItem -Path "$__privatePath\*.ps1" -Recurse -ErrorAction SilentlyContinue) {
+        . $f.FullName
+    }
 }
 
 $__publicPath = Join-Path $script:ModuleRoot 'Public'
 if (Test-Path $__publicPath) {
-    Get-ChildItem -Path "$__publicPath\*.ps1" -ErrorAction SilentlyContinue | ForEach-Object { . $_.FullName }
+    foreach ($f in Get-ChildItem -Path "$__publicPath\*.ps1" -ErrorAction SilentlyContinue) {
+        . $f.FullName
+    }
 }

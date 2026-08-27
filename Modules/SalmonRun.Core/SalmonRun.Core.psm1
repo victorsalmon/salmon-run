@@ -48,8 +48,8 @@ if (-not (Get-Module SalmonRun.Diagnostics)) {
 # Source Private/*.ps1 files (internal helpers)
 $__corePrivatePath = Join-Path $PSScriptRoot 'Private'
 if (Test-Path $__corePrivatePath) {
-    Get-ChildItem -Path $__corePrivatePath -Filter '*.ps1' -Recurse | ForEach-Object {
-        . $_.FullName
+    foreach ($f in Get-ChildItem -Path $__corePrivatePath -Filter '*.ps1' -Recurse) {
+        . $f.FullName
     }
 }
 
@@ -63,8 +63,8 @@ if (-not (Get-Module SalmonRun.Locking)) {
 # Import-Module path; the .ps1 loader handles it for the dot-source path.
 $__corePublicPath = Join-Path $PSScriptRoot 'Public'
 if (Test-Path $__corePublicPath) {
-    Get-ChildItem -Path $__corePublicPath -Filter '*.ps1' -Recurse | ForEach-Object {
-        . $_.FullName
+    foreach ($f in Get-ChildItem -Path $__corePublicPath -Filter '*.ps1' -Recurse) {
+        . $f.FullName
     }
 }
 

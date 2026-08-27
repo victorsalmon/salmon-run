@@ -5,14 +5,14 @@ Set-StrictMode -Off
 
 $__auditPrivatePath = Join-Path $PSScriptRoot 'Private'
 if (Test-Path $__auditPrivatePath) {
-    Get-ChildItem -Path $__auditPrivatePath -Filter '*.ps1' -Recurse | ForEach-Object {
-        . $_.FullName
+    foreach ($f in Get-ChildItem -Path $__auditPrivatePath -Filter '*.ps1' -Recurse) {
+        . $f.FullName
     }
 }
 
 $__auditPublicPath = Join-Path $PSScriptRoot 'Public'
 if (Test-Path $__auditPublicPath) {
-    Get-ChildItem -Path $__auditPublicPath -Filter '*.ps1' -Recurse | ForEach-Object {
-        . $_.FullName
+    foreach ($f in Get-ChildItem -Path $__auditPublicPath -Filter '*.ps1' -Recurse) {
+        . $f.FullName
     }
 }

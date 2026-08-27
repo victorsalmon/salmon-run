@@ -19,16 +19,16 @@ $script:ModuleRoot = $PSScriptRoot
 # Source Private/*.ps1 files (internal helpers)
 $__privatePath = Join-Path $script:ModuleRoot 'Private'
 if (Test-Path $__privatePath) {
-    Get-ChildItem -Path $__privatePath -Filter '*.ps1' -Recurse | ForEach-Object {
-        . $_.FullName
+    foreach ($f in Get-ChildItem -Path $__privatePath -Filter '*.ps1' -Recurse) {
+        . $f.FullName
     }
 }
 
 # Source Public/*.ps1 files
 $__publicPath = Join-Path $script:ModuleRoot 'Public'
 if (Test-Path $__publicPath) {
-    Get-ChildItem -Path $__publicPath -Filter '*.ps1' -Recurse | ForEach-Object {
-        . $_.FullName
+    foreach ($f in Get-ChildItem -Path $__publicPath -Filter '*.ps1' -Recurse) {
+        . $f.FullName
     }
 }
 

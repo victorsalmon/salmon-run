@@ -11,15 +11,15 @@ $script:CredentialResolvers = @{}
 
 $PrivatePath = Join-Path $script:ModuleRoot 'Private'
 if (Test-Path $PrivatePath) {
-    Get-ChildItem -Path $PrivatePath -Filter '*.ps1' -File -Recurse | ForEach-Object {
-        . $_.FullName
+    foreach ($f in Get-ChildItem -Path $PrivatePath -Filter '*.ps1' -File -Recurse) {
+        . $f.FullName
     }
 }
 
 $PublicPath = Join-Path $script:ModuleRoot 'Public'
 if (Test-Path $PublicPath) {
-    Get-ChildItem -Path $PublicPath -Filter '*.ps1' -File -Recurse | ForEach-Object {
-        . $_.FullName
+    foreach ($f in Get-ChildItem -Path $PublicPath -Filter '*.ps1' -File -Recurse) {
+        . $f.FullName
     }
 }
 

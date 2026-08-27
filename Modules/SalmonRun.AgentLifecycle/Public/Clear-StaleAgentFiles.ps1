@@ -24,12 +24,12 @@ function Clear-StaleAgentFiles {
 
     $removedFiles = [System.Collections.Generic.List[string]]::new()
 
-    Get-ChildItem "$agentDir/*.pid" -ErrorAction SilentlyContinue | ForEach-Object {
-        $agentId = $_.BaseName
+    foreach ($f in Get-ChildItem "$agentDir/*.pid" -ErrorAction SilentlyContinue) {
+        $agentId = $f.BaseName
         $alive = Test-AgentAlive -AgentId $agentId -HeartbeatStaleThresholdSeconds $HeartbeatStaleThresholdSeconds
         if ($alive.Stale) {
             $reason = if (-not $alive.ProcessAlive) { "process-dead" } else { "heartbeat-stale" }
-            $pidPath = $_.FullName
+            $pidPath = $f.FullName
             $hbPath = Join-Path $agentDir "$agentId.heartbeat"
             Remove-Item $pidPath -Force -ErrorAction SilentlyContinue
             $removedFiles.Add("agent=$agentId type=pid reason=$reason")
@@ -54,21 +54,21 @@ function Clear-StaleAgentFiles {
         }
     }
 
-    Get-ChildItem "$agentDir/*.heartbeat" -ErrorAction SilentlyContinue | ForEach-Object {
-        $agentId = $_.BaseName
+    foreach ($f in Get-ChildItem "$agentDir/*.heartbeat" -ErrorAction SilentlyContinue) {
+        $agentId = $f.BaseName
         $pidPath = Join-Path $agentDir "$agentId.pid"
         if (-not (Test-Path $pidPath)) {
-            Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
+            Remove-Item $f.FullName -Force -ErrorAction SilentlyContinue
             $removedFiles.Add("agent=$agentId type=heartbeat reason=orphan")
         }
     }
 
     if ($RemoveLogs) {
-        Get-ChildItem "$agentDir/*.log" -ErrorAction SilentlyContinue | ForEach-Object {
-            $agentId = $_.BaseName
+        foreach ($f in Get-ChildItem "$agentDir/*.log" -ErrorAction SilentlyContinue) {
+            $agentId = $f.BaseName
             $pidPath = Join-Path $agentDir "$agentId.pid"
             if (-not (Test-Path $pidPath)) {
-                Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
+                Remove-Item $f.FullName -Force -ErrorAction SilentlyContinue
                 $removedFiles.Add("agent=$agentId type=log reason=orphan-no-pid")
             }
         }
