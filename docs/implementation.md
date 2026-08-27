@@ -141,10 +141,10 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 ### Feature: Model router / execution profiles
 
 - **Intent / user outcome:** Select a harness, provider, model, effort, and CLI command based on a plan's `Challenge` tier or token count.
-- **Current score:** 80%
-- **Current behavior:** `Resolve-PondExecutionProfile` reads `Orchestrator/Modules/SalmonRun.PondEngine/Config/model-router-catalog.json` and `harness-defaults.json`, validates provider/model/effort, and returns a `PondExecutionProfile`. `Get-PondExecutorCommand` builds the `Start-Process` arguments.
-- **Evidence:** `Resolve-PondExecutionProfile.ps1`, `Get-PondExecutorCommand.ps1`, `Orchestrator/Tests/SalmonRun.PondEngine.Tests.ps1` "Pond executor registry".
-- **Tests and test gaps:** Tests pass for profile resolution and command generation. No live execution tests for non-local providers. `benchmarkUrl` in `model-router-catalog.json` is a placeholder (`https://example.com/api/llm-models.json`).
+- **Current score:** 85%
+- **Current behavior:** `Resolve-PondExecutionProfile` reads `Orchestrator/Modules/SalmonRun.PondEngine/Config/model-router-catalog.json` and `harness-defaults.json`, validates provider/model/effort, and returns a `PondExecutionProfile`. `Get-PondExecutorCommand` builds the `Start-Process` arguments. `Get-PondExecutorRegistry` now loads JSON overlays from `~/.salmon/providers` and merges them into the harness defaults and model catalog, so users can add or override providers, models, and cost data without editing the repo. `PondExecutionProfile` now carries `CostRule`, `ApiCostPer1KTokens`, and `EffectiveCostPer1KTokens` so cost flows through the engine.
+- **Evidence:** `Resolve-PondExecutionProfile.ps1`, `Get-PondExecutorCommand.ps1`, `Get-PondExecutorRegistry.ps1`, `Merge-ProviderOverlay.ps1`, `Orchestrator/Tests/SalmonRun.PondEngine.Cost.Tests.ps1`.
+- **Tests and test gaps:** Pester tests added for profile resolution, cost fields, and provider overlays. Manual dry-run confirmed base routing (OC/DSH) and overlay routing (OpenRouter/DeepInfra) with cost. No live provider execution tests.
 - **Acceptance criteria for 100%:** All catalog tiers resolve to a real, tested adapter; commands are validated against actual provider CLIs; benchmark feed is real or removed.
 - **Next smallest decision/build slice:** Replace the placeholder benchmark URL or remove it.
 
