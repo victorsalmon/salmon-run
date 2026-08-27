@@ -7,7 +7,7 @@ BeforeAll {
     $PortsModuleDir = Join-Path $RepoRoot "Skills" "Docker" "Modules" "SalmonRun.Ports"
     $PortsPsd1 = Join-Path $PortsModuleDir "SalmonRun.Ports.psd1"
     $PortsPsd1 | Should -Exist
-    $RegistryPath = Join-Path $RepoRoot "Infrastructure" "port-registry.json"
+    $RegistryPath = Join-Path $RepoRoot "port-registry.json"
     $RegistryPath | Should -Exist
     $script:Registry = Get-Content $RegistryPath -Raw | ConvertFrom-Json
 
@@ -44,8 +44,8 @@ Describe "Get-PortRegistry" -Tag "Ports", "PortRegistry" {
     }
 
     It "returns null when file is missing" {
-        $originalPath = Join-Path $RepoRoot "Infrastructure" "port-registry.json"
-        $backupPath = Join-Path $RepoRoot "Infrastructure" "port-registry.json.bak"
+        $originalPath = Join-Path $RepoRoot "port-registry.json"
+        $backupPath = Join-Path $RepoRoot "port-registry.json.bak"
         try {
             if (Test-Path $originalPath) {
                 Rename-Item $originalPath $backupPath
@@ -84,8 +84,8 @@ Describe "Get-ServicePort" -Tag "Ports", "PortRegistry" {
     }
 
     It "falls back to defaults when registry is null" {
-        $originalPath = Join-Path $RepoRoot "Infrastructure" "port-registry.json"
-        $backupPath = Join-Path $RepoRoot "Infrastructure" "port-registry.json.bak"
+        $originalPath = Join-Path $RepoRoot "port-registry.json"
+        $backupPath = Join-Path $RepoRoot "port-registry.json.bak"
         try {
             if (Test-Path $originalPath) {
                 Rename-Item $originalPath $backupPath

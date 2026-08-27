@@ -6,7 +6,7 @@ $script:PortRegistryCache = $null
 
 <#
 .SYNOPSIS
-    Loads and caches the port registry from Infrastructure/port-registry.json.
+    Loads and caches the port registry from port-registry.json in the repo root.
 .OUTPUTS
     PSCustomObject or $null if not found.
 #>
@@ -27,7 +27,7 @@ function Get-PortRegistry {
         } else { $null }
         if (-not $repoRoot) { $repoRoot = $env:REPO_ROOT }
         if (-not $repoRoot) { $repoRoot = (Get-Location).Path }
-        $RegistryPath = Join-Path $repoRoot "Infrastructure" "port-registry.json"
+        $RegistryPath = Join-Path $repoRoot "port-registry.json"
     }
 
     if (-not (Test-Path $RegistryPath)) {

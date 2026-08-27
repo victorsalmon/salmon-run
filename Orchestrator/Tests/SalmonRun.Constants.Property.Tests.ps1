@@ -36,7 +36,7 @@ BeforeAll {
     . (Join-Path $script:dockerModulesDir "SalmonRun.Diagnostics" "SalmonRun.Diagnostics.ps1")
     . (Join-Path $script:orchModulesDir "SalmonRun.Constants" "SalmonRun.Constants.ps1")
 
-    $script:portRegistry = Get-Content -Raw (Join-Path $script:repoRoot "Infrastructure" "port-registry.json") | ConvertFrom-Json
+    $script:portRegistry = Get-Content -Raw (Join-Path $script:repoRoot "port-registry.json") | ConvertFrom-Json
 }
 
 Describe "Get-SalmonRunConstants property tests" -Tag "Property", "Constants" {

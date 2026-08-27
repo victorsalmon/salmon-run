@@ -92,7 +92,7 @@ function Resolve-Ref {
     if ([string]::IsNullOrWhiteSpace($pathOnly)) { return $null }
     if (Test-ExemptRef $pathOnly) { return $null }
     if ($pathOnly -match '^\.md$') { return $null }
-    $rootPrefixes = @('Skills/', 'docs/', 'Tasks/', 'Infrastructure/', 'Scripts/', 'Configuration/', 'Personas/')
+    $rootPrefixes = @('Skills/', 'docs/', 'Tasks/', 'Scripts/', 'Configuration/', 'Personas/')
     $isRootRef = $false
     foreach ($p in $rootPrefixes) { if ($pathOnly -match "^$([regex]::Escape($p))") { $isRootRef = $true; break } }
     $seen = @{}
@@ -134,7 +134,7 @@ function Get-RefsFromLine {
     $seen = @{}
     $patterns = @(
         '(?<=\]\()([^)]+(?:\.md|\.ps1|\.psm1|\.psd1|\.py|\.js|\.mjs|\.json|\.yml|\.yaml|\.toml|\.cfg|\.ini|\.sh|\.bat|\.cmd|\.csv|\.env|\.txt|\.html|\.ts|\.tsx)(?::\d+)?)(?=\))',
-        '`((?:Skills|docs|Tasks|Infrastructure|Scripts|Configuration|Business\sPlans|Personas|Workflows|Opencode)/[A-Za-z0-9_./\\-]+\.[a-z]{2,})`',
+        '`((?:Skills|docs|Tasks|Scripts|Configuration|Business\sPlans|Personas|Workflows|Opencode)/[A-Za-z0-9_./\\-]+\.[a-z]{2,})`',
         '`([A-Za-z0-9_/\\-]+\.[a-z]{2,4}:\d+)`',
         '`([A-Z][A-Za-z0-9]*/[A-Za-z0-9_./\\-]+\.[a-z]{2,})`',
         '(?<=file:///)([A-Za-z0-9_./\\-]+)'
