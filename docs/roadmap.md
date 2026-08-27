@@ -1,7 +1,7 @@
 # salmon-run — Roadmap & Appraisal
 
-> Appraisal date: **2026-08-26**  
-> Last verified: **2026-08-26**  
+> Appraisal date: **2026-08-27**  
+> Last verified: **2026-08-27**  
 > Evidence scope: the public `salmon-run` package. The canonical source-of-truth remains the private `salmon-orchestrator` implementation; `salmon-run` is the scrubbed, generalized mirror projected via `scripts/Sync-FromCanonical.ps1`.  
 > Freshness: Current `main` was inspected and exercised directly on this date. Earlier appraisals in this file are preserved in git history.
 
@@ -60,6 +60,14 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 | CI / validation | 90% | `.github/workflows/test.yml` and `.github/workflows/docker.yml` exist and look correct. `.worktree/workflows/validate.yml` now uses the valid `github.workspace` expression, and the public package has dedicated installer, dry-run, leak-check, and benchmark Pester tests. |
 | Top-level runner (`Start-SalmonRun.ps1`) | 90% | Bootstraps module environment, lists queues in `-DryRun`, writes session event, and can invoke `Start-PondEngine`. `-DryRun` is covered by Pester; a real `-Run` end-to-end with live external providers remains a manual gate. |
 
+## 2026-08-27 Public-package grooming pass
+
+- Removed the entire `Skills/` tree and 16 fleet-only `Tools/Documentation/Scripts/` helpers from the public package.
+- Removed the `Dsh.ps1` executor and the `dsh`/`deepseek` harness; DeepSeek models now route through `opencode-go`.
+- Fixed public `Invoke-DocLint.ps1` to scan only public docs and accept a `-RepoRoot`.
+- Updated `dot-salmon.example/benchmarks`, tests, and all public docs to match the OpenCode Go/DeepSeek routing.
+- Re-verified: full Pester suite **548 passed / 0 failed / 3 skipped**, leak check clean, doc lint clean, Docker build and `docker run --rm -DryRun` green.
+
 ## Highest-confidence release blockers
 
 1. ~~`.worktree/workflows/validate.yml` uses an invalid variable.~~ **Fixed:** `repository.workspace` was replaced with `github.workspace`.
@@ -84,6 +92,6 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 
 The public `salmon-run` package is approximately **95% production-ready for its stated vision**.
 
-It installs, loads, and runs in a fresh PowerShell session and in a Docker container; the core `Tests` suite passes (548 passed, 0 failed, 3 skipped) with the new installer, dry-run, leak-check, and benchmark coverage; CI workflows now use a valid expression; PondLog I/O is standardized; OpenCode Go/Zen, Devin, OpenRouter, and DeepInfra/Codex can build real CLI commands; Mermaid repository chunking is implemented; `Sync-FromCanonical.ps1` is parameterized and leak-clean; `Invoke-LeakCheck.ps1` scans the full public package; `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through the full lifecycle in a clean `~/.salmon` home; `SalmonRun.GitCloud` token and host resolution now falls back to `SalmonRun.Credentials` resolvers; and the public tree contains no private references in the scanned files.
+It installs, loads, and runs in a fresh PowerShell session and in a Docker container; the core `Tests` suite passes (548 passed, 0 failed, 3 skipped) with the new installer, dry-run, leak-check, and benchmark coverage; CI workflows now use a valid expression; PondLog I/O is standardized; OpenCode Go/Zen, Devin, OpenRouter, and DeepInfra/Codex can build real CLI commands; the public tree is now free of the internal `Skills/` tree and fleet-only tooling; Mermaid repository chunking is implemented; `Sync-FromCanonical.ps1` is parameterized and leak-clean; `Invoke-LeakCheck.ps1` scans the full public package; `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through the full lifecycle in a clean `~/.salmon` home; `SalmonRun.GitCloud` token and host resolution now falls back to `SalmonRun.Credentials` resolvers; and the public tree contains no private references in the scanned files.
 
 The remaining 5% is **manual/live-provider acceptance**: proving the external adapters against real APIs, confirming a live GitCloud push to GitHub or Worktree with a resolver-redirected token, and deciding the final release artifact format.

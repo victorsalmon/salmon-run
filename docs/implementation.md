@@ -1,7 +1,7 @@
 # salmon-run — Implementation Evidence Ledger
 
-> Appraisal date: **2026-08-26**  
-> Last verified: **2026-08-26**  
+> Appraisal date: **2026-08-27**  
+> Last verified: **2026-08-27**  
 > Evidence scope: the public `salmon-run` package. The private `salmon-orchestrator` repo is cited as the canonical source but was not directly inspected for this public-package appraisal.  
 > Freshness: Current `main` inspected and exercised directly; earlier appraisals in this file are preserved in git history.
 
@@ -22,7 +22,7 @@ Each feature is scored for **production readiness** using the appraisal scale:
 
 Scores are not averages; they reflect the weakest unaddressed gate for that feature.
 
-## 2026-08-26 Integration pass
+## 2026-08-27 Integration pass
 
 - `Tests`: **548 passed / 0 failed / 3 skipped** in the flattened `Tests/` suite.
 - `Invoke-LeakCheck.ps1`: **No private references found** in scanned files.
@@ -48,6 +48,17 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 - `Tests/SalmonRun.Config.Tests.ps1`, `Tests/SalmonRun.Diagnostics.Tests.ps1`, and `Tests/SalmonRun.DeployState.Tests.ps1` fixed duplicate module identity and cross-test global-stub leakage.
 - `Start-SalmonRun.ps1 -DryRun` is covered by Pester.
 - All `.ps1` files parse, all `.json` files validate, and documentation lint reports no broken refs.
+
+## 2026-08-27 Public-package grooming pass
+
+- Removed the entire `Skills/` tree (1,183 internal files) from the public package.
+- Removed 16 fleet-only scripts from `Tools/Documentation/Scripts/` (backup, heartbeat, orchestrator cycle, etc.).
+- Fixed `Invoke-DocLint.ps1` and `Invoke-SalmonRunDocLint.ps1` to accept `-RepoRoot` and scan only public docs.
+- Removed the `Dsh.ps1` executor and `dsh` provider; DeepSeek models now route through `opencode-go`.
+- Updated `harness-defaults.json` and `model-router-catalog.json` to remove `deepseek` harness and DSO/Ox-alpha stale defaults.
+- Updated tests, `dot-salmon.example/benchmarks`, and public docs to reflect OpenCode Go DeepSeek routing.
+- Updated README and all planning docs to the current suite count: **548 passed / 0 failed / 3 skipped**.
+- Full Pester suite green, `Invoke-LeakCheck.ps1` reports no private references, `Invoke-DocLint.ps1` reports 0 broken refs, and Docker build/dry-run succeed.
 
 ---
 
@@ -175,7 +186,7 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 
 - **Intent / user outcome:** Run real agents from external providers against a lane of plan files.
 - **Current score:** 60%
-- **Current behavior:** `Opencode.ps1`, `Devin.ps1`, `Dsh.ps1`, `OpenRouter.ps1`, and `DeepInfra.ps1` are full adapter scripts that resolve credentials, build CLI commands, run `Start-Process`, and write `.complete`/`.failed` sentinels and PondLog events. `Local.ps1` is a legacy stub that calls `ExternalPublicSafe.ps1`. `ExternalPublicSafe.ps1` remains a public-safe placeholder for providers not yet implemented.
+- **Current behavior:** `Opencode.ps1`, `Devin.ps1`, `OpenRouter.ps1`, and `DeepInfra.ps1` are full adapter scripts that resolve credentials, build CLI commands, run `Start-Process`, and write `.complete`/`.failed` sentinels and PondLog events. `Local.ps1` is a legacy stub that calls `ExternalPublicSafe.ps1`. `ExternalPublicSafe.ps1` remains a public-safe placeholder for providers not yet implemented.
 - **Evidence:** `Modules/SalmonRun.PondEngine/Executors/*.ps1`; adapter tests in `Tests/SalmonRun.PondEngine.Tests.ps1`.
 - **Tests and test gaps:** "Pond public executor safety" test checks that no private strings leak. Adapter tests verify command-line construction. No live provider execution.
 - **Deployment/runtime status:** Non-functional for real work without provider CLIs and API keys installed.
