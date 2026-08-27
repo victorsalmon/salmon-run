@@ -11,7 +11,7 @@ mutable, user-specific, and potentially sensitive state lives.
 
 | What | Repo path | Runtime home path |
 |------|-----------|-------------------|
-| Source modules, skills, docs, tools | `Modules/`, `Skills/`, `Tools/`, `docs/` | - |
+| Source modules, skills, docs, tools | `Modules/`, `Tools/`, `docs/` | - |
 | Task queue files | - | `~/.salmon/Tasks/*` |
 | Session logs | - | `~/.salmon/Tasks/Logs` |
 | User configuration | `dot-salmon.example/config.example.json` | `~/.salmon/config.json` |

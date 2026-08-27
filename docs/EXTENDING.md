@@ -11,8 +11,8 @@ A run is resolved to a single `PondExecutionProfile` selecting three dimensions:
 
 | Term | Meaning | Example |
 | :--- | :------ | :------ |
-| **Harness** | Backend family | `opencode`, `devin`, `deepseek`, `codex` |
-| **Provider** | CLI/API that talks to the model | `opencode-go`, `dsh`, `openrouter`, `deepinfra` |
+| **Harness** | Backend family | `opencode`, `devin`, `codex` |
+| **Provider** | CLI/API that talks to the model | `opencode-go`, `openrouter`, `deepinfra` |
 | **Model** | Provider-specific slug | `opencode-go/deepseek-v4-flash` |
 
 Defaults live in

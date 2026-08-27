@@ -46,7 +46,7 @@ Most agentic workflow tools either lock you into a vendor, hide state in a datab
 | **Rescue and crash throttling** | Stale `Working` and cooled `Failed` plans are rescued back to `Code`; recent crashes throttle the engine with exponential backoff. |
 | **Audit and credentials** | `SalmonRun.Audit` writes hash-chain JSONL logs with redaction; `SalmonRun.Credentials` resolves redirects from `~/.salmon/.env` and `~/.salmon/git/` and is wired into `SalmonRun.GitCloud` token/host resolution. |
 | **Mermaid chunking** | `SalmonRun.Mermaid` extracts Mermaid diagrams from markdown and splits them into model-ingestible chunks. |
-| **AQE / testing** | `SalmonRun.AQE` runs the Pester suite and a documentation lint. The flattened `Tests/` suite has **549 passing, 0 failed, 3 skipped**. |
+| **AQE / testing** | `SalmonRun.AQE` runs the Pester suite and a documentation lint. The flattened `Tests/` suite has **548 passing, 0 failed, 3 skipped**. |
 | **Docker & Swarm packaging** | `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, and `deploy.ps1` support local container and Swarm deploys. |
 | **Canonical sync & leak check** | `scripts/Sync-FromCanonical.ps1` copies from the private source with a runtime scrub; `scripts/Invoke-LeakCheck.ps1` verifies no private references are committed. |
 
@@ -125,25 +125,25 @@ The repo itself only contains code, docs, and tooling. No personal task data, lo
 
 ## Project status
 
-The public package is approximately **95% production-ready for its vision**. It installs, loads, and runs in a fresh PowerShell session and inside Docker. Over **544 tests** pass in the flattened `Tests/` suite with **0 failures**, the core pond lifecycle is exercised, `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through `Code` → `Review` → `Audit` → `QA` → `Complete` in a clean `~/.salmon` home, and the external provider adapters build real CLI commands.
+The public package is approximately **95% production-ready for its vision**. It installs, loads, and runs in a fresh PowerShell session and inside Docker. Over **548 tests** pass in the flattened `Tests/` suite with **0 failures**, the core pond lifecycle is exercised, `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through `Code` → `Review` → `Audit` → `QA` → `Complete` in a clean `~/.salmon` home, and the external provider adapters build real CLI commands.
 
 What is fully validated:
 
 - Pond definitions and the core engine loop
 - Plan transitions, retry logic, rescue, capacity, and archival
 - `PublicLocal.ps1` end-to-end smoke runs
-- Model profile resolution and executor command construction for OpenCode, Devin, DSH, OpenRouter, and DeepInfra/Codex
+- Model profile resolution and executor command construction for OpenCode, Devin, OpenRouter, and DeepInfra/Codex
 - OpenRouter and DeepInfra model variants in the model-router catalog with runtime benchmark enrichment
 - Runtime provider overlays and cost-aware profile fields
 - Leak-check hardening (no private refs, package.json repository URL allowed)
 - Module architecture, credentials, audit, locking, agent lifecycle, Mermaid chunking
 - `install.ps1`, Docker build, dry-run, sync, and leak check
 - `.worktree/workflows/validate.yml` expression
-- Full Pester suite green (549 passed, 0 failed, 3 skipped)
+- Full Pester suite green (548 passed, 0 failed, 3 skipped)
 
 What remains hardening:
 
-- Live execution against real provider APIs (OpenCode, Devin, DSH, OpenRouter, DeepInfra/Codex)
+- Live execution against real provider APIs (OpenCode, Devin, OpenRouter, DeepInfra/Codex)
 - Live GitCloud pushes to GitHub/Worktree
 - Live AWS/GitHub/Worktree credential resolver calls (resolver integration is in place; real secrets/hosts not exercised)
 
@@ -188,7 +188,7 @@ You can hand the following prompts to an agent (Devin, Codex, OpenCode, Claude, 
 
 ### Run the test suite
 
-> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the flattened `Tests/` suite (`Invoke-Pester -Path 'Tests'`) and report the pass/fail summary. The latest run is 544 passed, 0 failed, 3 skipped. If any tests fail, identify the root cause and propose a fix.
+> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the flattened `Tests/` suite (`Invoke-Pester -Path 'Tests'`) and report the pass/fail summary. The latest run is 548 passed, 0 failed, 3 skipped. If any tests fail, identify the root cause and propose a fix.
 
 ---
 

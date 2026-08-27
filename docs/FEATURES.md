@@ -118,12 +118,12 @@ A `PondExecutionProfile` has these dimensions:
 | Field | Meaning | Example |
 | --- | --- | --- |
 | `Tier` | Plan difficulty / cost tier | `Flash`, `Daily`, `Complex`, `Frontier`, `Local` |
-| `Harness` | Backend family | `opencode`, `devin`, `deepseek`, `codex`, `local` |
-| `Provider` | CLI/API that talks to the model | `opencode-go`, `dsh`, `devin`, `openrouter`, `deepinfra`, `local` |
-| `Model` | Provider-specific model slug | `opencode-go/ox-alpha-free`, `swe-1-7` |
+| `Harness` | Backend family | `opencode`, `devin`, `codex`, `local` |
+| `Provider` | CLI/API that talks to the model | `opencode-go`, `devin`, `openrouter`, `deepinfra`, `local` |
+| `Model` | Provider-specific model slug | `opencode-go/ox-alpha-free`, `opencode-go/deepseek-v4-flash`, `swe-1-7` |
 | `Effort` | Model effort/depth hint | `max`, `medium`, `default` |
-| `Cli` | The actual executable name | `opencode`, `dsh`, `devin`, `openrouter`, `codex`, `powershell` |
-| `ExecutorFile` | The Salmon Run adapter to launch | `Opencode`, `Devin`, `Dsh`, `OpenRouter`, `DeepInfra`, `PublicLocal` |
+| `Cli` | The actual executable name | `opencode`, `devin`, `openrouter`, `codex`, `powershell` |
+| `ExecutorFile` | The Salmon Run adapter to launch | `Opencode`, `Devin`, `OpenRouter`, `DeepInfra`, `PublicLocal` |
 | `TimeoutMinutes` | Subprocess timeout | `30` |
 | `Credentials` | Credential name(s) to resolve | `OPENCODE_GO_KEY`, `DEVIN_API_KEY`, etc. |
 
@@ -140,9 +140,9 @@ See `Modules/SalmonRun.PondEngine/Classes/Pond.ps1`, `Resolve-PondExecutionProfi
 | Executor | What it does | Real-provider status |
 | --- | --- | --- |
 | `PublicLocal.ps1` | In-process PowerShell executor. Appends role evidence, writes `.complete`, and logs events. No real agent is called. | Fully working for smoke tests. |
-| `Opencode.ps1` | Runs `opencode run --command work-{role}-once --model ... --effort ... --files ...` | Builds real commands; live CLI/API not validated in this appraisal. |
+| `Opencode.ps1` | Runs `opencode run --command <prompt> --model ... --variant ... --auto -f ...` | Builds real commands; live CLI/API not validated in this appraisal. |
 | `Devin.ps1` | Runs the `devin` CLI with `DEVIN_API_KEY`. | Builds real commands; live API not validated. |
-| `Dsh.ps1` | Runs the `dsh` CLI for DeepSeek-V4 models. | Builds real commands; live API not validated. |
+
 | `OpenRouter.ps1` | Runs the `openrouter` CLI. | Builds real commands; live API not validated. |
 | `DeepInfra.ps1` | Runs the `codex` CLI for DeepInfra-hosted models. | Builds real commands; live API not validated. |
 | `Local.ps1` | Legacy stub that delegates to `ExternalPublicSafe.ps1`. | Not a real executor. |
@@ -232,7 +232,7 @@ The repo has a single flattened test suite under `Tests/`:
 - Module and engine tests for the control-plane modules.
 - Cross-cutting utility-module tests for helpers, setup, display, and git/CI.
 
-All tests pass in the latest appraisal (549 passed, 0 failed, 3 skipped).
+All tests pass in the latest appraisal (548 passed, 0 failed, 3 skipped).
 
 ---
 
@@ -347,14 +347,14 @@ See `docs/PUBLIC_PACKAGE.md` for the full path table.
 
 - Pond definitions, the core engine loop, and plan transitions.
 - `PublicLocal.ps1` end-to-end smoke runs.
-- Model profile resolution and executor command construction for OpenCode Go/Zen, DSH, Devin, OpenRouter, and DeepInfra/Codex.
+- Model profile resolution and executor command construction for OpenCode Go/Zen, Devin, OpenRouter, and DeepInfra/Codex.
 - Module loading, config, credentials, audit, locking, agent lifecycle, workflow events, Mermaid chunking, and the Pester suites.
 - `install.ps1` and Docker build/dry-run.
 - Sync-from-canonical with runtime scrub and leak check.
 
 ### Not yet validated against live systems
 
-- External provider executors have not been run against real OpenCode, Devin, DSH, OpenRouter, or DeepInfra/Codex endpoints.
+- External provider executors have not been run against real OpenCode, Devin, OpenRouter, or DeepInfra/Codex endpoints.
 - `SalmonRun.GitCloud` has not pushed to real GitHub/Worktree hosts.
 - `SalmonRun.Credentials` AWS/GitHub/Worktree resolvers are unit tested only; GitCloud integration tests exercise Env/File resolvers.
 
