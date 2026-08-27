@@ -175,20 +175,41 @@ Describe 'Provider overlay from ~/.salmon/providers' -Tag 'PondEngine', 'Regress
     }
 
     It 'merges multiple provider overlay files cleanly' {
-        @{ models = @(@{
-            canonicalName = 'OpenRouter/Stealth-Ox-Alpha'
-            harness = 'openrouter'
-            provider = 'openrouter'
-            model = 'openrouter/stealth/ox-alpha'
-            effort = 'max'
-            tier = 'Complex'
-            costRule = 'normal'
-            apiCostPer1KTokens = 0.45
-            effectiveCostPer1KTokens = 0.45
-            capabilityScore = 86
-            benchmarks = @{ sweBench = 81.0; aime2024 = 86.0; terminalBench21 = 83.0; mmlu = 89.0 }
-            cacheContract = 'none'
-        }) } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $providersDir 'openrouter.json') -Encoding utf8
+        @{
+            harnesses = @{
+                openrouter = @{
+                    description = 'OpenRouter multi-file overlay'
+                    defaultProvider = 'openrouter'
+                }
+            }
+            providers = @{
+                openrouter = @{
+                    cli = 'openrouter'
+                    defaultModel = 'openrouter/stealth/ox-alpha'
+                    defaultEffort = 'max'
+                    acceptedEfforts = @('max', 'default')
+                    executorFile = 'OpenRouter'
+                    credentials = @('OPENROUTER_API_KEY')
+                    models = @{
+                        'openrouter/stealth/ox-alpha' = @{ defaultEffort = 'max' }
+                    }
+                }
+            }
+            models = @(@{
+                canonicalName = 'OpenRouter/Stealth-Ox-Alpha'
+                harness = 'openrouter'
+                provider = 'openrouter'
+                model = 'openrouter/stealth/ox-alpha'
+                effort = 'max'
+                tier = 'Complex'
+                costRule = 'normal'
+                apiCostPer1KTokens = 0.45
+                effectiveCostPer1KTokens = 0.45
+                capabilityScore = 86
+                benchmarks = @{ sweBench = 81.0; aime2024 = 86.0; terminalBench21 = 83.0; mmlu = 89.0 }
+                cacheContract = 'none'
+            })
+        } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $providersDir 'openrouter.json') -Encoding utf8
 
         @{ models = @(@{
             canonicalName = 'DeepInfra/DeepSeek-V4-Flash'
