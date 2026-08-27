@@ -45,7 +45,11 @@ function Get-PondExecutorCommand {
 
     $quotedFiles = @($PlanFiles | ForEach-Object { "`"$_`"" })
     $fileArgs = $quotedFiles -join ' '
-    $command = "$($Profile.Cli) run --command work-$Role-once --model $($Profile.Model) --effort $($Profile.Effort) --files $fileArgs"
+    $command = if ($Profile.Provider -in @('opencode','opencode-go')) {
+        "$($Profile.Cli) run <prompt> --model $($Profile.Model) --variant $($Profile.Effort) --auto -f $fileArgs"
+    } else {
+        "$($Profile.Cli) run --command work-$Role-once --model $($Profile.Model) --effort $($Profile.Effort) --files $fileArgs"
+    }
 
     # Build a structured StartInfo for Start-Process. The OpenCode adapters
     # and the local PowerShell executor receive the lane, repo, model,

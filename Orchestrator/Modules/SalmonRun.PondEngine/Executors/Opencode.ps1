@@ -1,16 +1,23 @@
+#Requires -Version 7.0
 <#
 .SYNOPSIS
     OpenCode provider executor for the salmon-run PondEngine.
 
 .DESCRIPTION
-    Runs the `opencode` CLI for the `opencode-go` (Ox-Alpha, Mimo) and
-    `opencode` (Zen, Hy3) providers. It resolves `OPENCODE_GO_KEY`, builds
-    `opencode run --command work-{role}-once --model {model} --effort {effort}
-    --files {plan1} ...`, and captures the result.
+    Runs the `opencode` CLI for the `opencode-go` and `opencode` providers.
+    It builds `opencode run <prompt> --model {model} --variant {effort}
+    --auto -f {plan1} -f {plan2} ...` and captures the result.
 
     The adapter appends `spawn`, `external-complete`, and `external-fail`
     events to each plan's **PondLog**, and writes a `.complete` sentinel on
     success or a `.failed` sentinel on any non-zero outcome.
+
+    Credentials:
+    - If `OPENCODE_GO_KEY` is set (via SalmonRun.Credentials or the process
+      environment), it is exported for the CLI.
+    - If it is not set, the executor still runs; the `opencode` CLI will use
+      its own provider configuration or any free-tier model that does not
+      require a key.
 
     Exit code 0 on success; non-zero on failure.
 #>
@@ -45,7 +52,7 @@ function Resolve-OpencodeCredential {
     <#
     .SYNOPSIS
         Resolves OPENCODE_GO_KEY from SalmonRun.Credentials when available,
-        otherwise from the process environment.
+        otherwise from the process environment. Returns null if not found.
     #>
     $key = $null
     if (Get-Command Get-SalmonRunCredential -ErrorAction SilentlyContinue) {
@@ -58,10 +65,25 @@ function Resolve-OpencodeCredential {
     if ([string]::IsNullOrWhiteSpace($key)) {
         $key = $env:OPENCODE_GO_KEY
     }
-    if ([string]::IsNullOrWhiteSpace($key)) {
-        throw "OpenCode executor: OPENCODE_GO_KEY is not configured. Provide it in ~/.salmon/.env or as an environment variable."
-    }
     return $key
+}
+
+function Get-OpencodeRolePrompt {
+    <#
+    .SYNOPSIS
+        Returns a short role-specific prompt for the opencode CLI.
+    #>
+    param([string]$Role)
+    switch ($Role) {
+        'reviewer'        { return 'Review the following salmon-run plan and suggest any improvements.' }
+        'auditor'         { return 'Audit the following salmon-run plan for security, privacy, and best-practice issues.' }
+        'qa'              { return 'QA the following salmon-run plan. Verify it is complete, testable, and free of defects.' }
+        'planner'         { return 'Plan the following salmon-run request. Break it into clear, actionable steps.' }
+        'project'         { return 'Manage the following salmon-run project plan and report progress.' }
+        'project-planner' { return 'Plan the following salmon-run project. Break it into child work items.' }
+        'project-reviewer'{ return 'Review the following salmon-run project plan and child work items.' }
+        default           { return 'Implement the following salmon-run plan.' }
+    }
 }
 
 function Write-PlanLog {
@@ -121,10 +143,10 @@ function Invoke-OpencodeProvider {
         throw "Repo directory not found: $RepoDir"
     }
 
-    # Determine the model and effort, applying provider-specific defaults.
+    # Determine the model, applying provider-specific defaults.
     if ([string]::IsNullOrWhiteSpace($Model)) {
         $Model = switch ($Provider) {
-            'opencode-go' { 'opencode-go/ox-alpha-free' }
+            'opencode-go' { 'opencode-go/mimo-v2.5' }
             'opencode'    { 'opencode/hy3-free' }
             default       { 'opencode/hy3-free' }
         }
@@ -141,25 +163,51 @@ function Invoke-OpencodeProvider {
     }
 
     $credential = Resolve-OpencodeCredential
-    [Environment]::SetEnvironmentVariable('OPENCODE_GO_KEY', $credential, 'Process')
+    if (-not [string]::IsNullOrWhiteSpace($credential)) {
+        [Environment]::SetEnvironmentVariable('OPENCODE_GO_KEY', $credential, 'Process')
+    }
+
+    $prompt = Get-OpencodeRolePrompt -Role $Role
 
     $outLog = Join-Path $LanePath 'opencode.log'
     $errLog = Join-Path $LanePath 'opencode.err'
 
     $argumentList = @(
         'run'
-        '--command', "work-$Role-once"
+        $prompt
         '--model', $Model
-        '--effort', $Effort
-        '--files'
-    ) + @($PlanFiles)
+        '--variant', $Effort
+        '--auto'
+    )
+    foreach ($pf in $PlanFiles) {
+        $argumentList += '-f'
+        $argumentList += $pf
+    }
 
-    Write-PlanLog -Action 'spawn' -Detail "provider=$Provider model=$Model effort=$Effort"
+    # On Windows, the `opencode` npm wrapper is installed as `opencode.cmd`;
+    # the extension-less `opencode` file is a POSIX shell script that Windows
+    # cannot execute directly. Resolve the correct executable.
+    $onWindows = $IsWindows -or $env:OS -eq 'Windows_NT'
+    $cliPath = 'opencode'
+    if ($onWindows) {
+        $cmdPath = (Get-Command 'opencode.cmd' -ErrorAction SilentlyContinue)?.Source
+        if ($cmdPath) {
+            $cliPath = $cmdPath
+        } else {
+            $ps1Path = (Get-Command 'opencode.ps1' -ErrorAction SilentlyContinue)?.Source
+            if ($ps1Path) {
+                $cliPath = 'pwsh'
+                $argumentList = @('-NoProfile','-NonInteractive','-File', $ps1Path) + $argumentList
+            }
+        }
+    }
+
+    Write-PlanLog -Action 'spawn' -Detail "provider=$Provider model=$Model effort=$Effort cli=$cliPath"
 
     $process = $null
     $exitCode = 1
     try {
-        $process = Start-Process -FilePath 'opencode' -ArgumentList $argumentList `
+        $process = Start-Process -FilePath $cliPath -ArgumentList $argumentList `
             -WorkingDirectory $RepoDir `
             -RedirectStandardOutput $outLog `
             -RedirectStandardError $errLog `
