@@ -35,7 +35,7 @@ Describe 'Model router cost fields' -Tag 'PondEngine', 'Regression-Only' {
         $profile.EffectiveCostPer1KTokens | Should -BeLessOrEqual $profile.ApiCostPer1KTokens
     }
 
-    It 'carries free cost for Local and Flash tiers' {
+    It 'carries free cost for Local and falls back to a discounted model for Flash tiers' {
         $local = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Local' }
         $flash = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Flash' }
 
@@ -43,9 +43,9 @@ Describe 'Model router cost fields' -Tag 'PondEngine', 'Regression-Only' {
         $local.ApiCostPer1KTokens | Should -Be 0.0
         $local.EffectiveCostPer1KTokens | Should -Be 0.0
 
-        $flash.CostRule | Should -Be 'free'
-        $flash.ApiCostPer1KTokens | Should -Be 0.0
-        $flash.EffectiveCostPer1KTokens | Should -Be 0.0
+        $flash.CostRule | Should -Be 'one-sixth'
+        $flash.ApiCostPer1KTokens | Should -BeGreaterThan 0
+        $flash.EffectiveCostPer1KTokens | Should -BeGreaterThan 0
     }
 
     It 'carries discounted cost for OpenCode Go Daily models' {
@@ -202,15 +202,15 @@ Describe 'Benchmark data from ~/.salmon/benchmarks' -Tag 'PondEngine', 'Regressi
         $null = New-Item -ItemType Directory -Path $providersDir -Force
 
         $providerOverlay = @{
-            harnesses = @{ codex = @{ description = 'DeepInfra/Codex harness' } }
+            harnesses = @{ deepseek = @{ description = 'DeepSeek harness via DeepInfra' } }
             providers = @{
                 deepinfra = @{
-                    cli = 'codex'
+                    cli = 'dsh'
                     defaultModel = 'deepseek-ai/DeepSeek-V4-Flash-0731'
                     defaultEffort = 'medium'
                     acceptedEfforts = @('medium')
-                    executorFile = 'DeepInfra'
-                    credentials = @('OPENAI_API_KEY')
+                    executorFile = 'Dsh'
+                    credentials = @('DEEPINFRA_API_KEY')
                     models = @{
                         'deepseek-ai/DeepSeek-V4-Flash-0731' = @{ defaultEffort = 'medium' }
                     }
@@ -218,7 +218,7 @@ Describe 'Benchmark data from ~/.salmon/benchmarks' -Tag 'PondEngine', 'Regressi
             }
             models = @(@{
                 canonicalName = 'DeepInfra/DeepSeek-V4-Flash'
-                harness = 'codex'
+                harness = 'deepseek'
                 provider = 'deepinfra'
                 model = 'deepseek-ai/DeepSeek-V4-Flash-0731'
                 effort = 'medium'
@@ -282,18 +282,18 @@ Describe 'Provider overlay from ~/.salmon/providers' -Tag 'PondEngine', 'Regress
     It 'routes Complex to an overlay OpenRouter model' {
         $overlay = @{
             harnesses = @{
-                openrouter = @{
-                    description = 'OpenRouter overlay'
+                deepseek = @{
+                    description = 'DeepSeek harness via OpenRouter'
                     defaultProvider = 'openrouter'
                 }
             }
             providers = @{
                 openrouter = @{
-                    cli = 'openrouter'
+                    cli = 'dsh'
                     defaultModel = 'openrouter/stealth/ox-alpha'
                     defaultEffort = 'max'
                     acceptedEfforts = @('max', 'default')
-                    executorFile = 'OpenRouter'
+                    executorFile = 'Dsh'
                     credentials = @('OPENROUTER_API_KEY')
                     models = @{
                         'openrouter/stealth/ox-alpha' = @{ defaultEffort = 'max' }
@@ -303,7 +303,7 @@ Describe 'Provider overlay from ~/.salmon/providers' -Tag 'PondEngine', 'Regress
             models = @(
                 @{
                     canonicalName = 'OpenRouter/Stealth-Ox-Alpha'
-                    harness = 'openrouter'
+                    harness = 'deepseek'
                     provider = 'openrouter'
                     model = 'openrouter/stealth/ox-alpha'
                     effort = 'max'
@@ -327,11 +327,11 @@ Describe 'Provider overlay from ~/.salmon/providers' -Tag 'PondEngine', 'Regress
 
         $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Complex' }
 
-        $profile.Harness | Should -Be 'openrouter'
+        $profile.Harness | Should -Be 'deepseek'
         $profile.Provider | Should -Be 'openrouter'
         $profile.Model | Should -Be 'openrouter/stealth/ox-alpha'
-        $profile.Cli | Should -Be 'openrouter'
-        $profile.ExecutorFile | Should -Be 'OpenRouter'
+        $profile.Cli | Should -Be 'dsh'
+        $profile.ExecutorFile | Should -Be 'Dsh'
         $profile.Credentials | Should -Contain 'OPENROUTER_API_KEY'
         $profile.CostRule | Should -Be 'normal'
         $profile.ApiCostPer1KTokens | Should -Be 0.45
@@ -343,7 +343,7 @@ Describe 'Provider overlay from ~/.salmon/providers' -Tag 'PondEngine', 'Regress
             models = @(
                 @{
                     canonicalName = 'DeepInfra/DeepSeek-V4-Flash'
-                    harness = 'codex'
+                    harness = 'deepseek'
                     provider = 'deepinfra'
                     model = 'deepseek-ai/DeepSeek-V4-Flash-0731'
                     effort = 'medium'
@@ -367,12 +367,12 @@ Describe 'Provider overlay from ~/.salmon/providers' -Tag 'PondEngine', 'Regress
 
         $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }
 
-        $profile.Harness | Should -Be 'codex'
+        $profile.Harness | Should -Be 'deepseek'
         $profile.Provider | Should -Be 'deepinfra'
         $profile.Model | Should -Be 'deepseek-ai/DeepSeek-V4-Flash-0731'
-        $profile.Cli | Should -Be 'codex'
-        $profile.ExecutorFile | Should -Be 'DeepInfra'
-        $profile.Credentials | Should -Contain 'OPENAI_API_KEY'
+        $profile.Cli | Should -Be 'dsh'
+        $profile.ExecutorFile | Should -Be 'Dsh'
+        $profile.Credentials | Should -Contain 'DEEPINFRA_API_KEY'
         $profile.CostRule | Should -Be 'normal'
         $profile.ApiCostPer1KTokens | Should -Be 0.80
         $profile.EffectiveCostPer1KTokens | Should -Be 0.80
@@ -381,54 +381,66 @@ Describe 'Provider overlay from ~/.salmon/providers' -Tag 'PondEngine', 'Regress
     It 'merges multiple provider overlay files cleanly' {
         @{
             harnesses = @{
-                openrouter = @{
-                    description = 'OpenRouter multi-file overlay'
+                deepseek = @{
+                    description = 'DeepSeek multi-provider overlay'
                     defaultProvider = 'openrouter'
                 }
             }
             providers = @{
                 openrouter = @{
-                    cli = 'openrouter'
+                    cli = 'dsh'
                     defaultModel = 'openrouter/stealth/ox-alpha'
                     defaultEffort = 'max'
                     acceptedEfforts = @('max', 'default')
-                    executorFile = 'OpenRouter'
+                    executorFile = 'Dsh'
                     credentials = @('OPENROUTER_API_KEY')
                     models = @{
                         'openrouter/stealth/ox-alpha' = @{ defaultEffort = 'max' }
                     }
                 }
+                deepinfra = @{
+                    cli = 'dsh'
+                    defaultModel = 'deepseek-ai/DeepSeek-V4-Flash-0731'
+                    defaultEffort = 'medium'
+                    acceptedEfforts = @('medium')
+                    executorFile = 'Dsh'
+                    credentials = @('DEEPINFRA_API_KEY')
+                    models = @{
+                        'deepseek-ai/DeepSeek-V4-Flash-0731' = @{ defaultEffort = 'medium' }
+                    }
+                }
             }
-            models = @(@{
-                canonicalName = 'OpenRouter/Stealth-Ox-Alpha'
-                harness = 'openrouter'
-                provider = 'openrouter'
-                model = 'openrouter/stealth/ox-alpha'
-                effort = 'max'
-                tier = 'Complex'
-                costRule = 'normal'
-                apiCostPer1KTokens = 0.45
-                effectiveCostPer1KTokens = 0.45
-                capabilityScore = 86
-                benchmarks = @{ sweBench = 81.0; aime2024 = 86.0; terminalBench21 = 83.0; mmlu = 89.0 }
-                cacheContract = 'none'
-            })
-        } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $providersDir 'openrouter.json') -Encoding utf8
-
-        @{ models = @(@{
-            canonicalName = 'DeepInfra/DeepSeek-V4-Flash'
-            harness = 'codex'
-            provider = 'deepinfra'
-            model = 'deepseek-ai/DeepSeek-V4-Flash-0731'
-            effort = 'medium'
-            tier = 'Frontier'
-            costRule = 'normal'
-            apiCostPer1KTokens = 0.80
-            effectiveCostPer1KTokens = 0.80
-            capabilityScore = 96
-            benchmarks = @{ sweBench = 89.0; aime2024 = 96.0; terminalBench21 = 88.0; mmlu = 93.0 }
-            cacheContract = 'none'
-        }) } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $providersDir 'deepinfra.json') -Encoding utf8
+            models = @(
+                @{
+                    canonicalName = 'OpenRouter/Stealth-Ox-Alpha'
+                    harness = 'deepseek'
+                    provider = 'openrouter'
+                    model = 'openrouter/stealth/ox-alpha'
+                    effort = 'max'
+                    tier = 'Complex'
+                    costRule = 'normal'
+                    apiCostPer1KTokens = 0.45
+                    effectiveCostPer1KTokens = 0.45
+                    capabilityScore = 86
+                    benchmarks = @{ sweBench = 81.0; aime2024 = 86.0; terminalBench21 = 83.0; mmlu = 89.0 }
+                    cacheContract = 'none'
+                }
+                @{
+                    canonicalName = 'DeepInfra/DeepSeek-V4-Flash'
+                    harness = 'deepseek'
+                    provider = 'deepinfra'
+                    model = 'deepseek-ai/DeepSeek-V4-Flash-0731'
+                    effort = 'medium'
+                    tier = 'Frontier'
+                    costRule = 'normal'
+                    apiCostPer1KTokens = 0.80
+                    effectiveCostPer1KTokens = 0.80
+                    capabilityScore = 96
+                    benchmarks = @{ sweBench = 89.0; aime2024 = 96.0; terminalBench21 = 88.0; mmlu = 93.0 }
+                    cacheContract = 'none'
+                }
+            )
+        } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $providersDir 'deepinfra-openrouter.json') -Encoding utf8
 
         $complex = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Complex' }
         $frontier = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }

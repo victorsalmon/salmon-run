@@ -109,8 +109,16 @@ Describe "SalmonRun.GitCloud Module" -Tag "GitCloud", "Regression-Only" {
         }
 
         It "Push-WorktreeRepository throws without a token" {
-            Remove-Item Env:\WORKTREE_REPO_RW_ACCESS_TOKEN -ErrorAction SilentlyContinue
-            { Push-WorktreeRepository -Owner 'example' -Repo 'salmon-run' -Token '' } | Should -Throw
+            $savedHome = $env:SALMON_RUN_HOME
+            $testHome = Join-Path $TestDrive 'gitcloud-empty-home'
+            $null = New-Item -ItemType Directory -Path $testHome -Force
+            try {
+                $env:SALMON_RUN_HOME = $testHome
+                Remove-Item Env:\WORKTREE_REPO_RW_ACCESS_TOKEN -ErrorAction SilentlyContinue
+                { Push-WorktreeRepository -Owner 'example' -Repo 'salmon-run' -Token '' } | Should -Throw
+            } finally {
+                $env:SALMON_RUN_HOME = $savedHome
+            }
         }
 
         It "Push-GitHubRepository mocks git push" {
