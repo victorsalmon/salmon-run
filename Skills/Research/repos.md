@@ -18,7 +18,7 @@ Two skill systems coexist under `C:\Repos`:
 
 1. **`C:\Repos\.agents\skills\`** — the ZCode (OpenCode) client's auto-discovered
    skills (`SKILL.md` format). This is where `repos` and `feature-planning` live.
-2. **`C:\Repos\salmon-orchestrator\Skills\`** — the orchestrator's own skill
+2. **`C:\Repos\Public\salmon-run\Skills\`** — the orchestrator's own skill
    registry (`.md`/`.ps1`, catalogued in `skills.json`).
 
 The orchestrator registry has no native repo index. This pointer registers the

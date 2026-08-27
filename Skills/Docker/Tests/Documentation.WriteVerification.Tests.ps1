@@ -1,6 +1,6 @@
 BeforeAll {
     $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
-    $scriptPath = Join-Path $repoRoot 'Skills\Documentation\Scripts\Invoke-WriteVerification.ps1'
+    $scriptPath = Join-Path $repoRoot 'Tools\Documentation\Scripts\Invoke-WriteVerification.ps1'
     $testDir = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
     $null = New-Item -ItemType Directory -Path $testDir -Force
 }

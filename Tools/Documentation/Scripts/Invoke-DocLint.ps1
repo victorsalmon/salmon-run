@@ -20,20 +20,14 @@ param(
     [switch]$Fix,
     [ValidateSet("text", "json")]
     [string]$Format = "text",
-    [string]$ReportPath,
-    [string]$RepoRoot = $PWD.Path
+    [string]$ReportPath
 )
 
+$RepoRoot = $PWD.Path
 if (-not (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathType Leaf)) {
-    $walk = $RepoRoot
-    $RepoRoot = $null
-    while ($walk -and -not (Test-Path (Join-Path $walk "AGENTS.md") -PathType Leaf)) {
-        $parent = Split-Path -Parent $walk
-        if ($parent -eq $walk) { break }
-        $walk = $parent
-    }
-    if ($walk -and (Test-Path (Join-Path $walk "AGENTS.md") -PathType Leaf)) {
-        $RepoRoot = $walk
+    $RepoRoot = Split-Path -Parent $PSCommandPath
+    while ($RepoRoot -and -not (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathType Leaf)) {
+        $RepoRoot = Split-Path -Parent $RepoRoot
     }
 }
 if (-not $RepoRoot -or -not (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathType Leaf)) {
@@ -98,7 +92,7 @@ function Resolve-Ref {
     if ([string]::IsNullOrWhiteSpace($pathOnly)) { return $null }
     if (Test-ExemptRef $pathOnly) { return $null }
     if ($pathOnly -match '^\.md$') { return $null }
-    $rootPrefixes = @('Skills/', 'docs/', 'Tasks/', 'Scripts/', 'Configuration/', 'Personas/')
+    $rootPrefixes = @('Skills/', 'docs/', 'Tasks/', 'Infrastructure/', 'Scripts/', 'Configuration/', 'Personas/')
     $isRootRef = $false
     foreach ($p in $rootPrefixes) { if ($pathOnly -match "^$([regex]::Escape($p))") { $isRootRef = $true; break } }
     $seen = @{}
@@ -140,7 +134,7 @@ function Get-RefsFromLine {
     $seen = @{}
     $patterns = @(
         '(?<=\]\()([^)]+(?:\.md|\.ps1|\.psm1|\.psd1|\.py|\.js|\.mjs|\.json|\.yml|\.yaml|\.toml|\.cfg|\.ini|\.sh|\.bat|\.cmd|\.csv|\.env|\.txt|\.html|\.ts|\.tsx)(?::\d+)?)(?=\))',
-        '`((?:Skills|docs|Tasks|Scripts|Configuration|Business\sPlans|Personas|Workflows|Opencode)/[A-Za-z0-9_./\\-]+\.[a-z]{2,})`',
+        '`((?:Skills|docs|Tasks|Infrastructure|Scripts|Configuration|Business\sPlans|Personas|Workflows|Opencode)/[A-Za-z0-9_./\\-]+\.[a-z]{2,})`',
         '`([A-Za-z0-9_/\\-]+\.[a-z]{2,4}:\d+)`',
         '`([A-Z][A-Za-z0-9]*/[A-Za-z0-9_./\\-]+\.[a-z]{2,})`',
         '(?<=file:///)([A-Za-z0-9_./\\-]+)'

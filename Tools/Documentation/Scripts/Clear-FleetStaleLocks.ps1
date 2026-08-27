@@ -29,7 +29,7 @@ param(
 # Audit log lives in the orchestrator repo, not the bare $ReposRoot scan dir,
 # so it is kept with the rest of the fleet state. ($ReposRoot is still used
 # below to enumerate repos for scanning.) This script lives at
-# Skills/Documentation/Scripts/ (3 levels under the repo root).
+# C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\ (3 levels under the repo root).
 $orchestratorRoot = (Resolve-Path "$PSScriptRoot/../../..").Path
 $auditLogDir = Join-Path $orchestratorRoot "Tasks\Logs\Audit"
 $null = New-Item -ItemType Directory -Path $auditLogDir -Force

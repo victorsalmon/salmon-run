@@ -47,7 +47,7 @@ Describe "Qa4cFamily" -Tag "Core", "Regression" {
 
     Context "harness pointer resolution" {
         BeforeAll {
-            $script:CanonicalRoot = "C:\Repos\salmon-orchestrator\Skills\AQE\4C-Bugfix"
+            $script:CanonicalRoot = "C:\Repos\Public\salmon-run\Skills\AQE\4C-Bugfix"
         }
 
         It "every .agents/.devin 4c pointer body references an existing canonical file" {

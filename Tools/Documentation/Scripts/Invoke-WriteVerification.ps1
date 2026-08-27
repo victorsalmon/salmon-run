@@ -7,7 +7,7 @@
     This script is the self-check floor for file writes. It should be called
     immediately after a Write/Edit tool writes or overwrites a file:
 
-        & (Resolve-Path "Skills/Documentation/Scripts/Invoke-WriteVerification.ps1") `
+        & (Resolve-Path "C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Invoke-WriteVerification.ps1") `
             -Path "C:\...\file.ps1" -Contains "function Invoke-Example"
 
     If the content is not present (for example, the IDE had the file open and

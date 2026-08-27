@@ -136,7 +136,7 @@ Prefer `ReceiptPath` over `ReceiptBase64` for attaching receipt files. The `Rece
 
 ## Runtime Discovery — `Discover-FleetCapabilities.ps1`
 
-For the most current view of fleet capabilities, run `Skills/Documentation/Scripts/Discover-FleetCapabilities.ps1`. This script polls each container's `GET /tools/list` endpoint and produces:
+For the most current view of fleet capabilities, run `C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Discover-FleetCapabilities.ps1`. This script polls each container's `GET /tools/list` endpoint and produces:
 
 - A Mermaid flowchart and service table (`Tasks/Logs/fleet-capabilities-<timestamp>.md`)
 - JSON output for programmatic consumption (`-AsJson`)

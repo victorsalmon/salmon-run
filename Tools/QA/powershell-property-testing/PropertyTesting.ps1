@@ -11,7 +11,7 @@
     - Shrinking via seed replay
 
 .EXAMPLE
-    . (Join-Path $repoRoot 'Skills/QA/powershell-property-testing/PropertyTesting.ps1')
+    . (Join-Path $repoRoot 'Tools/QA/powershell-property-testing/PropertyTesting.ps1')
 
     $result = Invoke-Property {
         param($seed)

@@ -4252,7 +4252,7 @@
     ],
     "cross_refs": [
       "Skills/DevOps/Fleet/Fix-PowerShellFileAssociation.ps1",
-      "Skills/Documentation/Scripts/Repair-PowerShellFileAssociations.ps1",
+      "C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Repair-PowerShellFileAssociations.ps1",
       "Skills/Archive/workflow-runfix-runfix-repair-pwsh-associations.md"
     ],
     "tags": [

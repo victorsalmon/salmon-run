@@ -26,11 +26,11 @@ This creates the missing `shell\open\command` entries in `HKCU:\SOFTWARE\Classes
 If the system-level association is also broken (admin available):
 
 ```powershell
-& "Skills/Documentation/Scripts/Repair-PowerShellFileAssociations.ps1"
+& "C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Repair-PowerShellFileAssociations.ps1"
 ```
 
 ## Cross-references
 
 - `Skills/DevOps/Fleet/Fix-PowerShellFileAssociation.ps1` — HKCU-only, no admin needed
-- `Skills/Documentation/Scripts/Repair-PowerShellFileAssociations.ps1` — system-level `assoc`/`ftype`, admin required
+- `C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Repair-PowerShellFileAssociations.ps1` — system-level `assoc`/`ftype`, admin required
 - `Skills/Archive/workflow-runfix-runfix-repair-pwsh-associations.md` — RunFix goals

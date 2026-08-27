@@ -285,8 +285,8 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 
 - **Intent / user outcome:** Verify that `docs/`, `AGENTS.md`, and `Skills/**/*.md` do not contain broken file path references.
 - **Current score:** 85%
-- **Current behavior:** `Skills/Documentation/Scripts/Invoke-DocLint.ps1` scans markdown and reports broken refs. Test reports `Documentation Lint: PASS; Scanned: 6 files, 0 broken refs`.
-- **Evidence:** `Skills/Documentation/Scripts/Invoke-DocLint.ps1`, `Tests/SalmonRun.AQE.Tests.ps1`.
+- **Current behavior:** `C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Invoke-DocLint.ps1` scans markdown and reports broken refs. Test reports `Documentation Lint: PASS; Scanned: 6 files, 0 broken refs`.
+- **Evidence:** `C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Invoke-DocLint.ps1`, `Tests/SalmonRun.AQE.Tests.ps1`.
 - **Tests and test gaps:** One passing test. No negative test with a deliberately broken reference.
 - **Acceptance criteria for 100%:** Negative test; runs in CI on every doc change.
 - **Next smallest decision/build slice:** Add a negative test.

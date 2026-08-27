@@ -19,7 +19,7 @@ When running as a persistent stream coder (`opencode run --command work-stream`)
 - **Logging (one-file principle)**: The session plan file's Lock Header is the canonical log. After each file, update the Lock Header with orchestrator fields (if orchestrated) and write a CLAIM/RELEASE workflow event. Do NOT write a separate `stream.log` — the plan file plus workflow events together provide the full life cycle record.
 - **Stop signal**: Before processing each file AND before each poll cycle, check for a stop signal. Stream agents are orchestrated and skip the orchestrator-active check (because `$env:OC_STREAM_ID` is set):
   ```powershell
-  . (Resolve-Path "Skills/Documentation/Scripts/Invoke-StopSignalCheck.ps1")
+  . (Resolve-Path "C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Invoke-StopSignalCheck.ps1")
   if (Invoke-StopSignalCheck -Mode "code") { exit 0 }
   ```
 - **Polling exit**: After processing all visible files, sleep 30s and re-scan. Before each re-scan, check stop signal first. If no new files after 5 consecutive empty polls, write a SESSION_END workflow event, clean up PID/heartbeat, and exit 0.

@@ -32,7 +32,7 @@ The orchestrator IS the current opencode agent. It does not detach. Each cycle:
 Each cycle is one bash call that runs `Invoke-OrchestratorCycle.ps1`:
 
 ```powershell
-$json = & (Resolve-Path "Skills/Documentation/Scripts/Invoke-OrchestratorCycle.ps1") -LastCompletedFile (Join-Path $PWD "Tasks/Logs/.orchestrator-cycle-state.json")
+$json = & (Resolve-Path "C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Invoke-OrchestratorCycle.ps1") -LastCompletedFile (Join-Path $PWD "Tasks/Logs/.orchestrator-cycle-state.json")
 Write-Host $json
 ```
 
@@ -48,7 +48,7 @@ The JSON output has:
 
 1. **Stop signal check** — Before anything else, check for stop signals:
    ```powershell
-   . (Resolve-Path "Skills/Documentation/Scripts/Invoke-StopSignalCheck.ps1")
+   . (Resolve-Path "C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Invoke-StopSignalCheck.ps1")
    if (Invoke-StopSignalCheck -Mode "code") { ... signal found, set stop flag ... }
    ```
    If stop signal found, break the loop and start Phase 4 — Completion.
@@ -154,7 +154,7 @@ Place `Tasks/stop` or `Tasks/stop.code` to signal the orchestrator to stop after
 | `Tasks/Logs/.orchestrator-cycle-state.json` | Cross-cycle state tracking (completed agents) |
 | `Tasks/Logs/agents/` | Agent PID/heartbeat files |
 | `Tasks/Working/stream-*/` | Active stream directories |
-| `Skills/Documentation/Scripts/Invoke-OrchestratorCycle.ps1` | Cycle state check helper |
+| `C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Invoke-OrchestratorCycle.ps1` | Cycle state check helper |
 
 ### Exit codes
 

@@ -20,7 +20,7 @@
 
 BeforeAll {
     $script:repoRoot = (Get-Item $PSCommandPath).Directory.Parent.FullName
-    . (Join-Path $script:repoRoot 'Skills/QA/powershell-property-testing/PropertyTesting.ps1')
+    . (Join-Path $script:repoRoot 'Tools/QA/powershell-property-testing/PropertyTesting.ps1')
 
     $script:salmonModules = Join-Path $script:repoRoot 'Modules'
     $script:dockerModules = Join-Path $script:repoRoot 'Modules'

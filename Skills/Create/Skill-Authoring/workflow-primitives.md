@@ -75,7 +75,7 @@ All agents follow a standard workflow: **Start**, **Execute**, **Complete**. The
     ```powershell
     $script:compactionCount = 0
     ```
-    Because each tool call is a fresh PowerShell process, `$script:compactionCount` is only reliable when re-derived from the latest checkpoint file via `Restore-SessionCheckpoint` (see `Skills/Documentation/Scripts/Restore-SessionCheckpoint.ps1`). The checkpoint ritual is the durable source of truth for the count — the in-memory variable is a convenience for the current tool call only.
+    Because each tool call is a fresh PowerShell process, `$script:compactionCount` is only reliable when re-derived from the latest checkpoint file via `Restore-SessionCheckpoint` (see `C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Restore-SessionCheckpoint.ps1`). The checkpoint ritual is the durable source of truth for the count — the in-memory variable is a convenience for the current tool call only.
 10. **Load recent audit errors** — If the agent has a domain context (e.g., Bookkeeper mode → `"Bookkeeper"`, Marketer mode → `"marketer"`), load recent errors from the audit trail:
    ```powershell
    if (Get-Module SalmonRun.Audit) {
@@ -758,10 +758,10 @@ The `.orchestrator-active` signal is unique: it is **emitted by the orchestrator
 3. Check `~/.salmon/Tasks/stop` — if found, handle via PID-based self-cleaning (below), then stop
 4. Neither found → continue normally
 
-**Script**: `Invoke-StopSignalCheck.ps1` at `Skills/Documentation/Scripts/Invoke-StopSignalCheck.ps1`. Dot-source and call it after Finale, before scanning for the next file or entering the drain queue:
+**Script**: `Invoke-StopSignalCheck.ps1` at `C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Invoke-StopSignalCheck.ps1`. Dot-source and call it after Finale, before scanning for the next file or entering the drain queue:
 
 ```powershell
-. (Resolve-Path "Skills/Documentation/Scripts/Invoke-StopSignalCheck.ps1")
+. (Resolve-Path "C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Invoke-StopSignalCheck.ps1")
 if (Invoke-StopSignalCheck -Mode "code") { exit 0 }
 ```
 
@@ -787,7 +787,7 @@ Called **only** from [AGENTS.md CC step 11](AGENTS.md#completion-checklist) (Ret
 
 0. **Stop-signal gate** — Before any other work, check for a [stop signal](#stop-signal-graceful-drain-interrupt). Run before compaction to minimize delay between the signal and the exit.
 
-1. **Compact memory after every plan** — Always compact memory after completing a plan, before scanning for the next one. No threshold check: compaction runs unconditionally. The opencode runtime's `"compaction": { "auto": true }` setting handles token-level context compression in the background; this step ensures the agent also contracts its own narrative context (summarizing what was done, what remains, and what was learned about the codebase). **First write a checkpoint** via `Write-SessionCheckpoint` (see `Skills/Documentation/Scripts/Write-SessionCheckpoint.ps1`) so the compaction is restorable, then compact, then re-orient from the checkpoint via `Restore-SessionCheckpoint`. After compacting, increment `$script:compactionCount++` (the checkpoint file is now the durable record of the count) and write a `COMPACT` workflow event: `Write-WorkflowEvent -Type COMPACT -Detail "memory compacted after plan" -Phase "<mode>"`.
+1. **Compact memory after every plan** — Always compact memory after completing a plan, before scanning for the next one. No threshold check: compaction runs unconditionally. The opencode runtime's `"compaction": { "auto": true }` setting handles token-level context compression in the background; this step ensures the agent also contracts its own narrative context (summarizing what was done, what remains, and what was learned about the codebase). **First write a checkpoint** via `Write-SessionCheckpoint` (see `C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Write-SessionCheckpoint.ps1`) so the compaction is restorable, then compact, then re-orient from the checkpoint via `Restore-SessionCheckpoint`. After compacting, increment `$script:compactionCount++` (the checkpoint file is now the durable record of the count) and write a `COMPACT` workflow event: `Write-WorkflowEvent -Type COMPACT -Detail "memory compacted after plan" -Phase "<mode>"`.
 
 2. **Context-gated exit** — Only exit with code 99 if compaction has been attempted 3+ times this session AND post-compaction context still exceeds 250K tokens or 40% of total context window (whichever is lower, one condition sufficient). Track compaction count in script scope (`$script:compactionCount`). Exit with code 99 only when `$script:compactionCount -ge 3`. With the checkpoint ritual (Drain Queue step 1) now providing lossless workflow compaction, most sessions never reach this exit — the ritual can compact repeatedly while preserving state. The exit 99 remains a safety valve for genuinely unrecoverable context size, not the primary pressure-relief path.
 
@@ -810,7 +810,7 @@ Called **only** from [AGENTS.md CC step 11](AGENTS.md#completion-checklist) (Ret
 
 4. **Dispatch or Poll** — If files were found, return to the relevant interactive workflow ([Code Workflow](Skills/Coder/workflow.md#code-workflow) or [Review Workflow](Skills/Reviewer/workflow.md#review-workflow)). Do NOT prompt. If no files found, check for a [stop signal](#stop-signal-graceful-drain-interrupt) before entering the poll loop (in case the signal was placed while you were processing the last file). If present, exit instead of polling. Otherwise, call the shared polling primitive. **Do NOT use a manual `Start-Sleep` loop** — the function handles cycle counting, sleep, and the terminal message:
    ```powershell
-   . (Resolve-Path "Skills/Documentation/Scripts/Invoke-AgentPollingLoop.ps1")
+   . (Resolve-Path "C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Invoke-AgentPollingLoop.ps1")
    $tasksFound = Invoke-AgentPollingLoop -TaskDirectory "~/.salmon/Tasks/<RoleDir>" -RoleName "<role>"
    ```
    The function defaults to **10 consecutive idle cycles at 120s each (20 minutes total)**. Do not pass custom `PollIntervalSeconds` or `MaxIdleCycles` unless the task explicitly requires non-standard values — the 10×120s default is the canonical drain policy.

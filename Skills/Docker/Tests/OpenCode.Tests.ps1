@@ -199,7 +199,7 @@ Describe "Invoke-SafeCommit" -Tag "OpenCode", "Git" {
     }
     It "derives lockingRoot from script location, not a hard-coded path" -Tag "Regression" {
         $content = Get-Content (Join-Path $GitDir "Invoke-SafeCommit.ps1") -Raw
-        $content | Should -Not -Match 'C:\\Repos\\salmon-orchestrator\\Skills\\Docker\\Modules'
+        $content | Should -Not -Match 'C:\\Repos\\Public\\salmon-run\\Skills\\Docker\\Modules'
         $content | Should -Match 'Split-Path \$PSScriptRoot'
         $content | Should -Match '"Docker" "Modules"'
     }
@@ -464,7 +464,7 @@ Describe "Invoke-ValidateDependencyGraph" -Tag "OpenCode", "Orchestrator" {
 
 Describe "Write-SessionStart" -Tag "OpenCode", "Orchestrator" {
     It "exists and parses without syntax errors" {
-        $path = Join-Path (Join-Path $RepoRoot "Skills\Documentation\Scripts") "Write-SessionStart.ps1"
+        $path = Join-Path (Join-Path $RepoRoot "Tools\Documentation\Scripts") "Write-SessionStart.ps1"
         Test-Path $path | Should -BeTrue
         $errs = $null
         [System.Management.Automation.PSParser]::Tokenize((Get-Content -Raw -LiteralPath $path), [ref]$errs)
@@ -472,7 +472,7 @@ Describe "Write-SessionStart" -Tag "OpenCode", "Orchestrator" {
     }
 
     It "writes a lane/agent-scoped session-start file (orchestrator-tooling-1)" {
-        $scriptPath = Join-Path (Join-Path $RepoRoot "Skills\Documentation\Scripts") "Write-SessionStart.ps1"
+        $scriptPath = Join-Path (Join-Path $RepoRoot "Tools\Documentation\Scripts") "Write-SessionStart.ps1"
         $logsDir = Join-Path $script:TempDir "scoped-logs"
         $null = New-Item -ItemType Directory -Path $logsDir -Force
         & $scriptPath -LogsDir $logsDir -SessionId "lane-test-42" -SkipCompress
@@ -484,7 +484,7 @@ Describe "Write-SessionStart" -Tag "OpenCode", "Orchestrator" {
     }
 
     It "falls back to the process ID when no session id is provided" {
-        $scriptPath = Join-Path (Join-Path $RepoRoot "Skills\Documentation\Scripts") "Write-SessionStart.ps1"
+        $scriptPath = Join-Path (Join-Path $RepoRoot "Tools\Documentation\Scripts") "Write-SessionStart.ps1"
         $logsDir = Join-Path $script:TempDir "pid-logs"
         $null = New-Item -ItemType Directory -Path $logsDir -Force
         # Environment-independent: under an orchestrated stream the env vars

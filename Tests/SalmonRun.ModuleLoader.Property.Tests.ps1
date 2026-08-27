@@ -27,7 +27,7 @@ BeforeAll {
     function Write-SetupLog { param([string]$Message, [string]$Level, [string]$Agent, [string]$Phase) }
 
     # Load property testing framework
-    . (Join-Path $script:repoRoot 'Skills/QA/powershell-property-testing/PropertyTesting.ps1')
+    . (Join-Path $script:repoRoot 'Tools/QA/powershell-property-testing/PropertyTesting.ps1')
 
     # Load the module loader functions directly
     . (Join-Path $script:modulesDir "SalmonRun.ModuleLoader" "Public" "Import-InterclawModule.ps1")

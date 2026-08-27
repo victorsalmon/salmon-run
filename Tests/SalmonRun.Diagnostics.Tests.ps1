@@ -3,7 +3,9 @@
 # Load the modules at the file scope so Pester can resolve InModuleScope during
 # discovery and the path-override environment variables take effect immediately.
 $__moduleDir = $PSScriptRoot
-$__diagPsd1 = Join-Path $__moduleDir '..' 'Modules' 'SalmonRun.Diagnostics' 'SalmonRun.Diagnostics.psd1'
+$__modulesDir = Resolve-Path (Join-Path $__moduleDir '..' 'Modules')
+$__diagPsd1 = Join-Path $__modulesDir 'SalmonRun.Diagnostics' 'SalmonRun.Diagnostics.psd1'
+$env:PSModulePath = "$__modulesDir;$($env:PSModulePath)"
 Get-Module SalmonRun.Diagnostics -All | Remove-Module -Force -ErrorAction SilentlyContinue
 if (Test-Path $__diagPsd1) { Import-Module -Name $__diagPsd1 -Force -DisableNameChecking -Scope Global }
 
@@ -150,7 +152,7 @@ Describe "SalmonRun.Diagnostics Module" -Tag "Diagnostics" {
 
         It "handles concurrent writes without corruption" {
             $logPath = $env:INTERCLAW_SETUP_LOG
-            $modulePath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Diagnostics\SalmonRun.Diagnostics.ps1'
+            $modulePath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Diagnostics\SalmonRun.Diagnostics.psm1'
 
             1..4 | ForEach-Object -Parallel {
                 . $using:modulePath

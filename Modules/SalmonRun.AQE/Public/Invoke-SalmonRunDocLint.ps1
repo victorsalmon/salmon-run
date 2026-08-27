@@ -3,7 +3,7 @@ function Invoke-SalmonRunDocLint {
     .SYNOPSIS
         Runs the salmon-run documentation linter.
     .DESCRIPTION
-        Finds and executes `Skills/Documentation/Scripts/Invoke-DocLint.ps1`
+        Finds and executes `C:\\Repos\\Public\\salmon-run\\Tools\\Documentation\\Scripts\\Invoke-DocLint.ps1`
         from the repository root. If the script is missing, returns a warning
         and a success status so the runner does not break.
     .PARAMETER RepoDir
