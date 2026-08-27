@@ -76,6 +76,18 @@ Describe 'Resolve-SalmonRunCredentialValue' -Tag 'Credentials' {
         & (Get-Module SalmonRun.Credentials) { param($p) Resolve-SalmonRunCredentialValue -Value "File $p" } $file | Should -Be 'secret-value'
     }
 
+    It 'uses the File resolver with a tilde path' {
+        $testDir = New-Item -ItemType Directory -Path (Join-Path $HOME ".salmon-cred-test") -Force
+        $file = Join-Path $testDir 'secret.txt'
+        'tilde-secret' | Set-Content -LiteralPath $file -Encoding utf8 -NoNewline
+
+        try {
+            & (Get-Module SalmonRun.Credentials) { Resolve-SalmonRunCredentialValue -Value 'File ~/.salmon-cred-test/secret.txt' } | Should -Be 'tilde-secret'
+        } finally {
+            Remove-Item -Path $testDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
     It 'uses a custom registered resolver' {
         & (Get-Module SalmonRun.Credentials) {
             Register-SalmonRunCredentialResolver -Name 'Reverse' -ScriptBlock {

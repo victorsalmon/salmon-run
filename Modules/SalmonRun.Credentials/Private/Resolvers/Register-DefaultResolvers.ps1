@@ -51,12 +51,15 @@ function Register-DefaultSalmonRunCredentialResolvers {
     }
 
     # File resolver: reads the first line from the specified path.
+    # Resolves PowerShell ~ and relative paths to a file-system path before
+    # handing off to .NET file APIs.
     Register-SalmonRunCredentialResolver -Name 'File' -ScriptBlock {
         param([string[]]$Arguments)
         if ($Arguments.Count -eq 0) { throw 'File resolver requires a path' }
         $path = $Arguments -join ' '
-        if (-not (Test-Path $path)) { throw "File not found: $path" }
-        return [System.IO.File]::ReadAllLines($path)[0]
+        $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($path)
+        if (-not (Test-Path $resolvedPath)) { throw "File not found: $path" }
+        return [System.IO.File]::ReadAllLines($resolvedPath)[0]
     }
 
     # AWS resolver:
