@@ -41,7 +41,7 @@ Most agentic workflow tools either lock you into a vendor, hide state in a datab
 | **Model routing** | `Resolve-PondExecutionProfile` selects a `Harness` × `Provider` × `Model` × `Effort` based on the plan's `Challenge` tier and a JSON catalog. |
 | **Runtime provider overlays** | Drop JSON files in `~/.salmon/providers/*.json` to extend or override `harness-defaults.json` and `model-router-catalog.json` at runtime. |
 | **Cost-aware routing** | Execution profiles carry `CostRule`, `ApiCostPer1KTokens`, and `EffectiveCostPer1KTokens` so the engine can reason about free, discounted, and normal-cost models. |
-| **Executor adapters** | `PublicLocal.ps1` runs in-process smoke tests; `Opencode.ps1`, `Devin.ps1`, `Dsh.ps1`, `OpenRouter.ps1`, and `DeepInfra.ps1` build real CLI commands for external providers. |
+| **Executor adapters** | `PublicLocal.ps1` runs in-process smoke tests; `Opencode.ps1`, `Devin.ps1`, and `Dsh.ps1` build real CLI commands for external providers. OpenRouter and DeepInfra are inference-provider key/endpoint configurations consumed by the `Dsh.ps1` executor, not separate executors. |
 | **Quality gates** | Evidence headers (`Implementation`, `Reviewed`, `Audit`, `QA`) and `PondLog` events are checked before a plan can advance. `DependsOn` and `children-complete` gating handle dependencies and project plans. |
 | **Rescue and crash throttling** | Stale `Working` and cooled `Failed` plans are rescued back to `Code`; recent crashes throttle the engine with exponential backoff. |
 | **Audit and credentials** | `SalmonRun.Audit` writes hash-chain JSONL logs with redaction; `SalmonRun.Credentials` resolves redirects from `~/.salmon/.env` and `~/.salmon/git/` and is wired into `SalmonRun.GitCloud` token/host resolution. |
@@ -132,18 +132,18 @@ What is fully validated:
 - Pond definitions and the core engine loop
 - Plan transitions, retry logic, rescue, capacity, and archival
 - `PublicLocal.ps1` end-to-end smoke runs
-- Model profile resolution and executor command construction for OpenCode, Devin, OpenRouter, and DeepInfra/Codex
-- OpenRouter and DeepInfra model variants in the model-router catalog with runtime benchmark enrichment
+- Model profile resolution and executor command construction for OpenCode, Devin, and DeepSeek/DSH (with OpenRouter and DeepInfra as inference-provider configurations)
+- DeepSeek V4 Flash/Pro model variants via official DSH, OpenRouter, and DeepInfra in the model-router catalog with runtime benchmark enrichment
 - Runtime provider overlays and cost-aware profile fields
 - Leak-check hardening (no private refs, package.json repository URL allowed)
 - Module architecture, credentials, audit, locking, agent lifecycle, Mermaid chunking
 - `install.ps1`, Docker build, dry-run, sync, and leak check
 - `.worktree/workflows/validate.yml` expression
-- Full Pester suite green (548 passed, 0 failed, 3 skipped)
+- Full Pester suite green (549 passed, 0 failed, 3 skipped)
 
 What remains hardening:
 
-- Live execution against real provider APIs (OpenCode, Devin, OpenRouter, DeepInfra/Codex)
+- Live execution against real provider APIs (OpenCode, Devin, DeepSeek/DSH via OpenRouter/DeepInfra/official)
 - Live GitCloud pushes to GitHub/Worktree
 - Live AWS/GitHub/Worktree credential resolver calls (resolver integration is in place; real secrets/hosts not exercised)
 
@@ -188,7 +188,7 @@ You can hand the following prompts to an agent (Devin, Codex, OpenCode, Claude, 
 
 ### Run the test suite
 
-> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the flattened `Tests/` suite (`Invoke-Pester -Path 'Tests'`) and report the pass/fail summary. The latest run is 548 passed, 0 failed, 3 skipped. If any tests fail, identify the root cause and propose a fix.
+> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the flattened `Tests/` suite (`Invoke-Pester -Path 'Tests'`) and report the pass/fail summary. The latest run is 549 passed, 0 failed, 3 skipped. If any tests fail, identify the root cause and propose a fix.
 
 ---
 

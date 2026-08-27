@@ -24,13 +24,13 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 
 ## 2026-08-27 Integration pass
 
-- `Tests`: **548 passed / 0 failed / 3 skipped** in the flattened `Tests/` suite.
+- `Tests`: **549 passed / 0 failed / 3 skipped** in the flattened `Tests/` suite.
 - `Invoke-LeakCheck.ps1`: **No private references found** in scanned files.
 - `Start-SalmonRun.ps1 -DryRun` runs without error and lists queues.
 - `install.ps1` runs to completion in a clean `pwsh` session inside the Dockerfile and imports `SalmonRun.PondEngine`.
 - `docker build` produces a working `salmon-run` image and `docker run --rm salmon-run -DryRun` succeeds.
 - `Sync-FromCanonical.ps1` is parameterized, accepts `SALMON_CANONICAL_REPO`, applies a configurable private-reference scrub, and invokes `Invoke-LeakCheck.ps1` by default.
-- Provider executors for OpenCode, Devin, OpenRouter, and DeepInfra/Codex build real CLI commands and write PondLog events.
+- Provider executors for OpenCode, Devin, and DeepSeek/DSH (OpenRouter and DeepInfra as inference-provider configurations) build real CLI commands and write PondLog events.
 - `SalmonRun.Mermaid` extracts and chunks repository Mermaid diagrams.
 - CI workflows exist in `.github/workflows` and `.worktree/workflows`.
 
@@ -57,7 +57,7 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 - Removed the `Dsh.ps1` executor and `dsh` provider; DeepSeek models now route through `opencode-go`.
 - Updated `harness-defaults.json` and `model-router-catalog.json` to remove `deepseek` harness and DSO/Ox-alpha stale defaults.
 - Updated tests, `dot-salmon.example/benchmarks`, and public docs to reflect OpenCode Go DeepSeek routing.
-- Updated README and all planning docs to the current suite count: **548 passed / 0 failed / 3 skipped**.
+- Updated README and all planning docs to the current suite count: **549 passed / 0 failed / 3 skipped**.
 - Full Pester suite green, `Invoke-LeakCheck.ps1` reports no private references, `Invoke-DocLint.ps1` reports 0 broken refs, and Docker build/dry-run succeed.
 
 ---
@@ -168,7 +168,7 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 - **Current score:** 85%
 - **Current behavior:** `Resolve-PondExecutionProfile` reads `Modules/SalmonRun.PondEngine/Config/model-router-catalog.json` and `harness-defaults.json`, validates provider/model/effort, and returns a `PondExecutionProfile`. `Get-PondExecutorCommand` builds the `Start-Process` arguments. `Get-PondExecutorRegistry` now loads JSON overlays from `~/.salmon/providers` and merges them into the harness defaults and model catalog, so users can add or override providers, models, and cost data without editing the repo. `~/.salmon/benchmarks/models.json` (schema in `dot-salmon.example/benchmarks/models.schema.json`) is loaded and merged into the catalog, carrying per-provider pricing, benchmark scores with `source_url`, tokenizer efficiency, speed, reasoning effort, and `thinking_token_ratio`. `PondExecutionProfile` carries cost fields plus `CostWithThinking`, `ThinkingTokenRatio`, `ThinkingTokensPer1KOutput`, `TokenizerEfficiency`, `SpeedTokPerS`, `Benchmarks`, and `References`.
 - **Evidence:** `Resolve-PondExecutionProfile.ps1`, `Get-PondExecutorCommand.ps1`, `Get-PondExecutorRegistry.ps1`, `Merge-ProviderOverlay.ps1`, `Get-SalmonRunBenchmarkData.ps1`, `Merge-BenchmarkOverlay.ps1`, `dot-salmon.example/benchmarks/models.schema.json`, `Tests/SalmonRun.PondEngine.Cost.Tests.ps1`.
-- **Tests and test gaps:** Pester tests added for profile resolution, cost fields, provider overlays, and benchmark enrichment. Manual dry-run confirmed base routing (OpenCode Go) and overlay routing (OpenRouter/DeepInfra) with benchmark and cost fields. No live provider execution tests.
+- **Tests and test gaps:** Pester tests added for profile resolution, cost fields, provider overlays, and benchmark enrichment. Manual dry-run confirmed base routing (OpenCode Go) and overlay routing (DeepSeek/DSH with OpenRouter and DeepInfra provider configurations) with benchmark and cost fields. No live provider execution tests.
 - **Acceptance criteria for 100%:** All catalog tiers resolve to a real, tested adapter; commands are validated against actual provider CLIs; benchmark feed is real or removed.
 - **Next smallest decision/build slice:** Replace the placeholder benchmark URL or remove it.
 
@@ -182,11 +182,11 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 - **Acceptance criteria for 100%:** Either replaced by a real local agent adapter, or documented as a smoke-test harness only.
 - **Next smallest decision/build slice:** Rename or document `PublicLocal.ps1` as the smoke-test harness; optionally create a real `Local.ps1` that delegates to the user's local agent CLI.
 
-### Feature: External provider executors (OpenCode, Devin, OpenRouter, DeepInfra)
+### Feature: External provider executors (OpenCode, Devin, DeepSeek/DSH)
 
 - **Intent / user outcome:** Run real agents from external providers against a lane of plan files.
-- **Current score:** 60%
-- **Current behavior:** `Opencode.ps1`, `Devin.ps1`, `OpenRouter.ps1`, and `DeepInfra.ps1` are full adapter scripts that resolve credentials, build CLI commands, run `Start-Process`, and write `.complete`/`.failed` sentinels and PondLog events. `Local.ps1` is a legacy stub that calls `ExternalPublicSafe.ps1`. `ExternalPublicSafe.ps1` remains a public-safe placeholder for providers not yet implemented.
+- **Current score:** 70%
+- **Current behavior:** `Opencode.ps1`, `Devin.ps1`, and `Dsh.ps1` are full adapter scripts that resolve credentials, build CLI commands, run `Start-Process`, and write `.complete`/`.failed` sentinels and PondLog events. `Dsh.ps1` is the single executor for the `deepseek` harness; it routes to the official DeepSeek API, OpenRouter, or DeepInfra by selecting the appropriate endpoint, credential, and model slug. `Local.ps1` is a legacy stub that calls `ExternalPublicSafe.ps1`. `ExternalPublicSafe.ps1` remains a public-safe placeholder for providers not yet implemented.
 - **Evidence:** `Modules/SalmonRun.PondEngine/Executors/*.ps1`; adapter tests in `Tests/SalmonRun.PondEngine.Tests.ps1`.
 - **Tests and test gaps:** "Pond public executor safety" test checks that no private strings leak. Adapter tests verify command-line construction. No live provider execution.
 - **Deployment/runtime status:** Non-functional for real work without provider CLIs and API keys installed.
@@ -329,7 +329,7 @@ Scores are not averages; they reflect the weakest unaddressed gate for that feat
 
 - **Intent / user outcome:** Fast feedback on regressions across all modules.
 - **Current score:** 95%
-- **Current behavior:** 31 test files in the flattened `Tests/` directory. Full `Tests` run: **548 passed, 0 failed, 3 skipped**.
+- **Current behavior:** 31 test files in the flattened `Tests/` directory. Full `Tests` run: **549 passed, 0 failed, 3 skipped**.
 - **Evidence:** Test run output; `Tests/`.
 - **Tests and test gaps:** No Pester failures remain. Installer and leak-check tests exist. No live provider test.
 - **Acceptance criteria for 100%:** All tests green; CI gate runs the `Tests` suite; test run time under 5 minutes (currently ~200s for the full suite, acceptable).
@@ -368,7 +368,7 @@ Resolved since the previous appraisal:
 4. CI workflows exist.
 5. `Sync-FromCanonical.ps1` is parameterized and applies a runtime scrub.
 6. `SalmonRun.Audit` and `SalmonRun.Credentials` tests pass.
-7. Devin, OpenRouter, and DeepInfra/Codex executor adapters are implemented.
+7. OpenCode, Devin, and DeepSeek/DSH executor adapters are implemented; OpenRouter and DeepInfra are inference-provider configurations consumed by DSH.
 
 Residual issues:
 
@@ -376,13 +376,13 @@ Residual issues:
 2. `.worktree/workflows/validate.yml` uses `github.workspace`.
 3. The `package.json` repository URL and `model-router-catalog.json` benchmark URL point to the public targets.
 4. `Invoke-LeakCheck.ps1` now scans all files except the checker and sync script.
-5. The full Pester suite is green (548 passed, 0 failed, 3 skipped).
+5. The full Pester suite is green (549 passed, 0 failed, 3 skipped).
 6. The source-repo `Tasks/` tree was removed; runtime state is created only under `~/.salmon` or `%SALMON_RUN_HOME%`.
 
 ## Unknowns
 
-- Whether the provider CLIs (`opencode`, `devin`, `openrouter`, `codex`) are available and work on the target user platforms.
-- Whether an external-provider plan (OpenCode, Devin, OpenRouter, DeepInfra/Codex) runs end-to-end under `Start-SalmonRun.ps1 -Run`.
+- Whether the provider CLIs (`opencode`, `devin`, `dsh`) are available and work on the target user platforms.
+- Whether an external-provider plan (OpenCode, Devin, DeepSeek/DSH via OpenRouter/DeepInfra/official) runs end-to-end under `Start-SalmonRun.ps1 -Run`.
 - The intended public release artifact format.
 - Whether the canonical `salmon-orchestrator` repo is still the active source of truth and how often `salmon-run` is re-synced.
 
@@ -391,7 +391,7 @@ Residual issues:
 The public `salmon-run` package is approximately **95% production-ready for its vision**.
 
 - **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking, canonical sync, leak check, a green Pester suite, a full `Start-SalmonRun.ps1 -Run` smoke test, and `SalmonRun.GitCloud`/`SalmonRun.Credentials` resolver integration (Env/File/AWS/GitHub/Worktree resolvers wired into token and host resolution).
-- **What is incomplete or unproven:** Live execution against real OpenCode, Devin, OpenRouter, and DeepInfra/Codex endpoints; live GitCloud pushes to GitHub/Worktree; live AWS/GitHub/Worktree credential resolver calls; and the chosen public release artifact format.
+- **What is incomplete or unproven:** Live execution against real OpenCode, Devin, and DeepSeek/DSH (OpenRouter and DeepInfra as inference-provider configurations) endpoints; live GitCloud pushes to GitHub/Worktree; live AWS/GitHub/Worktree credential resolver calls; and the chosen public release artifact format.
 
 Before any public release, the highest-confidence blockers are:
 
