@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://salmon.run/schemas/benchmarks/models.schema.json",
+  "title": "Salmon Run Benchmark Database",
+  "description": "A standardized, LLM-Bench-Data-compatible database of model pricing, benchmark scores, tokenizer efficiency, speed, and reasoning-token behavior for salmon-run model routing.",
+  "type": "object",
+  "required": ["last_updated", "sources", "models"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "URI of this schema."
+    },
+    "last_updated": {
+      "type": "string",
+      "description": "Human-readable changelog of the last update."
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Version of this schema document.",
+      "default": "1.0.0"
+    },
+    "sources": {
+      "type": "object",
+      "description": "Official and fallback sources for benchmark, pricing, and model data. Keys are source identifiers used by benchmark entries.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "url", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "type": {
+            "type": "string",
+            "enum": ["leaderboard", "pricing", "api", "paper", "repository", "blog"]
+          },
+          "refresh_frequency_days": { "type": "integer", "minimum": 0 },
+          "last_fetched": { "type": ["string", "null"] },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "description": "Models keyed by slug. The slug should match the salmon-run model-router catalog 'model' field when possible; provider-specific model IDs live under 'providers'.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "family"],
+        "additionalProperties": true,
+        "properties": {
+          "name": { "type": "string" },
+          "family": { "type": "string" },
+          "version": { "type": "string" },
+          "tier": { "type": "string" },
+          "context_window": { "type": "integer" },
+          "parameters": { "type": "string" },
+          "open_weights": { "type": "boolean" },
+          "license": { "type": "string" },
+          "providers": {
+            "type": "object",
+            "description": "Per-provider serving details and cost. Provider keys should match salmon-run provider names (opencode-go, dsh, openrouter, deepinfra, etc.).",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["model_id"],
+              "additionalProperties": false,
+              "properties": {
+                "model_id": { "type": "string" },
+                "input_per_million": { "type": "number", "minimum": 0 },
+                "output_per_million": { "type": "number", "minimum": 0 },
+                "cached_read_per_million": { "type": "number", "minimum": 0 },
+                "label": { "type": "string" },
+                "cost": { "$ref": "#/$defs/cost" }
+              }
+            }
+          },
+          "cost": { "$ref": "#/$defs/cost" },
+          "benchmarks": {
+            "type": "object",
+            "description": "Benchmark scores, each named with a snake_case identifier. A null score means the model has not been tested on that benchmark.",
+            "additionalProperties": {
+              "oneOf": [
+                { "type": "null" },
+                {
+                  "type": "object",
+                  "required": ["score"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "score": { "type": ["number", "null"] },
+                    "source": { "type": "string" },
+                    "source_url": { "type": "string", "format": "uri" },
+                    "date": { "type": "string" },
+                    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "measurement_context": { "type": "string" }
+                  }
+                }
+              ]
+            }
+          },
+          "tokenizer_efficiency": {
+            "type": ["number", "null"],
+            "description": "Tokens per word (60:40 code:prose blend). Lower is more efficient."
+          },
+          "speed_tok_per_s": {
+            "type": ["number", "null"],
+            "description": "Measured output tokens per second."
+          },
+          "reasoning_effort": {
+            "type": ["string", "null"],
+            "description": "The reasoning-effort setting used when the following thinking/speed/benchmark values were measured."
+          },
+          "thinking_token_ratio": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Thinking (chain-of-thought) tokens per visible output token. 0 for non-reasoning models."
+          },
+          "thinking_tokens": {
+            "type": "object",
+            "description": "Rough volume of thought tokens for the reasoning_effort used during benchmarking.",
+            "additionalProperties": false,
+            "properties": {
+              "avg_per_output_1k": { "type": "number", "minimum": 0 },
+              "max_per_output_1k": { "type": "number", "minimum": 0 },
+              "notes": { "type": "string" }
+            }
+          },
+          "output_verbosity": {
+            "type": "object",
+            "description": "Measured average/max output token counts per task or globally.",
+            "additionalProperties": true,
+            "properties": {
+              "total_calls": { "type": "integer" },
+              "avg_output_tokens": { "type": "number" },
+              "max_output_tokens": { "type": "number" },
+              "per_task": { "type": "object" }
+            }
+          },
+          "references": {
+            "type": "array",
+            "items": { "type": "string", "format": "uri" }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "cost": {
+      "type": "object",
+      "description": "Cost in USD per million tokens. api_cost is the nominal output price; effective_cost applies the cost_rule multiplier; cost_with_thinking includes the thinking_token_ratio tax.",
+      "additionalProperties": false,
+      "properties": {
+        "currency": { "type": "string", "default": "USD" },
+        "cost_rule": { "type": "string" },
+        "api_cost_per_million": { "type": "number", "minimum": 0 },
+        "effective_cost_per_million": { "type": "number", "minimum": 0 },
+        "cost_with_thinking_per_million": { "type": "number", "minimum": 0 },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

@@ -64,6 +64,17 @@ class PondExecutionProfile {
     [string]$CostRule
     [double]$ApiCostPer1KTokens
     [double]$EffectiveCostPer1KTokens
+
+    # Benchmark-enriched fields (optional; loaded from ~/.salmon/benchmarks)
+    [hashtable]$Benchmarks
+    [double]$TokenizerEfficiency
+    [double]$SpeedTokPerS
+    [string]$ReasoningEffort
+    [double]$ThinkingTokenRatio
+    [double]$ThinkingTokensPer1KOutput
+    [double]$CostWithThinking
+    [hashtable]$ProviderPricing
+    [string[]]$References
 }
 
 class Pond {

@@ -6,9 +6,10 @@ function Get-PondExecutorRegistry {
 
     .DESCRIPTION
         Reads the built-in harness-defaults.json and model-router-catalog.json
-        from the module's Config directory, then merges any provider overlay
-        files found in ~/.salmon/providers. This lets users add or override
-        harnesses, providers, models, and cost data without editing the repo.
+        from the module's Config directory, then merges benchmark data from
+        ~/.salmon/benchmarks and any provider overlay files found in
+        ~/.salmon/providers. This lets users add or override harnesses,
+        providers, models, and cost data without editing the repo.
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
@@ -36,8 +37,9 @@ function Get-PondExecutorRegistry {
     $harness = Get-Content -LiteralPath $harnessPath -Raw | ConvertFrom-Json -AsHashtable
     $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json -AsHashtable
 
-    # Apply provider overlays from the runtime home.
     $salmonHome = if (Get-Command Get-SalmonHome -ErrorAction SilentlyContinue) { Get-SalmonHome } else { Join-Path $HOME '.salmon' }
+
+    # Apply provider overlays from the runtime home.
     $providersDir = Join-Path $salmonHome 'providers'
     if (Test-Path -LiteralPath $providersDir -PathType Container) {
         $harnessOverlayKeys = @('harnesses','providers','legacyExecutorMap','skillSearch')
@@ -67,6 +69,20 @@ function Get-PondExecutorRegistry {
             } catch {
                 Write-Warning "Get-PondExecutorRegistry: failed to load provider overlay '$($file.FullName)': $_"
             }
+        }
+    }
+
+    # Apply benchmark data from the runtime home. This runs after provider
+    # overlays so that overlay-added models can also be enriched.
+    $benchmarksDir = Join-Path $salmonHome 'benchmarks'
+    if (Test-Path -LiteralPath $benchmarksDir -PathType Container) {
+        try {
+            $benchmarkData = Get-SalmonRunBenchmarkData -BenchmarksDir $benchmarksDir
+            if ($benchmarkData -and $benchmarkData['models'].Count -gt 0) {
+                $catalog = Merge-BenchmarkOverlay -Catalog $catalog -Benchmarks $benchmarkData
+            }
+        } catch {
+            Write-Warning "Get-PondExecutorRegistry: failed to load benchmark data from '$benchmarksDir': $_"
         }
     }
 

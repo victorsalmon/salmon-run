@@ -1,0 +1,522 @@
+{
+  "$schema": "models.schema.json",
+  "last_updated": "2026-08-26 — seeded from LLM-Bench-Data and Clock Lobster appraisals; edit to replace placeholder values.",
+  "schema_version": "1.0.0",
+  "sources": {
+    "swebench": {
+      "name": "SWE-bench Pro Leaderboard",
+      "url": "https://www.swebench.com/",
+      "type": "leaderboard",
+      "refresh_frequency_days": 7,
+      "last_fetched": null,
+      "notes": "Primary coding benchmark: GitHub issue resolution."
+    },
+    "swebench_verified": {
+      "name": "SWE-bench Verified Leaderboard",
+      "url": "https://www.swebench.com/",
+      "type": "leaderboard",
+      "refresh_frequency_days": 7,
+      "last_fetched": null,
+      "notes": "Human-validated GitHub issue resolution."
+    },
+    "tbench": {
+      "name": "Terminal-Bench 2.1",
+      "url": "https://tbench.ai/",
+      "type": "leaderboard",
+      "refresh_frequency_days": 7,
+      "last_fetched": null,
+      "notes": "Terminal-based SE, sysadmin, ML, and security tasks."
+    },
+    "artificialanalysis": {
+      "name": "Artificial Analysis",
+      "url": "https://artificialanalysis.ai/",
+      "type": "leaderboard",
+      "refresh_frequency_days": 7,
+      "last_fetched": null,
+      "notes": "AA Intelligence Index and pricing comparisons."
+    },
+    "opencode_zen": {
+      "name": "OpenCode Zen",
+      "url": "https://opencode.ai/zen",
+      "type": "pricing",
+      "refresh_frequency_days": 1,
+      "last_fetched": null,
+      "notes": "Primary PAYG gateway for OpenCode Go models."
+    },
+    "openrouter": {
+      "name": "OpenRouter Models & Pricing",
+      "url": "https://openrouter.ai/models",
+      "type": "pricing",
+      "refresh_frequency_days": 1,
+      "last_fetched": null,
+      "notes": "OpenRouter per-model pricing and Max-variants."
+    },
+    "deepinfra": {
+      "name": "DeepInfra Pricing",
+      "url": "https://deepinfra.com/pricing",
+      "type": "pricing",
+      "refresh_frequency_days": 1,
+      "last_fetched": null,
+      "notes": "OpenAI-compatible endpoint pricing."
+    },
+    "deepseek_api": {
+      "name": "DeepSeek API Pricing",
+      "url": "https://platform.deepseek.com/pricing",
+      "type": "pricing",
+      "refresh_frequency_days": 1,
+      "last_fetched": null,
+      "notes": "Official DeepSeek API pricing for DSH harness."
+    },
+    "llm_bench_data_github": {
+      "name": "LLM-Bench-Data GitHub",
+      "url": "https://github.com/victorsalmon/LLM-bench-data",
+      "type": "repository",
+      "refresh_frequency_days": 7,
+      "last_fetched": null,
+      "notes": "Canonical Clock Lobster benchmark dataset and offline backup."
+    }
+  },
+  "models": {
+    "local": {
+      "name": "Salmon Local",
+      "family": "salmon",
+      "version": "1.0.0",
+      "tier": "free",
+      "providers": {
+        "local": {
+          "model_id": "local",
+          "input_per_million": 0,
+          "output_per_million": 0,
+          "cost": {
+            "currency": "USD",
+            "cost_rule": "free",
+            "api_cost_per_million": 0,
+            "effective_cost_per_million": 0,
+            "cost_with_thinking_per_million": 0
+          }
+        }
+      },
+      "benchmarks": {},
+      "tokenizer_efficiency": null,
+      "speed_tok_per_s": null,
+      "reasoning_effort": null,
+      "thinking_token_ratio": 0,
+      "thinking_tokens": {
+        "avg_per_output_1k": 0,
+        "max_per_output_1k": 0,
+        "notes": "Local executor does not call an LLM."
+      },
+      "references": []
+    },
+    "opencode-go/ox-alpha-free": {
+      "name": "OpenCode Go Ox-Alpha Free",
+      "family": "opencode",
+      "version": "2026-08",
+      "tier": "free",
+      "providers": {
+        "opencode-go": {
+          "model_id": "opencode-go/ox-alpha-free",
+          "input_per_million": 0,
+          "output_per_million": 0,
+          "cost": {
+            "currency": "USD",
+            "cost_rule": "free",
+            "api_cost_per_million": 0,
+            "effective_cost_per_million": 0,
+            "cost_with_thinking_per_million": 0
+          }
+        }
+      },
+      "benchmarks": {
+        "swe_bench_pro": null,
+        "terminal_bench_2_1": null,
+        "aa_intelligence_index": null
+      },
+      "tokenizer_efficiency": 1.78,
+      "speed_tok_per_s": null,
+      "reasoning_effort": null,
+      "thinking_token_ratio": 0,
+      "thinking_tokens": {
+        "avg_per_output_1k": 0,
+        "max_per_output_1k": 0,
+        "notes": "Non-reasoning OpenCode Go free model."
+      },
+      "references": [
+        "https://opencode.ai/zen"
+      ]
+    },
+    "opencode-go/mimo-v2.5": {
+      "name": "OpenCode Go MiMo-V2.5",
+      "family": "minimax",
+      "version": "2026-06-01",
+      "tier": "budget_taskrunner",
+      "providers": {
+        "opencode-go": {
+          "model_id": "opencode-go/mimo-v2.5",
+          "input_per_million": 0,
+          "output_per_million": 0.30,
+          "cost": {
+            "currency": "USD",
+            "cost_rule": "one-sixth",
+            "api_cost_per_million": 0.30,
+            "effective_cost_per_million": 0.05,
+            "cost_with_thinking_per_million": 0.05
+          }
+        }
+      },
+      "benchmarks": {
+        "swe_bench_pro": null,
+        "terminal_bench_2_1": null,
+        "aa_intelligence_index": null
+      },
+      "tokenizer_efficiency": null,
+      "speed_tok_per_s": null,
+      "reasoning_effort": null,
+      "thinking_token_ratio": 0,
+      "thinking_tokens": {
+        "avg_per_output_1k": 0,
+        "max_per_output_1k": 0,
+        "notes": "OpenCode Go MiMo-V2.5 pricing is inferred from salmon-run catalog; benchmark scores not yet available."
+      },
+      "references": [
+        "https://opencode.ai/zen"
+      ]
+    },
+    "opencode/hy3-free": {
+      "name": "OpenCode Hy3 Free",
+      "family": "opencode",
+      "version": "2026-08",
+      "tier": "daily",
+      "providers": {
+        "opencode": {
+          "model_id": "opencode/hy3-free",
+          "input_per_million": 0,
+          "output_per_million": 0.60,
+          "cost": {
+            "currency": "USD",
+            "cost_rule": "one-sixth",
+            "api_cost_per_million": 0.60,
+            "effective_cost_per_million": 0.10,
+            "cost_with_thinking_per_million": 0.10
+          }
+        }
+      },
+      "benchmarks": {
+        "swe_bench_pro": null,
+        "terminal_bench_2_1": null,
+        "aa_intelligence_index": null
+      },
+      "tokenizer_efficiency": null,
+      "speed_tok_per_s": null,
+      "reasoning_effort": null,
+      "thinking_token_ratio": 0,
+      "thinking_tokens": {
+        "avg_per_output_1k": 0,
+        "max_per_output_1k": 0,
+        "notes": "OpenCode Zen Hy3 free tier; benchmark scores not yet available."
+      },
+      "references": [
+        "https://opencode.ai/zen"
+      ]
+    },
+    "deepseek-v4-flash": {
+      "name": "DeepSeek V4 Flash",
+      "family": "deepseek",
+      "version": "2026-04-24",
+      "tier": "budget_taskrunner",
+      "context_window": 1000000,
+      "parameters": "284B total / 13B active MoE",
+      "open_weights": true,
+      "license": "MIT",
+      "providers": {
+        "dsh": {
+          "model_id": "deepseek-v4-flash",
+          "input_per_million": 0.14,
+          "output_per_million": 0.28,
+          "cached_read_per_million": 0.028,
+          "cost": {
+            "currency": "USD",
+            "cost_rule": "normal",
+            "api_cost_per_million": 0.28,
+            "effective_cost_per_million": 0.28,
+            "cost_with_thinking_per_million": 0.28
+          }
+        },
+        "openrouter": {
+          "model_id": "deepseek/deepseek-v4-flash",
+          "input_per_million": 0.0679,
+          "output_per_million": 0.168,
+          "cost": {
+            "currency": "USD",
+            "cost_rule": "normal",
+            "api_cost_per_million": 0.168,
+            "effective_cost_per_million": 0.168,
+            "cost_with_thinking_per_million": 0.168
+          }
+        },
+        "deepinfra": {
+          "model_id": "deepseek-ai/DeepSeek-V4-Flash",
+          "input_per_million": 0.09,
+          "output_per_million": 0.18,
+          "cost": {
+            "currency": "USD",
+            "cost_rule": "normal",
+            "api_cost_per_million": 0.18,
+            "effective_cost_per_million": 0.18,
+            "cost_with_thinking_per_million": 0.18
+          }
+        }
+      },
+      "benchmarks": {
+        "swe_bench_pro": {
+          "score": 49.6,
+          "source": "swebench",
+          "source_url": "https://www.swebench.com/",
+          "date": "2026-07",
+          "confidence": 0.9,
+          "measurement_context": "default"
+        },
+        "swe_bench_verified": null,
+        "terminal_bench_2_1": {
+          "score": 58.0,
+          "source": "tbench",
+          "source_url": "https://tbench.ai/",
+          "date": "2026-07",
+          "confidence": 0.9,
+          "measurement_context": "default"
+        },
+        "aa_intelligence_index": {
+          "score": null,
+          "source": "artificialanalysis",
+          "source_url": "https://artificialanalysis.ai/",
+          "date": "2026-07",
+          "confidence": 0.5,
+          "measurement_context": "inferred"
+        }
+      },
+      "tokenizer_efficiency": 1.85,
+      "speed_tok_per_s": 111,
+      "reasoning_effort": null,
+      "thinking_token_ratio": 0,
+      "thinking_tokens": {
+        "avg_per_output_1k": 0,
+        "max_per_output_1k": 0,
+        "notes": "Non-reasoning default Flash config."
+      },
+      "references": [
+        "https://www.swebench.com/",
+        "https://tbench.ai/",
+        "https://artificialanalysis.ai/"
+      ]
+    },
+    "deepseek-v4-flash-max": {
+      "name": "DeepSeek V4 Flash 0731",
+      "family": "deepseek",
+      "version": "2026-07-31",
+      "tier": "budget_taskrunner",
+      "context_window": 1000000,
+      "parameters": "284B total / 13B active MoE",
+      "open_weights": true,
+      "license": "MIT",
+      "providers": {
+        "openrouter": {
+          "model_id": "deepseek/deepseek-v4-flash-0731",
+          "input_per_million": 0.072,
+          "output_per_million": 0.144,
+          "cached_read_per_million": 0.003,
+          "cost": {
+            "currency": "USD",
+            "cost_rule": "normal",
+            "api_cost_per_million": 0.144,
+            "effective_cost_per_million": 0.144,
+            "cost_with_thinking_per_million": 0.193
+          }
+        },
+        "deepinfra": {
+          "model_id": "deepseek-ai/DeepSeek-V4-Flash-0731",
+          "input_per_million": 0.08,
+          "output_per_million": 0.18,
+          "cost": {
+            "currency": "USD",
+            "cost_rule": "normal",
+            "api_cost_per_million": 0.18,
+            "effective_cost_per_million": 0.18,
+            "cost_with_thinking_per_million": 0.241
+          }
+        }
+      },
+      "benchmarks": {
+        "swe_bench_pro": {
+          "score": 52.6,
+          "source": "swebench",
+          "source_url": "https://www.swebench.com/",
+          "date": "2026-07",
+          "confidence": 0.9,
+          "measurement_context": "max"
+        },
+        "swe_bench_verified": {
+          "score": 79.0,
+          "source": "swebench_verified",
+          "source_url": "https://www.swebench.com/",
+          "date": "2026-07",
+          "confidence": 0.9,
+          "measurement_context": "max"
+        },
+        "terminal_bench_2_1": {
+          "score": 82.7,
+          "source": "tbench",
+          "source_url": "https://tbench.ai/",
+          "date": "2026-07",
+          "confidence": 0.9,
+          "measurement_context": "max"
+        },
+        "aa_intelligence_index": {
+          "score": 50,
+          "source": "artificialanalysis",
+          "source_url": "https://artificialanalysis.ai/",
+          "date": "2026-07",
+          "confidence": 0.8,
+          "measurement_context": "max"
+        }
+      },
+      "tokenizer_efficiency": 1.84,
+      "speed_tok_per_s": 41.2,
+      "reasoning_effort": "max",
+      "thinking_token_ratio": 0.34,
+      "thinking_tokens": {
+        "avg_per_output_1k": 340,
+        "max_per_output_1k": 680,
+        "notes": "Measured with reasoning_effort=max via OpenRouter/DeepInfra."
+      },
+      "references": [
+        "https://www.swebench.com/",
+        "https://tbench.ai/",
+        "https://artificialanalysis.ai/",
+        "https://openrouter.ai/models"
+      ]
+    },
+    "deepseek-v4-pro": {
+      "name": "DeepSeek V4 Pro 0813",
+      "family": "deepseek",
+      "version": "2026-08-13",
+      "tier": "taskrunner",
+      "context_window": 1000000,
+      "parameters": "1.6T total / 49B active MoE",
+      "open_weights": true,
+      "license": "MIT",
+      "providers": {
+        "dsh": {
+          "model_id": "deepseek-v4-pro",
+          "input_per_million": 0.435,
+          "output_per_million": 0.87,
+          "cached_read_per_million": 0.003625,
+          "cost": {
+            "currency": "USD",
+            "cost_rule": "normal",
+            "api_cost_per_million": 0.87,
+            "effective_cost_per_million": 0.87,
+            "cost_with_thinking_per_million": 1.37
+          }
+        },
+        "openrouter": {
+          "model_id": "deepseek/deepseek-v4-pro-0813",
+          "input_per_million": 0.435,
+          "output_per_million": 0.87,
+          "cached_read_per_million": 0.003625,
+          "cost": {
+            "currency": "USD",
+            "cost_rule": "normal",
+            "api_cost_per_million": 0.87,
+            "effective_cost_per_million": 0.87,
+            "cost_with_thinking_per_million": 1.37
+          }
+        }
+      },
+      "benchmarks": {
+        "swe_bench_pro": {
+          "score": 55.4,
+          "source": "swebench",
+          "source_url": "https://www.swebench.com/",
+          "date": "2026-08",
+          "confidence": 0.9,
+          "measurement_context": "max"
+        },
+        "swe_bench_verified": {
+          "score": 80.6,
+          "source": "swebench_verified",
+          "source_url": "https://www.swebench.com/",
+          "date": "2026-08",
+          "confidence": 0.9,
+          "measurement_context": "max"
+        },
+        "terminal_bench_2_1": {
+          "score": 87.9,
+          "source": "tbench",
+          "source_url": "https://tbench.ai/",
+          "date": "2026-08",
+          "confidence": 0.9,
+          "measurement_context": "max"
+        },
+        "aa_intelligence_index": {
+          "score": 53,
+          "source": "artificialanalysis",
+          "source_url": "https://artificialanalysis.ai/",
+          "date": "2026-08",
+          "confidence": 0.8,
+          "measurement_context": "max"
+        }
+      },
+      "tokenizer_efficiency": 2.12,
+      "speed_tok_per_s": 95.6,
+      "reasoning_effort": "max",
+      "thinking_token_ratio": 0.57,
+      "thinking_tokens": {
+        "avg_per_output_1k": 570,
+        "max_per_output_1k": 1200,
+        "notes": "Measured with reasoning_effort=max. The pro-max / xhigh variant may show ratios closer to 4.0."
+      },
+      "references": [
+        "https://www.swebench.com/",
+        "https://tbench.ai/",
+        "https://artificialanalysis.ai/"
+      ]
+    },
+    "openrouter/stealth/ox-alpha": {
+      "name": "OpenRouter Stealth Ox-Alpha",
+      "family": "openrouter",
+      "version": "2026-08",
+      "tier": "complex",
+      "providers": {
+        "openrouter": {
+          "model_id": "openrouter/stealth/ox-alpha",
+          "input_per_million": 0.225,
+          "output_per_million": 0.45,
+          "cost": {
+            "currency": "USD",
+            "cost_rule": "normal",
+            "api_cost_per_million": 0.45,
+            "effective_cost_per_million": 0.45,
+            "cost_with_thinking_per_million": 0.45
+          }
+        }
+      },
+      "benchmarks": {
+        "swe_bench_pro": null,
+        "terminal_bench_2_1": null,
+        "aa_intelligence_index": null
+      },
+      "tokenizer_efficiency": null,
+      "speed_tok_per_s": null,
+      "reasoning_effort": null,
+      "thinking_token_ratio": 0,
+      "thinking_tokens": {
+        "avg_per_output_1k": 0,
+        "max_per_output_1k": 0,
+        "notes": "Placeholder OpenRouter overlay model; fill benchmark scores from https://openrouter.ai/models."
+      },
+      "references": [
+        "https://openrouter.ai/models"
+      ]
+    }
+  }
+}

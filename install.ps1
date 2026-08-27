@@ -43,6 +43,8 @@ $taskDirs = @(
     'Tasks/Schedules',
     'Tasks/Locks',
     'providers',
+    'benchmarks',
+    'benchmarks/models',
     'cache',
     'secrets'
 )
@@ -60,6 +62,21 @@ $envDest = Join-Path $RuntimeHome '.env'
 if ((Test-Path $envExample) -and -not (Test-Path $envDest)) {
     Copy-Item -Path $envExample -Destination $envDest -Force
     Write-Host "Seeded $envDest from .env.example; edit it with your credential redirects." -ForegroundColor Yellow
+}
+
+# Seed benchmark schema and sample data if the benchmarks directory is empty
+$benchmarksExampleDir = Join-Path $PSScriptRoot 'dot-salmon.example' 'benchmarks'
+$benchmarksDestDir = Join-Path $RuntimeHome 'benchmarks'
+if (Test-Path $benchmarksExampleDir -and Test-Path $benchmarksDestDir) {
+    $exampleFiles = @('models.schema.json', 'models.json')
+    foreach ($f in $exampleFiles) {
+        $src = Join-Path $benchmarksExampleDir $f
+        $dst = Join-Path $benchmarksDestDir $f
+        if ((Test-Path $src) -and -not (Test-Path $dst)) {
+            Copy-Item -Path $src -Destination $dst -Force
+            Write-Host "Seeded $dst from dot-salmon.example/benchmarks; replace sample values with live data." -ForegroundColor Yellow
+        }
+    }
 }
 
 # Persist SALMON_RUN_HOME for the current user
