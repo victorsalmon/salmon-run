@@ -2,7 +2,7 @@
 
 > Appraisal date: **2026-08-26**  
 > Last verified: **2026-08-26**  
-> Evidence scope: `C:\Repos\Public\salmon-run`. The private `salmon-orchestrator` repo is cited as the canonical source but was not directly inspected for this public-package appraisal.  
+> Evidence scope: the public `salmon-run` package. The private `salmon-orchestrator` repo is cited as the canonical source but was not directly inspected for this public-package appraisal.  
 > Freshness: Current `main` inspected and exercised directly; earlier appraisals in this file are preserved in git history.
 
 ## How to read this ledger

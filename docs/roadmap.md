@@ -2,7 +2,7 @@
 
 > Appraisal date: **2026-08-26**  
 > Last verified: **2026-08-26**  
-> Evidence scope: `C:\Repos\Public\salmon-run` (public package). The canonical source-of-truth remains the private `salmon-orchestrator` implementation; `salmon-run` is the scrubbed, generalized mirror projected via `scripts/Sync-FromCanonical.ps1`.  
+> Evidence scope: the public `salmon-run` package. The canonical source-of-truth remains the private `salmon-orchestrator` implementation; `salmon-run` is the scrubbed, generalized mirror projected via `scripts/Sync-FromCanonical.ps1`.  
 > Freshness: Current `main` was inspected and exercised directly on this date. Earlier appraisals in this file are preserved in git history.
 
 ## Vision
@@ -68,7 +68,7 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 4. **`DependsOn` gating has a failing property test.** The failure is narrow but indicates an edge case in child/parent dependency resolution.
 5. **External provider executors are unproven against live APIs.** The adapters are real but have not been run against real OpenCode, Devin, DSH, OpenRouter, or DeepInfra/Codex endpoints.
 6. **`Invoke-LeakCheck.ps1` skips `package.json` and all `scripts/` files.** This creates a blind spot where private hostnames or paths could re-enter the public package undetected.
-7. **Runtime state in the source working tree.** A large `Tasks/` tree exists locally under `C:\Repos\Public\salmon-run\Tasks`. It is `.gitignore`d, so it is not committed, but it shows the orchestrator is currently using the source tree as a runtime home instead of `~/.salmon`. This is an operational hygiene risk.
+7. **Runtime state in the source working tree.** A large `Tasks/` tree exists locally under the source tree (`<repo-root>\Tasks`). It is `.gitignore`d, so it is not committed, but it shows the orchestrator is currently using the source tree as a runtime home instead of `~/.salmon`. This is an operational hygiene risk.
 8. **Stale appraisal docs.** The previous `implementation.md` contained scores and blockers that no longer match the current tree (e.g., claiming the installer is a stub, Mermaid is 0%, no Docker/CI, Audit/Credentials fail to load). This file supersedes it.
 
 ## Unknowns / manual gates
