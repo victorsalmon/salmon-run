@@ -9,8 +9,8 @@ param(
 )
 
 $patterns = @(
-    'C:\\\\Repos'
-    'C:\\\\Users\\\\RDP'
+    'C:\\Repos'
+    'C:\\Users\\RDP'
     'worktree\.ca'
     'clocklobster'
     'ClockLobster'
@@ -23,12 +23,21 @@ $patterns = @(
     'FLEET_API_TOKEN'
 )
 
-$skip = @('package.json', 'Sync-FromCanonical.ps1', 'Invoke-LeakCheck.ps1')
+# The leak-check script itself and the canonical sync script contain the
+# pattern list and scrub patterns, so they are excluded. The public package
+# manifest (package.json) legitimately names the public repository origin.
+$skip = @('Sync-FromCanonical.ps1', 'Invoke-LeakCheck.ps1')
 
 $hits = Get-ChildItem -Path $SearchRoot -File -Recurse |
-    Where-Object { $_.Name -notin $skip -and $_.FullName -notmatch '\\scripts\\' } |
+    Where-Object { $_.Name -notin $skip } |
     Select-String -Pattern $patterns -ErrorAction SilentlyContinue |
-    Select-Object -Property Filename, LineNumber, Line, Pattern
+    Select-Object -Property Filename, LineNumber, Line, Pattern, Path
+
+# package.json may legitimately reference the public worktree origin; ignore
+# only the repository URL line, not other lines.
+$hits = $hits | Where-Object {
+    -not ($_.Filename -eq 'package.json' -and $_.Line -match '"url"')
+}
 
 if ($hits) {
     Write-Host "LEAKS FOUND:`n" -ForegroundColor Red
