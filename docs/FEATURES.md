@@ -360,11 +360,8 @@ See `docs/PUBLIC_PACKAGE.md` for the full path table.
 
 ### Known rough edges
 
-- One `PondEngine` `DependsOn` property test fails on a child/parent dependency edge.
-- `.worktree/workflows/validate.yml` uses an invalid `repository.workspace` expression and should be `github.workspace` or the Worktree equivalent.
-- `package.json` and `model-router-catalog.json` contain placeholder `https://example.com` URLs.
-- `Invoke-LeakCheck.ps1` currently skips `package.json` and `scripts/` files.
 - A full `Start-SalmonRun.ps1 -Run` through all ponds with real plans has not been exercised end-to-end.
+- Some pre-existing `SalmonRun.Constants` and `SalmonRun.Process` Pester property tests fail in a fresh AQE run and need separate triage.
 
 ---
 
