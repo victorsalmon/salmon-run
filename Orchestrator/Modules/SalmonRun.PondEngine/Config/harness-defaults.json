@@ -99,7 +99,8 @@
       "credentials": ["OPENROUTER_API_KEY"],
       "models": {
         "deepseek/deepseek-v4-flash": { "defaultEffort": "max" },
-        "deepseek/deepseek-v4-pro": { "defaultEffort": "max" }
+        "deepseek/deepseek-v4-pro": { "defaultEffort": "max" },
+        "deepseek/deepseek-v4-pro-0813": { "defaultEffort": "max" }
       }
     },
     "deepinfra": {

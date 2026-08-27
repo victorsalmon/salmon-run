@@ -163,6 +163,66 @@
       },
       "cacheContract": "deepseek-v4",
       "notes": "Strongest reasoning model. Reserved for Frontier-tier plans."
+    },
+    {
+      "canonicalName": "OpenRouter/Deepseek-v4-flash",
+      "harness": "codex",
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v4-flash",
+      "effort": "max",
+      "tier": "Complex",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 0.168,
+      "effectiveCostPer1KTokens": 0.168,
+      "capabilityScore": 84,
+      "benchmarks": {
+        "sweBench": 49.6,
+        "aime2024": 0,
+        "terminalBench21": 58.0,
+        "mmlu": 0
+      },
+      "cacheContract": "none",
+      "notes": "OpenRouter DeepSeek V4 Flash. Benchmark data is merged from ~/.salmon/benchmarks at runtime."
+    },
+    {
+      "canonicalName": "OpenRouter/Deepseek-v4-pro",
+      "harness": "codex",
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v4-pro-0813",
+      "effort": "max",
+      "tier": "Frontier",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 0.87,
+      "effectiveCostPer1KTokens": 0.87,
+      "capabilityScore": 94,
+      "benchmarks": {
+        "sweBench": 55.4,
+        "aime2024": 0,
+        "terminalBench21": 87.9,
+        "mmlu": 0
+      },
+      "cacheContract": "none",
+      "notes": "OpenRouter DeepSeek V4 Pro 0813. Benchmark data is merged from ~/.salmon/benchmarks at runtime."
+    },
+    {
+      "canonicalName": "DeepInfra/DeepSeek-V4-Flash-0731",
+      "harness": "codex",
+      "provider": "deepinfra",
+      "model": "deepseek-ai/DeepSeek-V4-Flash-0731",
+      "effort": "medium",
+      "tier": "Complex",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 0.18,
+      "effectiveCostPer1KTokens": 0.18,
+      "capabilityScore": 83,
+      "benchmarks": {
+        "sweBench": 52.6,
+        "aime2024": 0,
+        "terminalBench21": 82.7,
+        "mmlu": 50.0
+      },
+      "cacheContract": "none",
+      "notes": "DeepInfra DeepSeek V4 Flash 0731. Benchmark data is merged from ~/.salmon/benchmarks at runtime."
     }
   ]
 }
