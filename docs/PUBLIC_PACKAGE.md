@@ -16,7 +16,8 @@ mutable, user-specific, and potentially sensitive state lives.
 | Session logs | - | `~/.salmon/Tasks/Logs` |
 | User configuration | `dot-salmon.example/config.example.json` | `~/.salmon/config.json` |
 | Credential redirects | `dot-salmon.example/.env.example` | `~/.salmon/.env` |
-| Runtime secrets / cache | - | `~/.salmon/secrets`, `~/.salmon/cache` |
+| Git hosting credentials | `dot-salmon.example/git/` | `~/.salmon/git/` |
+|| Runtime secrets / cache | - | `~/.salmon/secrets`, `~/.salmon/cache` |
 | Installed modules | - | `~/.salmon/Modules` or `$PSModulePath` location |
 | Build/package metadata | `package.json`, `install.ps1` | - |
 

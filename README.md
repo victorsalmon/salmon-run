@@ -44,7 +44,7 @@ Most agentic workflow tools either lock you into a vendor, hide state in a datab
 | **Executor adapters** | `PublicLocal.ps1` runs in-process smoke tests; `Opencode.ps1`, `Devin.ps1`, `Dsh.ps1`, `OpenRouter.ps1`, and `DeepInfra.ps1` build real CLI commands for external providers. |
 | **Quality gates** | Evidence headers (`Implementation`, `Reviewed`, `Audit`, `QA`) and `PondLog` events are checked before a plan can advance. `DependsOn` and `children-complete` gating handle dependencies and project plans. |
 | **Rescue and crash throttling** | Stale `Working` and cooled `Failed` plans are rescued back to `Code`; recent crashes throttle the engine with exponential backoff. |
-| **Audit and credentials** | `SalmonRun.Audit` writes hash-chain JSONL logs with redaction; `SalmonRun.Credentials` resolves redirects from `~/.salmon/.env` and is wired into `SalmonRun.GitCloud` token/host resolution. |
+| **Audit and credentials** | `SalmonRun.Audit` writes hash-chain JSONL logs with redaction; `SalmonRun.Credentials` resolves redirects from `~/.salmon/.env` and `~/.salmon/git/` and is wired into `SalmonRun.GitCloud` token/host resolution. |
 | **Mermaid chunking** | `SalmonRun.Mermaid` extracts Mermaid diagrams from markdown and splits them into model-ingestible chunks. |
 | **AQE / testing** | `SalmonRun.AQE` runs the Pester suite and a documentation lint. The flattened `Tests/` suite has **549 passing, 0 failed, 3 skipped**. |
 | **Docker & Swarm packaging** | `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, and `deploy.ps1` support local container and Swarm deploys. |
@@ -69,7 +69,7 @@ What it does:
 - Creates `~/.salmon` for all runtime state.
 - Copies modules to `~/.salmon/Modules`.
 - Wires `SALMON_RUN_HOME` into your user `PSModulePath`.
-- Seeds `~/.salmon/.env` from `dot-salmon.example/.env.example`.
+- Seeds `~/.salmon/.env` and `~/.salmon/git/` from `dot-salmon.example/`.
 - Verifies `Import-Module SalmonRun.PondEngine` loads cleanly.
 
 ### Preview the queues

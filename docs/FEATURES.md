@@ -175,10 +175,10 @@ These are used by the pond engine when claiming files and lanes.
 
 ## 7. Credentials and security
 
-Runtime credentials live in `~/.salmon/.env` as *redirects*, not as committed secrets. `SalmonRun.Credentials` supports several resolver types:
+Runtime credentials live in `~/.salmon/.env` as *redirects*, not as committed secrets. Git-hosting tokens are additionally stored in `~/.salmon/git/` (seeded from `dot-salmon.example/git/` by `install.ps1`) and referenced from `.env` with the `File` resolver. `SalmonRun.Credentials` supports several resolver types:
 
 - `Env` — read from a process environment variable.
-- `File` — read from a file path.
+- `File` — read from a file path such as `~/.salmon/git/worktree-api-token`.
 - `AWS` — read from AWS Secrets Manager or `~/.aws/credentials`/`~/.aws/config`.
 - `GitHub` / `Worktree` — read from the respective secret stores.
 - Literal values and custom resolvers.
@@ -293,7 +293,7 @@ GitHub and Worktree workflows:
 - Creates `~/.salmon` and all task queue folders.
 - Copies `Modules/` and `Modules/` to `~/.salmon/Modules/`.
 - Wires `SALMON_RUN_HOME` into the user `PSModulePath`.
-- Seeds `~/.salmon/.env` from `dot-salmon.example/.env.example`.
+- Seeds `~/.salmon/.env` and `~/.salmon/git/` from `dot-salmon.example/`.
 - Validates a fresh `Import-Module SalmonRun.PondEngine`.
 
 ---
