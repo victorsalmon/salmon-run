@@ -19,17 +19,11 @@ jobs:
         run: |
           Install-Module Pester -MinimumVersion 6.0.0 -Force -SkipPublisherCheck
 
-      - name: Run Orchestrator/Tests
+      - name: Run Tests
         shell: pwsh
         run: |
-          $env:PSModulePath = "${{ github.workspace }}\Orchestrator\Modules;${{ github.workspace }}\Skills\Docker\Modules;" + $env:PSModulePath
-          Invoke-Pester -Path 'Orchestrator/Tests' -Output Detailed
-
-      - name: Run Skills/Docker/Tests
-        shell: pwsh
-        run: |
-          $env:PSModulePath = "${{ github.workspace }}\Orchestrator\Modules;${{ github.workspace }}\Skills\Docker\Modules;" + $env:PSModulePath
-          Invoke-Pester -Path 'Skills/Docker/Tests' -Output Detailed
+          $env:PSModulePath = "${{ github.workspace }}\Modules;" + $env:PSModulePath
+          Invoke-Pester -Path 'Tests' -Output Detailed
 
       - name: Leak check
         shell: pwsh

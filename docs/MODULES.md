@@ -2,10 +2,10 @@
 
 The `salmon-run` package is organized into two module trees:
 
-- `Orchestrator/Modules/` — control-plane modules used by the pond engine and runtime.
-- `Skills/Docker/Modules/` — cross-cutting utility modules used by setup, display, and git/CI helpers.
+- `Modules/` — control-plane modules used by the pond engine and runtime.
+- `Modules/` — cross-cutting utility modules used by setup, display, and git/CI helpers.
 
-## Orchestrator/Modules
+## Modules
 
 | Module | Purpose |
 | :--- | :--- |
@@ -22,7 +22,7 @@ The `salmon-run` package is organized into two module trees:
 | `SalmonRun.Process` | Safe `cmd`/`docker` invocation helpers. |
 | `SalmonRun.WorkflowEvents` | Event journal and mutation/property testing for workflow actions. |
 
-## Skills/Docker/Modules
+## Modules
 
 | Module | Purpose |
 | :--- | :--- |

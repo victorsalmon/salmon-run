@@ -41,7 +41,7 @@ if ($Run -and $DryRun) {
 }
 
 # Bootstrap the module environment from the repo this script lives in.
-$moduleLoader = Join-Path $PSScriptRoot 'Orchestrator' 'Modules' 'SalmonRun.ModuleLoader' 'Public' 'Initialize-InterclawEnvironment.ps1'
+$moduleLoader = Join-Path $PSScriptRoot 'Modules' 'SalmonRun.ModuleLoader' 'Public' 'Initialize-InterclawEnvironment.ps1'
 if (-not (Test-Path $moduleLoader -PathType Leaf)) {
     throw "Start-SalmonRun: module loader not found at $moduleLoader"
 }

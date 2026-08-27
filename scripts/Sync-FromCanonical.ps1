@@ -41,7 +41,7 @@ if (-not (Test-Path $CanonicalRepo -PathType Container)) {
 }
 
 $SourceDirs = @(
-    @{ Src = 'Orchestrator/Modules'; Pattern = 'SalmonRun.*' },
+    @{ Src = 'Modules'; Pattern = 'SalmonRun.*' },
     @{ Src = 'Skills'; Pattern = '*' }
 )
 

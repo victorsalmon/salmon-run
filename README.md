@@ -175,7 +175,7 @@ You can hand the following prompts to an agent (Devin, Codex, OpenCode, Claude, 
 
 ### Understand the repo and suggest workflow improvements
 
-> Read the `salmon-run` repo and help me understand how I can use it to save time and improve my existing workflows. Look at `docs/FEATURES.md`, `docs/EXTENDING.md`, and the `Orchestrator/Modules/SalmonRun.PondEngine` code. Explain the plan → pond → executor pipeline in plain language, and suggest 2–3 concrete ways I could adopt it for my current project based on what you see.
+> Read the `salmon-run` repo and help me understand how I can use it to save time and improve my existing workflows. Look at `docs/FEATURES.md`, `docs/EXTENDING.md`, and the `Modules/SalmonRun.PondEngine` code. Explain the plan → pond → executor pipeline in plain language, and suggest 2–3 concrete ways I could adopt it for my current project based on what you see.
 
 ### Add or override a provider/model
 
@@ -187,7 +187,7 @@ You can hand the following prompts to an agent (Devin, Codex, OpenCode, Claude, 
 
 ### Run the test suite
 
-> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the Orchestrator tests (`Orchestrator/Tests`) and the Docker/Skills tests (`Skills/Docker/Tests`) and report the pass/fail summary. If any tests fail, identify the root cause and propose a fix.
+> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the Orchestrator tests (`Tests`) and the Docker/Skills tests (`Tests`) and report the pass/fail summary. If any tests fail, identify the root cause and propose a fix.
 
 ---
 

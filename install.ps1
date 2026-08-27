@@ -95,8 +95,7 @@ $moduleDestination = Join-Path $RuntimeHome 'Modules'
 $null = New-Item -ItemType Directory -Path $moduleDestination -Force
 
 $moduleSources = @(
-    (Join-Path $PSScriptRoot 'Orchestrator' 'Modules'),
-    (Join-Path $PSScriptRoot 'Skills' 'Docker' 'Modules')
+    (Join-Path $PSScriptRoot 'Modules')
 )
 
 foreach ($src in $moduleSources) {

@@ -72,7 +72,7 @@ Key engine behaviors:
 - **Capacity and lanes**: `Get-FreePondLane` and `Select-PondGroups` enforce per-pond and per-stream limits.
 - **Archive**: `Invoke-PondTaskArchive` compresses completed plans older than 7 days.
 
-See `Orchestrator/Modules/SalmonRun.PondEngine/Public/Start-PondEngine.ps1` and `Orchestrator/Modules/SalmonRun.PondEngine/Public/Get-SalmonRunPonds.ps1`.
+See `Modules/SalmonRun.PondEngine/Public/Start-PondEngine.ps1` and `Modules/SalmonRun.PondEngine/Public/Get-SalmonRunPonds.ps1`.
 
 ---
 
@@ -103,7 +103,7 @@ A plan can list `**DependsOn**` headers. `Test-PlanDependencySatisfied` holds th
 
 The `Project` pond runs `Invoke-PondTaskPlanProject` to split a large plan into child `Code` plans plus a `ProjectReview` plan. The `ProjectReview` pond waits until all child plans are `Complete` (`children-complete` gate) before finishing.
 
-See `Orchestrator/Modules/SalmonRun.PondEngine/Private/PondTasks/` and `Orchestrator/Modules/SalmonRun.PondEngine/Executors/PublicLocal.ps1`.
+See `Modules/SalmonRun.PondEngine/Private/PondTasks/` and `Modules/SalmonRun.PondEngine/Executors/PublicLocal.ps1`.
 
 ---
 
@@ -131,11 +131,11 @@ A `PondExecutionProfile` has these dimensions:
 
 In salmon-run, **provider** is the service/CLI you are calling, **harness** is the backend family, and **model** is the specific endpoint. The **executor** is the Salmon Run PowerShell adapter that actually runs the session: it resolves credentials, builds the CLI command, starts the process, monitors it, writes `.complete`/`.failed` sentinels, and appends `PondLog` events. It is the bridge between the pond engine and the provider CLI.
 
-See `Orchestrator/Modules/SalmonRun.PondEngine/Classes/Pond.ps1`, `Resolve-PondExecutionProfile.ps1`, `Get-PondExecutorCommand.ps1`, and `Get-PondExecutorRegistry.ps1`.
+See `Modules/SalmonRun.PondEngine/Classes/Pond.ps1`, `Resolve-PondExecutionProfile.ps1`, `Get-PondExecutorCommand.ps1`, and `Get-PondExecutorRegistry.ps1`.
 
 ### Executor adapters
 
-`Orchestrator/Modules/SalmonRun.PondEngine/Executors/` contains the runtime adapters:
+`Modules/SalmonRun.PondEngine/Executors/` contains the runtime adapters:
 
 | Executor | What it does | Real-provider status |
 | --- | --- | --- |
@@ -148,7 +148,7 @@ See `Orchestrator/Modules/SalmonRun.PondEngine/Classes/Pond.ps1`, `Resolve-PondE
 | `Local.ps1` | Legacy stub that delegates to `ExternalPublicSafe.ps1`. | Not a real executor. |
 | `ExternalPublicSafe.ps1` | Public-safe placeholder for providers not yet configured. | Not a real executor. |
 
-The default model/harness/provider mapping lives in `Orchestrator/Modules/SalmonRun.PondEngine/Config/model-router-catalog.json` and `harness-defaults.json`.
+The default model/harness/provider mapping lives in `Modules/SalmonRun.PondEngine/Config/model-router-catalog.json` and `harness-defaults.json`.
 
 ---
 
@@ -229,8 +229,8 @@ This is intended to feed context into intake/planning ponds.
 
 The repo has two test suites:
 
-- `Orchestrator/Tests/` — module and engine tests.
-- `Skills/Docker/Tests/` — cross-cutting utility module tests.
+- `Tests/` — module and engine tests.
+- `Tests/` — cross-cutting utility module tests.
 
 Both suites pass in the latest appraisal.
 
@@ -291,7 +291,7 @@ GitHub and Worktree workflows:
 `install.ps1` is the single-command installer:
 
 - Creates `~/.salmon` and all task queue folders.
-- Copies `Orchestrator/Modules/` and `Skills/Docker/Modules/` to `~/.salmon/Modules/`.
+- Copies `Modules/` and `Modules/` to `~/.salmon/Modules/`.
 - Wires `SALMON_RUN_HOME` into the user `PSModulePath`.
 - Seeds `~/.salmon/.env` from `dot-salmon.example/.env.example`.
 - Validates a fresh `Import-Module SalmonRun.PondEngine`.
@@ -302,7 +302,7 @@ GitHub and Worktree workflows:
 
 The package is split into two module trees. `docs/MODULES.md` has the full catalog. Highlights:
 
-### `Orchestrator/Modules/` (control plane)
+### `Modules/` (control plane)
 
 - `SalmonRun.PondEngine` — engine, pond classes, dispatch, model routing, executor registry.
 - `SalmonRun.AgentLifecycle` — PID/heartbeat/stale cleanup.
@@ -318,7 +318,7 @@ The package is split into two module trees. `docs/MODULES.md` has the full catal
 - `SalmonRun.Process` — safe `cmd`/`docker`/`aws` invocation.
 - `SalmonRun.WorkflowEvents` — event journal and namespace logs.
 
-### `Skills/Docker/Modules/` (cross-cutting utilities)
+### `Modules/` (cross-cutting utilities)
 
 - `SalmonRun.DeployState` — setup checkpoint state.
 - `SalmonRun.Diagnostics` — step-by-step diagnostic capture.

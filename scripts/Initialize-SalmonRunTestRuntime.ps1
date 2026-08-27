@@ -88,8 +88,7 @@ if (-not $SkipModuleCopy) {
     $null = New-Item -ItemType Directory -Path $moduleDestination -Force
 
     $moduleSources = @(
-        (Join-Path $RepoDir 'Orchestrator' 'Modules'),
-        (Join-Path $RepoDir 'Skills' 'Docker' 'Modules')
+        (Join-Path $RepoDir 'Modules')
     )
 
     foreach ($src in $moduleSources) {

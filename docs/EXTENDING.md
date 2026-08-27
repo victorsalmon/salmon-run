@@ -16,7 +16,7 @@ A run is resolved to a single `PondExecutionProfile` selecting three dimensions:
 | **Model** | Provider-specific slug | `opencode-go/deepseek-v4-flash` |
 
 Defaults live in
-`Orchestrator/Modules/SalmonRun.PondEngine/Config/model-router-catalog.json`.
+`Modules/SalmonRun.PondEngine/Config/model-router-catalog.json`.
 
 ## Adding a harness adapter
 
@@ -24,13 +24,13 @@ An *adapter* is the executor that actually launches a session on a backend.
 
 1. **Create the executor.** Add a PowerShell script under the executor
    registry, e.g.
-   `Orchestrator/Modules/SalmonRun.PondEngine/Private/Executor/MyBackend.ps1`.
+   `Modules/SalmonRun.PondEngine/Private/Executor/MyBackend.ps1`.
    It must accept a `PondExecutionProfile` and expose a consistent result
    record. Model the boundary on the existing `Local.ps1` / `Opencode.ps1`
    executor files.
 
 2. **Register it.** Add an entry to
-   `Orchestrator/Modules/SalmonRun.PondEngine/Config/model-router-catalog.json`.
+   `Modules/SalmonRun.PondEngine/Config/model-router-catalog.json`.
 
 3. **Verify.** Run `Start-PondEngine -PondFilter Code`. The dispatcher resolves
    the harness, loads the executor, and dispatches the same plan an existing
@@ -48,11 +48,11 @@ A *pond* is a station that watches a queue folder and runs a task sequence.
 1. **Add the folder.** Create a directory under `~/.salmon/Tasks/<PondName>/`
    (or register a source folder).
 2. **Add the pond definition.** Edit
-   `Orchestrator/Modules/SalmonRun.PondEngine/Classes/Pond.ps1` and the
+   `Modules/SalmonRun.PondEngine/Classes/Pond.ps1` and the
    `Get-SalmonRunPonds` function to define the pond's folder, role, operators,
    tasks, and transitions.
 3. **Add task functions.** Create `Invoke-PondTask<MyTask>` scripts under
-   `Orchestrator/Modules/SalmonRun.PondEngine/Private/PondTasks/` and register
+   `Modules/SalmonRun.PondEngine/Private/PondTasks/` and register
    them in the pond definition.
 
 ## Adding a skill
