@@ -20,14 +20,20 @@ param(
     [switch]$Fix,
     [ValidateSet("text", "json")]
     [string]$Format = "text",
-    [string]$ReportPath
+    [string]$ReportPath,
+    [string]$RepoRoot = $PWD.Path
 )
 
-$RepoRoot = $PWD.Path
 if (-not (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathType Leaf)) {
-    $RepoRoot = Split-Path -Parent $PSCommandPath
-    while ($RepoRoot -and -not (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathType Leaf)) {
-        $RepoRoot = Split-Path -Parent $RepoRoot
+    $walk = $RepoRoot
+    $RepoRoot = $null
+    while ($walk -and -not (Test-Path (Join-Path $walk "AGENTS.md") -PathType Leaf)) {
+        $parent = Split-Path -Parent $walk
+        if ($parent -eq $walk) { break }
+        $walk = $parent
+    }
+    if ($walk -and (Test-Path (Join-Path $walk "AGENTS.md") -PathType Leaf)) {
+        $RepoRoot = $walk
     }
 }
 if (-not $RepoRoot -or -not (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathType Leaf)) {

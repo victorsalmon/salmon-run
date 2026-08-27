@@ -21,10 +21,11 @@ function Invoke-SalmonRunDocLint {
     }
 
     try {
-        $output = & $lintScript 2>&1
+        $output = & $lintScript -RepoRoot $RepoDir 2>&1
+        $exitCode = $LASTEXITCODE
         $stderr = $output | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] } | ForEach-Object { $_.ToString() }
         $stdout = $output | Where-Object { $_ -is [string] }
-        $failed = ($stderr.Count -gt 0) -or ($stdout -join ' ') -match 'FAIL|ERROR'
+        $failed = ($exitCode -ne 0) -or ($stderr.Count -gt 0) -or ($stdout -join ' ') -match 'FAIL|ERROR'
         return [PSCustomObject]@{
             Passed   = -not $failed
             Warnings = @()
