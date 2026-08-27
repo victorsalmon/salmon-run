@@ -46,7 +46,7 @@ function Push-WorktreeRepository {
         [string]$WorktreeHost
     )
 
-    $resolvedToken = if ($Token) { $Token } else { Get-WorktreeToken -EnvVarName $EnvVarName }
+    $resolvedToken = if ($Token) { $Token } elseif ($EnvVarName) { Get-WorktreeToken -EnvVarName $EnvVarName } else { Get-WorktreeToken }
     if ([string]::IsNullOrWhiteSpace($resolvedToken)) {
         throw "Push-WorktreeRepository: no worktree token available. Set WORKTREE_REPO_RW_ACCESS_TOKEN or pass -Token."
     }

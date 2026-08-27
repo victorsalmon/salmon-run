@@ -23,19 +23,28 @@ function Invoke-SalmonRunGitCloudPush {
 
     $isHttps = $RemoteUrl -like 'https://*'
     $askPassFile = $null
+    $askPassCmd = $null
 
     try {
         if ($isHttps) {
-            $askPassPath = Join-Path $env:TEMP ("salmon-run-askpass-" + [Guid]::NewGuid().ToString('N') + '.ps1')
+            $baseName = "salmon-run-askpass-" + [Guid]::NewGuid().ToString('N')
+            $askPassPath = Join-Path $env:TEMP ($baseName + '.ps1')
+            $askPassCmdPath = Join-Path $env:TEMP ($baseName + '.cmd')
             $askPassFile = [System.IO.FileInfo]::new($askPassPath)
+            $askPassCmd = [System.IO.FileInfo]::new($askPassCmdPath)
             $askPassScript = @'
 param([string]$Prompt)
 return $env:SALMON_RUN_GITCLOUD_PUSH_TOKEN
 '@
             $askPassScript | Set-Content -LiteralPath $askPassFile.FullName -Encoding utf8 -NoNewline
 
+            @"
+@echo off
+powershell -File `"$($askPassFile.FullName)`" %*
+"@ | Set-Content -LiteralPath $askPassCmd.FullName -Encoding ascii -NoNewline
+
             $env:SALMON_RUN_GITCLOUD_PUSH_TOKEN = $Token
-            $env:GIT_ASKPASS = "powershell -File `"$($askPassFile.FullName)`""
+            $env:GIT_ASKPASS = $askPassCmd.FullName
             $env:GIT_TERMINAL_PROMPT = '1'
         }
 
@@ -54,6 +63,9 @@ return $env:SALMON_RUN_GITCLOUD_PUSH_TOKEN
     } finally {
         if ($askPassFile -and (Test-Path $askPassFile.FullName)) {
             Remove-Item $askPassFile.FullName -Force -ErrorAction SilentlyContinue
+        }
+        if ($askPassCmd -and (Test-Path $askPassCmd.FullName)) {
+            Remove-Item $askPassCmd.FullName -Force -ErrorAction SilentlyContinue
         }
         Remove-Item Env:\SALMON_RUN_GITCLOUD_PUSH_TOKEN -ErrorAction SilentlyContinue
         Remove-Item Env:\GIT_ASKPASS -ErrorAction SilentlyContinue
