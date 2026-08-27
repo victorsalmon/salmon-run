@@ -15,7 +15,7 @@ function Invoke-SalmonRunDocLint {
         [string]$RepoDir = (Get-SalmonRunRepoRoot)
     )
 
-    $lintScript = Join-Path $RepoDir 'Skills' 'Documentation' 'Scripts' 'Invoke-DocLint.ps1'
+    $lintScript = Join-Path $RepoDir 'Tools' 'Documentation' 'Scripts' 'Invoke-DocLint.ps1'
     if (-not (Test-Path -LiteralPath $lintScript)) {
         return [PSCustomObject]@{ Passed = $true; Warnings = @('Doc lint script not found'); Errors = @() }
     }

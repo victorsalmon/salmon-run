@@ -1,9 +1,0 @@
-filename,date,amount,vendor,account,sha256,status
-rbc-6258/2026-01-15 - 33.60 - Freedom.pdf,2026-01-15,33.60,Freedom Mobile,rbc-6258,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,matched
-rbc-6258/2026-02-15 - 45.00 - Netflix.pdf,2026-02-15,45.00,Netflix,rbc-6258,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,uploaded
-rbc-6258/2026-04-01 - 12.99 - OpenRouter.pdf,2026-04-01,12.99,OpenRouter,rbc-6258,cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,archived
-rbc-6258/2026-05-01 - 33.60 - Freedom.pdf,2026-05-01,33.60,Freedom Mobile,rbc-6258,dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd,promoted
-rbc-intersite/2026-03-01 - 150.00 - Interserver.pdf,2026-03-01,150.00,Interserver,rbc-intersite,eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee,matched
-rbc-intersite/2026-03-20 - 200.00 - Revenue.pdf,2026-03-20,200.00,Revenue,rbc-intersite,ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff,orphan
-rbc-6258/2026-06-01 - 0.00 - Unknown.pdf,,0.00,Unknown,rbc-6258,gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg,orphan
-rbc-intersite/unknown-date - 0.00 - Unknown.pdf,,0.00,Unknown,rbc-intersite,hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh,scan-rebuild

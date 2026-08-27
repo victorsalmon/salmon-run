@@ -1,7 +1,0 @@
-{
-  "categories": {
-    "Bank Fees and Charges": 280.26
-  },
-  "total_expenses": 280.26,
-  "note": "Expenses grouped by category from General Ledger. For vendor-level ITC classification, provide a CSV with vendor,amount columns or use a receipt manifest."
-}

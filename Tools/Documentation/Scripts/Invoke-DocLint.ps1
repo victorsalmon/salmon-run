@@ -17,16 +17,20 @@
     ./Invoke-DocLint.ps1 -Format json
 #>
 param(
+    [string]$RepoRoot = '',
     [switch]$Fix,
     [ValidateSet("text", "json")]
     [string]$Format = "text",
     [string]$ReportPath
 )
 
-$RepoRoot = $PWD.Path
+if (-not $RepoRoot) {
+    $RepoRoot = $PWD.Path
+}
 if (-not (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathType Leaf)) {
     $RepoRoot = Split-Path -Parent $PSCommandPath
-    while ($RepoRoot -and -not (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathType Leaf)) {
+    for ($i = 0; $i -lt 5 -and $RepoRoot; $i++) {
+        if (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathType Leaf) { break }
         $RepoRoot = Split-Path -Parent $RepoRoot
     }
 }
@@ -35,23 +39,19 @@ if (-not $RepoRoot -or -not (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathTy
     exit 1
 }
 
-$excludeRelPatterns = @('Skills/_build', 'Tasks', 'node_modules', '.git')
+$excludeRelPatterns = @('_build', 'node_modules', '.git')
 
 function Get-DocFiles {
     $files = @()
-    foreach ($root in @('docs')) {
+    foreach ($root in @('docs', 'Tools')) {
         $fullPath = Join-Path $RepoRoot $root
         if (Test-Path $fullPath) {
             Get-ChildItem $fullPath -Recurse -Include '*.md' -File | ForEach-Object { $files += $_ }
         }
     }
-    foreach ($single in @('AGENTS.md', 'AGENTS-Code.md')) {
+    foreach ($single in @('README.md', 'AGENTS.md')) {
         $p = Join-Path $RepoRoot $single
         if (Test-Path $p) { $files += Get-Item $p }
-    }
-    $skillsDir = Join-Path $RepoRoot 'Skills'
-    if (Test-Path $skillsDir) {
-        Get-ChildItem $skillsDir -Recurse -Include '*.md' -File | ForEach-Object { $files += $_ }
     }
     $result = @()
     foreach ($f in $files) {
@@ -77,6 +77,9 @@ function Test-ExemptRef {
     if ($Ref -match '<[^>]+>') { return $true }
     if ($Ref -match '^\$[a-zA-Z]') { return $true }
     if ($Ref -match '^[A-Za-z]:\\') { return $true }
+    if ($Ref -match '^~') { return $true }
+    if ($Ref -match '^\.salmon') { return $true }
+    if ($Ref -match '^Tasks/') { return $true }
     if ($Ref -match '\.(jpg|jpeg|png|gif|svg|ico|webp|css|woff2?|ttf|eot)$') { return $true }
     if ($Ref -match '^(npm|node|python|pip|git|docker|pwsh)\.') { return $true }
     if ($Ref -match '^Tasks[/\\]Logs') { return $true }
@@ -92,7 +95,7 @@ function Resolve-Ref {
     if ([string]::IsNullOrWhiteSpace($pathOnly)) { return $null }
     if (Test-ExemptRef $pathOnly) { return $null }
     if ($pathOnly -match '^\.md$') { return $null }
-    $rootPrefixes = @('Skills/', 'docs/', 'Tasks/', 'Infrastructure/', 'Scripts/', 'Configuration/', 'Personas/')
+    $rootPrefixes = @('docs/', 'Tools/', 'Modules/', 'Tests/', 'scripts/', 'dot-salmon.example/')
     $isRootRef = $false
     foreach ($p in $rootPrefixes) { if ($pathOnly -match "^$([regex]::Escape($p))") { $isRootRef = $true; break } }
     $seen = @{}
@@ -134,7 +137,7 @@ function Get-RefsFromLine {
     $seen = @{}
     $patterns = @(
         '(?<=\]\()([^)]+(?:\.md|\.ps1|\.psm1|\.psd1|\.py|\.js|\.mjs|\.json|\.yml|\.yaml|\.toml|\.cfg|\.ini|\.sh|\.bat|\.cmd|\.csv|\.env|\.txt|\.html|\.ts|\.tsx)(?::\d+)?)(?=\))',
-        '`((?:Skills|docs|Tasks|Infrastructure|Scripts|Configuration|Business\sPlans|Personas|Workflows|Opencode)/[A-Za-z0-9_./\\-]+\.[a-z]{2,})`',
+        '`((?:docs|Tools|Modules|Tests|scripts|dot-salmon\.example)/[A-Za-z0-9_./\\-]+\.[a-z]{2,})`',
         '`([A-Za-z0-9_/\\-]+\.[a-z]{2,4}:\d+)`',
         '`([A-Z][A-Za-z0-9]*/[A-Za-z0-9_./\\-]+\.[a-z]{2,})`',
         '(?<=file:///)([A-Za-z0-9_./\\-]+)'
