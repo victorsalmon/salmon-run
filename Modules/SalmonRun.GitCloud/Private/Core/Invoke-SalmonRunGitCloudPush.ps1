@@ -39,7 +39,9 @@ return $env:SALMON_RUN_GITCLOUD_PUSH_TOKEN
             $env:GIT_TERMINAL_PROMPT = '1'
         }
 
-        $output = & git push $RemoteUrl $RefSpec 2>&1
+        # Disable any credential helper so the GIT_ASKPASS token from this call is used,
+        # rather than a token that may already be cached for the worktree host.
+        $output = & git -c credential.helper= push $RemoteUrl $RefSpec 2>&1
         $exit = $LASTEXITCODE
 
         foreach ($line in $output) { Write-Verbose "Invoke-SalmonRunGitCloudPush: $line" }
