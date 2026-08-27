@@ -45,90 +45,48 @@ function Get-PondExecutorCommand {
 
     $quotedFiles = @($PlanFiles | ForEach-Object { "`"$_`"" })
     $fileArgs = $quotedFiles -join ' '
+
+    # Descriptive command string for logging. The real execution uses StartInfo.
     $command = if ($Profile.Provider -in @('opencode','opencode-go')) {
         "$($Profile.Cli) run <prompt> --model $($Profile.Model) --variant $($Profile.Effort) --auto -f $fileArgs"
+    } elseif ($Profile.Provider -eq 'local' -or $Profile.Cli -in @('powershell','pwsh')) {
+        "$($Profile.Cli) -File `"$executorPath`" -Role $Role -LanePath `"$LanePath`" -RepoDir `"$RepoDir`" -Provider $($Profile.Provider) $fileArgs"
+    } elseif ($Profile.Harness -eq 'deepseek' -or $Profile.Provider -in @('dsh','openrouter','deepinfra')) {
+        "dsh --profile headless --provider $($Profile.Provider) --model $($Profile.Model) --prompt <plans>"
+    } elseif ($Profile.Provider -eq 'devin') {
+        "devin --prompt-file $fileArgs --model $($Profile.Model) -p"
     } else {
         "$($Profile.Cli) run --command work-$Role-once --model $($Profile.Model) --effort $($Profile.Effort) --files $fileArgs"
     }
 
-    # Build a structured StartInfo for Start-Process. The OpenCode adapters
-    # and the local PowerShell executor receive the lane, repo, model,
-    # effort, timeout, and plan files as parameters.
-    if ($Profile.Provider -in @('opencode','opencode-go')) {
-        $filePath = if (Get-Command -Name 'pwsh' -CommandType Application -ErrorAction SilentlyContinue) {
-            'pwsh'
-        } else {
-            'powershell'
-        }
-
-        $argumentList = @(
-            '-NoProfile'
-            '-NonInteractive'
-            '-File', $executorPath
-            '-Role', $Role
-            '-LanePath', $LanePath
-            '-RepoDir', $RepoDir
-            '-Provider', $Profile.Provider
-        )
-        if (-not [string]::IsNullOrWhiteSpace($Profile.Model)) {
-            $argumentList += '-Model'
-            $argumentList += $Profile.Model
-        }
-        if (-not [string]::IsNullOrWhiteSpace($Profile.Effort)) {
-            $argumentList += '-Effort'
-            $argumentList += $Profile.Effort
-        }
-        if ($TimeoutMinutes -gt 0) {
-            $argumentList += '-TimeoutMinutes'
-            $argumentList += $TimeoutMinutes
-        }
-        foreach ($pf in $PlanFiles) { $argumentList += $pf }
-    } elseif ($Profile.Provider -in @('devin','openrouter','deepinfra')) {
-        $filePath = if (Get-Command -Name 'pwsh' -CommandType Application -ErrorAction SilentlyContinue) {
-            'pwsh'
-        } else {
-            'powershell'
-        }
-
-        $argumentList = @(
-            '-NoProfile'
-            '-NonInteractive'
-            '-File', $executorPath
-            '-Role', $Role
-            '-LanePath', $LanePath
-            '-RepoDir', $RepoDir
-            '-Provider', $Profile.Provider
-        )
-        if (-not [string]::IsNullOrWhiteSpace($Profile.Model)) {
-            $argumentList += '-Model'
-            $argumentList += $Profile.Model
-        }
-        if (-not [string]::IsNullOrWhiteSpace($Profile.Effort)) {
-            $argumentList += '-Effort'
-            $argumentList += $Profile.Effort
-        }
-        if ($TimeoutMinutes -gt 0) {
-            $argumentList += '-TimeoutMinutes'
-            $argumentList += $TimeoutMinutes
-        }
-        foreach ($pf in $PlanFiles) { $argumentList += $pf }
-    } elseif ($Profile.Provider -eq 'local' -or $Profile.Cli -in @('powershell','pwsh')) {
-        $filePath = if ($Profile.Cli -in @('pwsh','powershell')) { $Profile.Cli } else { 'powershell' }
-        $argumentList = @(
-            '-NoProfile'
-            '-NonInteractive'
-            '-File', $executorPath
-            '-Role', $Role
-            '-LanePath', $LanePath
-            '-RepoDir', $RepoDir
-            '-Provider', $Profile.Provider
-        )
-        foreach ($pf in $PlanFiles) { $argumentList += $pf }
-        $command = "$filePath -NoProfile -NonInteractive -File `"$executorPath`" -Role $Role -LanePath `"$LanePath`" -RepoDir `"$RepoDir`" -Provider $Profile.Provider $fileArgs"
+    $filePath = if (Get-Command -Name 'pwsh' -CommandType Application -ErrorAction SilentlyContinue) {
+        'pwsh'
     } else {
-        $filePath = $Profile.Cli
-        $argumentList = @('run','--command',"work-$Role-once",'--model',$Profile.Model,'--effort',$Profile.Effort,'--files') + @($PlanFiles)
+        'powershell'
     }
+
+    $argumentList = @(
+        '-NoProfile'
+        '-NonInteractive'
+        '-File', $executorPath
+        '-Role', $Role
+        '-LanePath', $LanePath
+        '-RepoDir', $RepoDir
+        '-Provider', $Profile.Provider
+    )
+    if (-not [string]::IsNullOrWhiteSpace($Profile.Model)) {
+        $argumentList += '-Model'
+        $argumentList += $Profile.Model
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Profile.Effort)) {
+        $argumentList += '-Effort'
+        $argumentList += $Profile.Effort
+    }
+    if ($TimeoutMinutes -gt 0) {
+        $argumentList += '-TimeoutMinutes'
+        $argumentList += $TimeoutMinutes
+    }
+    foreach ($pf in $PlanFiles) { $argumentList += $pf }
 
     return [PSCustomObject]@{
         ExecutorPath = $executorPath

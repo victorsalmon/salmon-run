@@ -48,6 +48,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+$script:SupportedProviders = @('opencode','opencode-go')
+$script:SupportedModels = @{
+    'opencode'     = @('opencode/hy3-free','opencode/mimo-v2.5-free')
+    'opencode-go'  = @('opencode-go/mimo-v2.5','opencode-go/deepseek-v4-flash','opencode-go/deepseek-v4-pro')
+}
+
 function Resolve-OpencodeCredential {
     <#
     .SYNOPSIS
@@ -143,6 +149,10 @@ function Invoke-OpencodeProvider {
         throw "Repo directory not found: $RepoDir"
     }
 
+    if ($Provider -notin $script:SupportedProviders) {
+        throw "OpenCode executor: provider '$Provider' is not supported. Supported: $($script:SupportedProviders -join ', ')."
+    }
+
     # Determine the model, applying provider-specific defaults.
     if ([string]::IsNullOrWhiteSpace($Model)) {
         $Model = switch ($Provider) {
@@ -150,6 +160,10 @@ function Invoke-OpencodeProvider {
             'opencode'    { 'opencode/hy3-free' }
             default       { 'opencode/hy3-free' }
         }
+    }
+
+    if ($Model -notin $script:SupportedModels[$Provider]) {
+        throw "OpenCode executor: model '$Model' is not supported for provider '$Provider'. Supported: $($script:SupportedModels[$Provider] -join ', ')."
     }
 
     if ([string]::IsNullOrWhiteSpace($Effort)) {

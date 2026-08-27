@@ -39,6 +39,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+$script:SupportedProviders = @('devin')
+$script:SupportedModels = @('swe-1-7')
+
 function Resolve-DevinCredential {
     $key = $null
     if (Get-Command Get-SalmonRunCredential -ErrorAction SilentlyContinue) {
@@ -93,6 +96,46 @@ function Write-PlanLog {
     }
 }
 
+function Get-DevinRolePrompt {
+    param([string]$Role)
+    switch ($Role) {
+        'reviewer'        { return 'Review the following salmon-run plan and suggest any improvements.' }
+        'auditor'         { return 'Audit the following salmon-run plan for security, privacy, and best-practice issues.' }
+        'qa'              { return 'QA the following salmon-run plan. Verify it is complete, testable, and free of defects.' }
+        'planner'         { return 'Plan the following salmon-run request. Break it into clear, actionable steps.' }
+        'project'         { return 'Manage the following salmon-run project plan and report progress.' }
+        'project-planner' { return 'Plan the following salmon-run project. Break it into child work items.' }
+        'project-reviewer'{ return 'Review the following salmon-run project plan and child work items.' }
+        default           { return 'Implement the following salmon-run plan.' }
+    }
+}
+
+function New-DevinPromptFile {
+    <#
+    .SYNOPSIS
+        Builds a single prompt file from the role prompt and the plan files.
+        devin.exe accepts --prompt-file for non-interactive use.
+    #>
+    $parts = @()
+    $rolePrompt = Get-DevinRolePrompt -Role $Role
+    if ($rolePrompt) {
+        $parts += $rolePrompt
+    }
+
+    foreach ($pf in $PlanFiles) {
+        $content = Get-Content -LiteralPath $pf -Raw -ErrorAction SilentlyContinue
+        if (-not [string]::IsNullOrWhiteSpace($content)) {
+            $parts += "--- plan: $pf ---"
+            $parts += $content
+        }
+    }
+
+    $prompt = $parts -join "`n`n"
+    $tmp = [System.IO.Path]::GetTempFileName() + '.md'
+    $prompt | Set-Content -LiteralPath $tmp -Encoding utf8 -NoNewline
+    return $tmp
+}
+
 function Invoke-DevinProvider {
     [CmdletBinding()]
     [OutputType([int])]
@@ -105,8 +148,16 @@ function Invoke-DevinProvider {
         throw "Repo directory not found: $RepoDir"
     }
 
+    if ($Provider -notin $script:SupportedProviders) {
+        throw "Devin executor: provider '$Provider' is not supported. Supported: $($script:SupportedProviders -join ', ')."
+    }
+
     if ([string]::IsNullOrWhiteSpace($Model)) {
         $Model = 'swe-1-7'
+    }
+
+    if ($Model -notin $script:SupportedModels) {
+        throw "Devin executor: model '$Model' is not supported. Supported: $($script:SupportedModels -join ', ')."
     }
 
     if ([string]::IsNullOrWhiteSpace($Effort)) {
@@ -119,65 +170,75 @@ function Invoke-DevinProvider {
     $outLog = Join-Path $LanePath 'devin.log'
     $errLog = Join-Path $LanePath 'devin.err'
 
-    $argumentList = @(
-        'run'
-        '--command', "work-$Role-once"
-        '--model', $Model
-        '--effort', $Effort
-        '--files'
-    ) + @($PlanFiles)
-
-    Write-PlanLog -Action 'spawn' -Detail "provider=$Provider model=$Model effort=$Effort"
-
-    $process = $null
-    $exitCode = 1
+    $promptFile = $null
     try {
-        $process = Start-Process -FilePath 'devin' -ArgumentList $argumentList `
-            -WorkingDirectory $RepoDir `
-            -RedirectStandardOutput $outLog `
-            -RedirectStandardError $errLog `
-            -NoNewWindow -PassThru -ErrorAction Stop
+        $promptFile = New-DevinPromptFile
 
-        $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
-        while ((Get-Date) -lt $deadline -and $process -and -not $process.HasExited) {
-            Start-Sleep -Seconds 1
-        }
+        $argumentList = @(
+            '--prompt-file', $promptFile
+            '-p'
+            '--model', $Model
+        )
 
-        if ($process -and -not $process.HasExited) {
-            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-            $exitCode = 1
-        } else {
-            if ($process) {
-                Start-Sleep -Milliseconds 500
-                $exitCode = $process.ExitCode
-            } else {
-                $exitCode = 1
-            }
-        }
+        # If an effort hint is useful for future devin versions, keep it as an
+        # extra flag. Current devin.exe does not expose --effort, so we log it
+        # but do not include it in the argument list.
+        Write-PlanLog -Action 'spawn' -Detail "provider=$Provider model=$Model effort=$Effort"
 
-        if (Test-Path -LiteralPath $errLog) {
-            $errText = Get-Content -LiteralPath $errLog -Raw -ErrorAction SilentlyContinue
-            if ($errText) {
-                "`n--- stderr ---`n$errText" | Add-Content -LiteralPath $outLog -Encoding utf8 -ErrorAction SilentlyContinue
-            }
-        }
-    } catch {
-        $_.Exception.Message | Set-Content -LiteralPath $errLog -Encoding utf8 -NoNewline
+        $process = $null
         $exitCode = 1
-    }
+        try {
+            $process = Start-Process -FilePath 'devin' -ArgumentList $argumentList `
+                -WorkingDirectory $RepoDir `
+                -RedirectStandardOutput $outLog `
+                -RedirectStandardError $errLog `
+                -NoNewWindow -PassThru -ErrorAction Stop
 
-    $resultAction = if ($exitCode -eq 0) { 'external-complete' } else { 'external-fail' }
-    Write-PlanLog -Action $resultAction -Detail "exit=$exitCode"
+            $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
+            while ((Get-Date) -lt $deadline -and $process -and -not $process.HasExited) {
+                Start-Sleep -Seconds 1
+            }
 
-    $completeFile = Join-Path $LanePath '.complete'
-    $failedFile = Join-Path $LanePath '.failed'
+            if ($process -and -not $process.HasExited) {
+                Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+                $exitCode = 1
+            } else {
+                if ($process) {
+                    Start-Sleep -Milliseconds 500
+                    $exitCode = $process.ExitCode
+                } else {
+                    $exitCode = 1
+                }
+            }
 
-    if ($exitCode -eq 0) {
-        '1' | Set-Content -LiteralPath $completeFile -Encoding utf8 -NoNewline
-        return 0
-    } else {
-        '1' | Set-Content -LiteralPath $failedFile -Encoding utf8 -NoNewline
-        return 1
+            if (Test-Path -LiteralPath $errLog) {
+                $errText = Get-Content -LiteralPath $errLog -Raw -ErrorAction SilentlyContinue
+                if ($errText) {
+                    "`n--- stderr ---`n$errText" | Add-Content -LiteralPath $outLog -Encoding utf8 -ErrorAction SilentlyContinue
+                }
+            }
+        } catch {
+            $_.Exception.Message | Set-Content -LiteralPath $errLog -Encoding utf8 -NoNewline
+            $exitCode = 1
+        }
+
+        $resultAction = if ($exitCode -eq 0) { 'external-complete' } else { 'external-fail' }
+        Write-PlanLog -Action $resultAction -Detail "exit=$exitCode"
+
+        $completeFile = Join-Path $LanePath '.complete'
+        $failedFile = Join-Path $LanePath '.failed'
+
+        if ($exitCode -eq 0) {
+            '1' | Set-Content -LiteralPath $completeFile -Encoding utf8 -NoNewline
+            return 0
+        } else {
+            '1' | Set-Content -LiteralPath $failedFile -Encoding utf8 -NoNewline
+            return 1
+        }
+    } finally {
+        if ($promptFile -and (Test-Path -LiteralPath $promptFile)) {
+            Remove-Item -LiteralPath $promptFile -ErrorAction SilentlyContinue
+        }
     }
 }
 
