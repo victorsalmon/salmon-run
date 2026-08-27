@@ -160,6 +160,36 @@ See [`docs/roadmap.md`](./docs/roadmap.md) and [`docs/implementation.md`](./docs
 
 ---
 
+## Prompts for agents
+
+You can hand the following prompts to an agent (Devin, Codex, OpenCode, Claude, etc.) to get it working with `salmon-run` in your environment. Copy the prompt, adjust the install path if needed, and run it.
+
+### Install salmon-run
+
+> Read the `salmon-run` repo and install it on this machine. Run `install.ps1`, create the `~/.salmon` runtime home, and verify that `Start-SalmonRun.ps1 -DryRun` lists the task queues. If the user wants the source somewhere other than `~/salmon-run`, use the path they specify.
+
+### Set up task queues
+
+> Ensure the `~/.salmon/Tasks/*` folders exist (`Intake`, `Code`, `Review`, `Audit`, `QA`, `Complete`, `Archive`, `Failed`, `Working`, `Project`, `ProjectReview`, `Manual`, `Handoffs`, `Temp`, `Schedules`, `Logs`, `Locks`). If they are missing, create them. Then run `Start-SalmonRun.ps1 -DryRun` and report the queue counts.
+
+### Understand the repo and suggest workflow improvements
+
+> Read the `salmon-run` repo and help me understand how I can use it to save time and improve my existing workflows. Look at `docs/FEATURES.md`, `docs/EXTENDING.md`, and the `Orchestrator/Modules/SalmonRun.PondEngine` code. Explain the plan → pond → executor pipeline in plain language, and suggest 2–3 concrete ways I could adopt it for my current project based on what you see.
+
+### Add or override a provider/model
+
+> Add a new provider overlay to `~/.salmon/providers/my-provider.json` that registers a provider, its CLI, a model, effort settings, and credentials. Then create a sample plan in `~/.salmon/Tasks/Intake` with a `Challenge` tier that routes to that provider, and run `Start-SalmonRun.ps1 -DryRun` to show that `Resolve-PondExecutionProfile` resolves it correctly.
+
+### Run the local smoke-test pipeline
+
+> Create a sample plan in `~/.salmon/Tasks/Intake` with the required headers (`Status`, `Scope`, `Challenge`), then run `Start-SalmonRun.ps1 -Run -MaxIterations 5 -PollIntervalSeconds 0` using the `PublicLocal` executor. Verify the plan moves through `Code`, `Review`, `Audit`, `QA`, and `Complete`, and report any failures.
+
+### Run the test suite
+
+> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the Orchestrator tests (`Orchestrator/Tests`) and the Docker/Skills tests (`Skills/Docker/Tests`) and report the pass/fail summary. If any tests fail, identify the root cause and propose a fix.
+
+---
+
 ## License
 
 `salmon-run` is free and open source under the [MIT License](./LICENSE).
