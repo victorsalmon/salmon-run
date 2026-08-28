@@ -73,7 +73,8 @@ jobs:
       - name: Verify archive contents
         shell: bash
         run: |
-          tar -tzf "salmon-run-${{ steps.archive.outputs.version }}.tar.gz" | grep -E '^\./(install\.ps1|Modules/|docs/|dot-salmon\.example/)' | head
+          tar -tzf "salmon-run-${{ steps.archive.outputs.version }}.tar.gz" | grep -E '^\./(install\.ps1|Modules/|docs/|dot-salmon\.example/)' > /tmp/archive-list.txt
+          head -n 20 /tmp/archive-list.txt
 
       - name: Create GitHub release
         env:
