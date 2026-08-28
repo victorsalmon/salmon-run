@@ -27,11 +27,12 @@ param(
 if (-not $RepoRoot) {
     $RepoRoot = $PWD.Path
 }
+$RepoRoot = [System.IO.Path]::GetFullPath($RepoRoot).TrimEnd('\', '/')
 if (-not (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathType Leaf)) {
-    $RepoRoot = Split-Path -Parent $PSCommandPath
+    $RepoRoot = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSCommandPath)).TrimEnd('\', '/')
     for ($i = 0; $i -lt 5 -and $RepoRoot; $i++) {
         if (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathType Leaf) { break }
-        $RepoRoot = Split-Path -Parent $RepoRoot
+        $RepoRoot = [System.IO.Path]::GetFullPath((Split-Path -Parent $RepoRoot)).TrimEnd('\', '/')
     }
 }
 if (-not $RepoRoot -or -not (Test-Path (Join-Path $RepoRoot "AGENTS.md") -PathType Leaf)) {
