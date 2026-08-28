@@ -193,10 +193,13 @@ Describe 'Pond executor registry' -Tag 'PondEngine', 'Regression-Only' {
         $profile.ExecutorFile | Should -Not -BeNullOrEmpty
     }
 
-    It 'resolves different models for each tier' {
+    It 'routes every tier to the configured opencode-go model' {
         $flash = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Flash' }
         $frontier = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }
-        $flash.Model | Should -Not -Be $frontier.Model -Because 'Flash and Frontier should route to different models'
+        $flash.Provider | Should -Be 'opencode-go'
+        $frontier.Provider | Should -Be 'opencode-go'
+        $flash.Model | Should -Be 'opencode-go/hy3'
+        $frontier.Model | Should -Be 'opencode-go/hy3'
     }
 
     It 'produces a runnable executor command from a profile' {
