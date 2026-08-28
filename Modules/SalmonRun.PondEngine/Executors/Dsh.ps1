@@ -135,12 +135,15 @@ function Get-DshTaskPrompt {
     foreach ($pf in $PlanFiles) {
         $content = Get-Content -LiteralPath $pf -Raw -ErrorAction SilentlyContinue
         if (-not [string]::IsNullOrWhiteSpace($content)) {
-            $parts += "--- plan: $pf ---"
-            $parts += $content
+            # Avoid a leading "---" token, which the dsh CLI treats as an
+            # unknown option. Flatten line breaks so Start-Process does not
+            # split the prompt across multiple positional arguments.
+            $parts += "plan: $pf"
+            $parts += ($content -replace "`r?`n", " ")
         }
     }
 
-    return ($parts -join "`n`n")
+    return ($parts -join " ")
 }
 
 function Resolve-DshModelSlug {
@@ -311,27 +314,28 @@ function Invoke-DshProvider {
         $outLog = Join-Path $LanePath 'dsh.log'
         $errLog = Join-Path $LanePath 'dsh.err'
 
-        # On Windows, the `dsh` npm wrapper is installed as `dsh.cmd`;
-        # the extension-less `dsh` file is a POSIX shell script that Windows
-        # cannot execute directly. Resolve the correct executable.
+        # On Windows, the `dsh` npm wrapper is installed as both `dsh.cmd`
+        # and `dsh.ps1`. The .cmd wrapper can hang when its output is
+        # redirected by Start-Process, so prefer the PowerShell wrapper when
+        # it is available.
         $onWindows = $IsWindows -or $env:OS -eq 'Windows_NT'
         $cliPath = 'dsh'
         $argumentList = @('--profile','headless','--patch',$patchFile)
         if ($onWindows) {
-            $cmdPath = (Get-Command 'dsh.cmd' -ErrorAction SilentlyContinue)?.Source
-            if ($cmdPath) {
-                $cliPath = $cmdPath
+            $ps1Path = (Get-Command 'dsh.ps1' -ErrorAction SilentlyContinue)?.Source
+            if ($ps1Path) {
+                $cliPath = 'pwsh'
+                $argumentList = @('-NoProfile','-NonInteractive','-File', $ps1Path, '--profile','headless','--patch',$patchFile)
             } else {
-                $ps1Path = (Get-Command 'dsh.ps1' -ErrorAction SilentlyContinue)?.Source
-                if ($ps1Path) {
-                    $cliPath = 'pwsh'
-                    $argumentList = @('-NoProfile','-NonInteractive','-File', $ps1Path, '--profile','headless','--patch',$patchFile)
+                $cmdPath = (Get-Command 'dsh.cmd' -ErrorAction SilentlyContinue)?.Source
+                if ($cmdPath) {
+                    $cliPath = $cmdPath
                 }
             }
         }
 
-        # The task prompt is the final positional argument. Quote it so the
-        # shell does not split it.
+        # The task prompt is the final positional argument. It is already a
+        # single, space-flattened string so it is passed as one array element.
         $argumentList += $taskPrompt
 
         Write-PlanLog -Action 'spawn' -Detail "provider=$Provider model=$Model mapped=$modelSlug effort=$Effort cli=$cliPath"

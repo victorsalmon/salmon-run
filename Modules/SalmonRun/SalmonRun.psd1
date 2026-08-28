@@ -32,5 +32,34 @@
     CmdletsToExport = @()
     VariablesToExport = @()
     AliasesToExport = @()
-    PrivateData = @{ PSData = @{ Tags = @('salmon-run', 'kanban', 'agent', 'orchestration'); LicenseUri = 'https://github.com/clocklobster/salmon-run/blob/main/LICENSE'; ProjectUri = 'https://github.com/clocklobster/salmon-run'; } }
+    PrivateData = @{ PSData = @{
+        Tags = @('salmon-run', 'kanban', 'agent', 'orchestration')
+        LicenseUri = 'https://github.com/clocklobster/salmon-run/blob/main/LICENSE'
+        ProjectUri = 'https://github.com/clocklobster/salmon-run'
+        # The SalmonRun.* submodules ship together in the repository and are
+        # installed by install.ps1 rather than published individually to the
+        # Gallery, so they are declared external to the package dependency
+        # resolver.
+        ExternalModuleDependencies = @(
+            'SalmonRun.Constants',
+            'SalmonRun.Paths',
+            'SalmonRun.ModuleLoader',
+            'SalmonRun.Core',
+            'SalmonRun.Config',
+            'SalmonRun.Credentials',
+            'SalmonRun.Locking',
+            'SalmonRun.Ports',
+            'SalmonRun.Process',
+            'SalmonRun.AgentLifecycle',
+            'SalmonRun.PondEngine',
+            'SalmonRun.Display',
+            'SalmonRun.Diagnostics',
+            'SalmonRun.Audit',
+            'SalmonRun.AQE',
+            'SalmonRun.Mermaid',
+            'SalmonRun.DeployState',
+            'SalmonRun.GitCloud',
+            'SalmonRun.WorkflowEvents'
+        )
+    } }
 }

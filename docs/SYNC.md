@@ -50,13 +50,15 @@ git remote add canonical <path-to-salmon-orchestrator>
 
 This script:
 
-1. Copies `Modules/`, `Tests/`, and `dot-salmon.example/` from the canonical
-   repo into the public repo.
-2. Applies a runtime text scrub that removes:
-   - User profile paths (`C:\Users\<username>`, `/home/<user>`)
+1. Copies `Modules/` (the `SalmonRun.*` modules) and `Skills/` from the
+   canonical repo into the public repo, preserving public-only layout.
+2. Applies a runtime text scrub (see `scripts/Sync-FromCanonical.ps1`, the
+   `$privatePatterns` array and the `Invoke-ScrubString` helper) that removes:
+   - User profile paths (the `$env:USERPROFILE` value)
    - Windows `C:\Users` usernames
-   - Internal hostnames and FQDNs
-   - Credential-like strings (tokens, API keys)
+   - Internal hostnames and FQDNs (`worktree.ca/...`, `github.com/...`)
+   - Credential-like strings (`token=`, `key=`, `secret=`, `password=`,
+     `api_key=` assignments)
    - Internal fleet references and private URLs
 3. Runs `Invoke-LeakCheck.ps1` automatically.
 
@@ -105,19 +107,22 @@ git push origin main
 ## Scrub rules
 
 The sync script (`Sync-FromCanonical.ps1`) applies the following regex-based
-scrub patterns. These rules are hardcoded in the script's `$scrubPatterns`
-parameter:
+scrub patterns. These rules are defined in the script's `$privatePatterns`
+array inside the `Invoke-ScrubString` helper, and every match is replaced with
+the literal `{{REDACTED}}`:
 
-| Category | Pattern | Example |
+| Category | Pattern | Matches |
 |----------|---------|---------|
-| User profile paths | `C:\\Users\\[^\\\s"]+` | `C:\Users\jdoe` → `[REDACTED]` |
-| Unix home paths | `/home/[^/\s"]+` | `/home/jdoe` → `[REDACTED]` |
-| Internal hostnames | `\b(?:internal|fleet|corp)\.example\.com\b` | `internal.example.com` → `[REDACTED]` |
-| Credential-like strings | `(?:sk-|ghp_)[a-zA-Z0-9]{20,}` | `sk-proj-abc123...` → `[REDACTED]` |
-| Private URLs | `https?://[^/\s]*\.(?:internal|corp)\.` | `https://secrets.internal.corp/` → `[REDACTED]` |
+| User profile paths | `$env:USERPROFILE` (regex-escaped) | The current user's home directory, e.g. `C:\Users\jdoe` |
+| Windows `C:\Users` usernames | `C:\\+Users\\+[^\\]+` | `C:\Users\jdoe`, `C:/Users/jdoe` |
+| Internal hostnames / FQDNs | `worktree\.ca/[^\s]+` | `worktree.ca/clocklobster/salmon-run` (private host) |
+| Public-origin host references | `github\.com/[^\s]+` | `github.com/...` paths that should not appear in scrubbed text |
+| Credential-like strings | `(?i)\b(token\|key\|secret\|password\|api_key)\s*=\s*[^\s\r\n]+` | `token=abc123`, `api_key=sk-...`, `password=hunter2` |
 
-To add or modify scrub patterns, edit the `$scrubPatterns` array in
-`scripts/Sync-FromCanonical.ps1`.
+Text files matching `*.ps1`, `*.psm1`, `*.psd1`, `*.json`, `*.md`, `*.yml`,
+`*.yaml`, `*.env`, and `*.txt` are scrubbed on copy; all other files are
+copied verbatim. To add or modify scrub patterns, edit the `$privatePatterns`
+array in `scripts/Sync-FromCanonical.ps1`.
 
 ---
 

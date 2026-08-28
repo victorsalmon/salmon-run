@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
-ARG SALMON_RUN_VERSION=0.1.0
 FROM mcr.microsoft.com/powershell:latest
+
+ARG SALMON_RUN_VERSION=0.1.0
 
 LABEL org.opencontainers.image.title="salmon-run" \
       org.opencontainers.image.description="File-based Kanban control plane with pond dispatch and model routing" \

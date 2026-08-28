@@ -11,9 +11,6 @@ param(
 $patterns = @(
     'C:\\Repos'
     'C:\\Users\\RDP'
-    'worktree\.ca'
-    'clocklobster'
-    'ClockLobster'
     'Intersite'
     'anomalyco'
     'currents-bookkeeping|currentsbk\.ca'

@@ -26,8 +26,7 @@ param(
     [string]$Repository = 'PSGallery',
     [string]$ApiKey,
     [string]$ModulePath = (Join-Path $PSScriptRoot '..' 'Modules' 'SalmonRun'),
-    [string]$LocalRepository,
-    [switch]$WhatIf
+    [string]$LocalRepository
 )
 
 $ErrorActionPreference = 'Stop'

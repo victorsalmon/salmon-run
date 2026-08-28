@@ -170,8 +170,8 @@ Describe "DSH provider contract" -Tag "Contract", "Regression" {
             $args | Should -Contain '--patch'
             $pIdx = [array]::IndexOf($args, '--patch')
             $args[$pIdx + 1] | Should -BeLike '*.yml'
-            $args[-1] | Should -Match '--- plan:'
-            $script:captured.FilePath | Should -BeLike '*dsh*'
+            $args[-1] | Should -Match 'Implement the following salmon-run plan'
+            $script:captured.FilePath | Should -Match 'pwsh|dsh'
         }
 
         It "sets DEEPSEEK_API_KEY and DEEPSEEK_BASE_URL as process env vars" {
