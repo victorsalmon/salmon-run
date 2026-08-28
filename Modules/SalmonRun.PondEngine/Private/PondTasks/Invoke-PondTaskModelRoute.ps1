@@ -39,10 +39,12 @@ function Invoke-PondTaskModelRoute {
     $planPaths = $files | Select-Object -ExpandProperty FullName
     $profile = Resolve-PondExecutionProfile -Tier $tier -PlanFiles $planPaths
 
-    # Preserve the timeout value set by Start-PondEngine.
+    # Preserve orchestrator config that the tasks and Push-PondRepos need.
     $timeout = if ($Context.Config -and $null -ne $Context.Config.TimeoutMinutes) { $Context.Config.TimeoutMinutes } else { 30 }
+    $namespaceMap = if ($Context.Config -and $Context.Config.PSObject.Properties['NamespaceRepoMap']) { $Context.Config.NamespaceRepoMap } else { @{} }
     $Context.Config = [PondExecutionProfile]$profile
     $Context.Config | Add-Member -NotePropertyName 'TimeoutMinutes' -NotePropertyValue $timeout -Force
+    $Context.Config | Add-Member -NotePropertyName 'NamespaceRepoMap' -NotePropertyValue $namespaceMap -Force
 
     Write-Verbose "Invoke-PondTaskModelRoute: group '$($group.Namespace)' routed to tier '$tier' ($($profile.Harness)/$($profile.Provider)/$($profile.Model)/$($profile.Effort))"
     return $Context

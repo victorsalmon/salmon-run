@@ -31,7 +31,8 @@ function Start-PondEngine {
         [int]$MaxIterations = 20,
         [int]$SubprocessTimeoutMinutes = 30,
         [int]$PollIntervalSeconds = 300,
-        [PondStream[]]$Streams = @()
+        [PondStream[]]$Streams = @(),
+        [hashtable]$NamespaceRepoMap = @{}
     )
 
     $context = [PondContext]::new()
@@ -50,7 +51,10 @@ function Start-PondEngine {
     $context.CrashHistory = [System.Collections.Generic.List[datetime]]::new()
     $context.Iteration = 0
     $context.Counts = $null
-    $context.Config = [PSCustomObject]@{ TimeoutMinutes = $SubprocessTimeoutMinutes }
+    $context.Config = [PSCustomObject]@{
+        TimeoutMinutes    = $SubprocessTimeoutMinutes
+        NamespaceRepoMap  = $NamespaceRepoMap
+    }
     $context.Continue = $true
     $context.Success = $false
 
@@ -91,6 +95,8 @@ function Start-PondEngine {
                 $context.CurrentGroup = $group
                 $context.Continue = $true
                 $context.Success = $false
+
+                Resolve-PondGroupRepo -Group $group -Context $context
 
                 if (-not (Get-PondCapacity -CrashHistory $context.CrashHistory)) {
                     Write-Verbose "PondEngine: throttled by crash capacity"

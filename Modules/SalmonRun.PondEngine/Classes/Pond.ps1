@@ -99,6 +99,7 @@ class PondGroup {
     [string]$LaneId
     [string]$StreamPath
     [PondStream]$Stream
+    [string]$RepoPath     # target code repository for the plans in this group
 }
 
 class PondContext {

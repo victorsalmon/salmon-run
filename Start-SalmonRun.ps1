@@ -31,7 +31,9 @@ param(
     [switch]$DryRun,
     [int]$MaxIterations = 20,
     [int]$PollIntervalSeconds = 300,
-    [int]$SubprocessTimeoutMinutes = 30
+    [int]$SubprocessTimeoutMinutes = 30,
+    [hashtable]$NamespaceRepoMap = @{},
+    [string]$ConfigPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -49,6 +51,27 @@ if (-not (Test-Path $moduleLoader -PathType Leaf)) {
 
 $repoRoot = Initialize-InterclawEnvironment -RepoRoot $PSScriptRoot
 $taskRoot = Get-SalmonTaskRoot
+
+# Build the namespace-to-repo map from an optional config file and/or the
+# -NamespaceRepoMap parameter. The parameter wins over the file.
+$salmonConfig = if ($ConfigPath -and (Test-Path -LiteralPath $ConfigPath)) {
+    $ConfigPath
+} else {
+    Join-Path (Get-SalmonHome) 'orchestrator.config.json'
+}
+
+$mergedMap = [hashtable]::new([System.StringComparer]::OrdinalIgnoreCase)
+if (Test-Path -LiteralPath $salmonConfig) {
+    $cfg = Get-Content -LiteralPath $salmonConfig -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue
+    if ($cfg -and $cfg['namespaceRepoMap']) {
+        foreach ($k in $cfg['namespaceRepoMap'].Keys) {
+            $mergedMap[$k] = $cfg['namespaceRepoMap'][$k]
+        }
+    }
+}
+foreach ($k in $NamespaceRepoMap.Keys) {
+    $mergedMap[$k] = $NamespaceRepoMap[$k]
+}
 
 if (-not (Test-Path $taskRoot -PathType Container)) {
     $null = New-Item -ItemType Directory -Path $taskRoot -Force
@@ -117,4 +140,5 @@ Start-PondEngine `
     -TaskRoot $taskRoot `
     -MaxIterations $MaxIterations `
     -PollIntervalSeconds $PollIntervalSeconds `
-    -SubprocessTimeoutMinutes $SubprocessTimeoutMinutes
+    -SubprocessTimeoutMinutes $SubprocessTimeoutMinutes `
+    -NamespaceRepoMap $mergedMap

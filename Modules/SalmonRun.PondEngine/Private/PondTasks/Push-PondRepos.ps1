@@ -115,7 +115,9 @@ function Push-PondRepos {
 
     # 2. Commit and push the target code repo (unless this is a claim-only task repo commit).
     if (-not $TaskRepoOnly) {
-        $codeRepo = if ($Context.CurrentGroup -and $Context.CurrentGroup.Stream -and $Context.CurrentGroup.Stream.Path) {
+        $codeRepo = if ($Context.CurrentGroup -and $Context.CurrentGroup.RepoPath) {
+            $Context.CurrentGroup.RepoPath
+        } elseif ($Context.CurrentGroup -and $Context.CurrentGroup.Stream -and $Context.CurrentGroup.Stream.Path) {
             $Context.CurrentGroup.Stream.Path
         } else {
             $Context.RepoDir

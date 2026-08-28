@@ -33,7 +33,8 @@ function Invoke-PondTaskSpawnAgent {
 
     $timeout = if ($Context.Config -and $null -ne $Context.Config.TimeoutMinutes) { $Context.Config.TimeoutMinutes } else { 30 }
     $credentials = [string[]](@($Context.Config.Credentials | Where-Object { $_ -ne $null }))
-    $command = Get-PondExecutorCommand -Profile $profile -Role $Pond.Role -RepoDir $Context.RepoDir -PlanFiles $planPaths -LanePath $lanePath -TimeoutMinutes $timeout -Credentials $credentials
+    $repoDir = if ($group.RepoPath) { $group.RepoPath } else { $Context.RepoDir }
+    $command = Get-PondExecutorCommand -Profile $profile -Role $Pond.Role -RepoDir $repoDir -PlanFiles $planPaths -LanePath $lanePath -TimeoutMinutes $timeout -Credentials $credentials
 
     $spawnFile = Join-Path $lanePath '.spawn'
     @{
