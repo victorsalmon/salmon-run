@@ -137,12 +137,21 @@ while ($true) {
 
             if ((Get-Date) -ge $nextHealthCheck) {
                 $nextHealthCheck = (Get-Date).AddMinutes(5)
+
                 $healthScript = Join-Path $PSScriptRoot 'Tools' 'Get-SalmonRunHealthReport.ps1'
                 if (Test-Path -LiteralPath $healthScript) {
                     $health = & $healthScript -TaskRoot $salmonHome -LogDir $LogDir -HistoryHours 24
                     if ($health) {
                         Write-OrchestratorLog -Message "health: $($health.summary)" -Level 'INFO'
                     }
+                }
+
+                # The pond engine blocks in a Monitor task while a subprocess runs,
+                # so a separate janitor sweeps any completed or failed lanes that
+                # the main engine cannot transition right away.
+                $janitorScript = Join-Path $PSScriptRoot 'Tools' 'Start-WorkingLaneJanitor.ps1'
+                if (Test-Path -LiteralPath $janitorScript) {
+                    & $janitorScript -TaskRoot $taskRoot -RepoDir $PSScriptRoot | Out-Null
                 }
             }
 
