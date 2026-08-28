@@ -79,15 +79,23 @@ if (Test-Path -LiteralPath $heartbeatPath) {
     try {
         $hb = Get-Content -LiteralPath $heartbeatPath -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
         $hbAge = ($now - [datetime]$hb.ts).TotalSeconds
+        $hbPid = $hb.pid
+        $processAlive = $false
+        if ($hbPid) {
+            $process = Get-Process -Id $hbPid -ErrorAction SilentlyContinue
+            $processAlive = $process -ne $null
+        }
         $report.heartbeat = [ordered]@{
             path      = $heartbeatPath
             ts        = $hb.ts
             ageSeconds = [math]::Round($hbAge, 0)
             state     = $hb.state
             detail    = $hb.detail
-            fresh     = ($hbAge -lt 90)
+            fresh     = ($hbAge -lt 90 -or $processAlive)
+            processAlive = $processAlive
+            pid       = $hbPid
         }
-        if ($hbAge -ge 90) { $report.healthy = $false }
+        if ($hbAge -ge 90 -and -not $processAlive) { $report.healthy = $false }
     } catch {
         $report.heartbeat = @{ present = $true; error = $_.Exception.Message }
         $report.healthy = $false
