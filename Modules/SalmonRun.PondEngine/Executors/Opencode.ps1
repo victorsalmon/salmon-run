@@ -101,6 +101,15 @@ sentinels; the Salmon Run executor creates those from your exit code. The
 orchestrator will commit and push the `.salmon` task repo and the target repo
 after you finish.
 
+EVIDENCE RULES
+- Preserve the entire existing plan (title, headers, scope, body, and any
+  existing **PondLog**). Append evidence only at the end.
+- If a **PondLog** fenced json block already exists, add your JSON object as a
+  new line inside the existing `[]` array. Do not create a second PondLog block.
+- Put the legacy evidence line (e.g. `**Reviewed**: ...`) AFTER the closing
+  ``` fence, never inside it.
+- Do not leave stray characters after the closing ``` fence.
+
 After completing the work, the very last thing you do is append the correct
 legacy evidence header and a `**PondLog**` JSON entry to each attached plan file.
 "@
