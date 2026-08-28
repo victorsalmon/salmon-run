@@ -72,9 +72,10 @@ function Start-PondEngine {
             Write-Verbose "PondEngine: Get-PondWorktreeStreams failed: $_"
         }
         if ($newStreams.Count -eq 0) { return }
-        $existingIds = [System.Collections.Generic.HashSet[string]]::new([string[]]($Ctx.Streams | ForEach-Object { $_.Id }))
+        $existingIds = @{}
+        foreach ($s in $Ctx.Streams) { $existingIds[$s.Id] = $true }
         foreach ($s in $newStreams) {
-            if ($existingIds.Contains($s.Id)) { continue }
+            if ($existingIds.ContainsKey($s.Id)) { continue }
             $null = $Ctx.Streams.Add($s)
             $Ctx.ActiveStreams[$s.Id] = $s
         }
