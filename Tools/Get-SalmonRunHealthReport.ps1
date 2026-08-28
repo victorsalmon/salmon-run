@@ -160,12 +160,19 @@ foreach ($f in $completedFiles) {
     $report.completedByNamespace[$ns]++
 }
 
-# Orchestrator log errors
+# Orchestrator log errors in the last 10 minutes (recent crashes, not history)
 $logPath = Join-Path $LogDir 'orchestrator.log'
 if (Test-Path -LiteralPath $logPath) {
-    $errors = @(Select-String -Path $logPath -Pattern '\[(ERROR|FATAL)\]' -ErrorAction SilentlyContinue | ForEach-Object {
-        $_.Line
-    }) | Select-Object -Last 20
+    $errorLines = @(Select-String -Path $logPath -Pattern '\[(ERROR|FATAL)\]' -ErrorAction SilentlyContinue | ForEach-Object { $_.Line })
+    $crashCutoff = $now.AddMinutes(-10)
+    $errors = @($errorLines | Where-Object {
+        $tsMatch = [regex]::Match($_, '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}')
+        if ($tsMatch.Success) {
+            try { ([datetime]$tsMatch.Value) -ge $crashCutoff } catch { $false }
+        } else {
+            $false
+        }
+    } | Select-Object -Last 20)
     $report.recentLogErrors = $errors
     $report.crashCount = $errors.Count
     if ($errors.Count -gt 0) { $report.healthy = $false }
