@@ -109,7 +109,7 @@ Describe 'Get-SalmonRunPonds' -Tag 'PondEngine', 'Regression-Only' {
         $code = Get-SalmonRunPonds | Where-Object { $_.Name -eq 'Code' }
         $code.Operators.ParallelCount | Should -Be 3
         $review = Get-SalmonRunPonds | Where-Object { $_.Name -eq 'Review' }
-        $review.Operators.ParallelCount | Should -Be 1
+        $review.Operators.ParallelCount | Should -Be 3
         $audit = Get-SalmonRunPonds | Where-Object { $_.Name -eq 'Audit' }
         $audit.Operators.ParallelCount | Should -Be 1
         $qa = Get-SalmonRunPonds | Where-Object { $_.Name -eq 'QA' }

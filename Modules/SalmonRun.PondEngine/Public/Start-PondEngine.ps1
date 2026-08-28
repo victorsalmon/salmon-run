@@ -212,7 +212,15 @@ function Start-PondEngine {
             Add-WorktreeStreams -Ctx $context -Workdir $TaskRoot -Repo $RepoDir -Cfg $ConfigPath
         }
 
-        # Rescue stale in-progress files before scanning ponds
+        # Recover orphaned per-role lanes from a previous engine process. Live
+        # PIDs are never touched, and each plan returns to its actual source pond.
+        $laneRecovery = Invoke-PondLaneRecovery -WorkingDir (Join-Path $TaskRoot 'Working') -TaskRoot $TaskRoot -StaleThresholdSeconds $PollIntervalSeconds
+        if ($laneRecovery.Rescued -gt 0) {
+            Write-Verbose "PondEngine: recovered $($laneRecovery.Rescued) orphaned lane plan(s)"
+            $didWork = $true
+        }
+
+        # Rescue legacy root-level in-progress files before scanning ponds.
         $rescue = Invoke-PondRescue -SourceDir (Join-Path $TaskRoot 'Working') -TargetDir (Join-Path $TaskRoot 'Code') -StaleThresholdSeconds $PollIntervalSeconds
         if ($rescue.Rescued -gt 0) {
             Write-Verbose "PondEngine: rescued $($rescue.Rescued) stale working file(s)"
@@ -238,6 +246,9 @@ function Start-PondEngine {
             if ($reapDidWork) { $didWork = $true }
 
             $null = $context.UsedNamespaces.Remove($entry.Namespace)
+            if ($entry.Pond.Role -in @('coder','auditor','qa') -and -not [string]::IsNullOrWhiteSpace($entry.RepoPath)) {
+                $null = $context.BusyNamespaces.Remove("repo:$($entry.RepoPath.ToLowerInvariant())")
+            }
             $null = $activeLanes.RemoveAt($i)
 
             Write-Verbose "PondEngine: lane $($entry.Lane.Id) for namespace '$($entry.Namespace)' exited with code $exitCode"
@@ -252,6 +263,10 @@ function Start-PondEngine {
 
             $groups = @(Group-PondFiles -Pond $pond -Files $candidates -Context $context)
             if ($groups.Count -eq 0) { continue }
+
+            foreach ($candidateGroup in $groups) {
+                Resolve-PondGroupRepo -Group $candidateGroup -Context $context
+            }
 
             $selected = @(Select-PondGroups -Pond $pond -Groups $groups -Context $context)
             if ($selected.Count -eq 0) { continue }
@@ -369,6 +384,9 @@ function Start-PondEngine {
                     })
 
                     $context.UsedNamespaces[$group.Namespace] = $true
+                    if ($pond.Role -in @('coder','auditor','qa') -and -not [string]::IsNullOrWhiteSpace($group.RepoPath)) {
+                        $context.BusyNamespaces["repo:$($group.RepoPath.ToLowerInvariant())"] = $true
+                    }
                     $didWork = $true
                     Write-Verbose "PondEngine: spawned lane $($lane.Id) for namespace '$($group.Namespace)' on stream '$($stream.Id)' ($($stream.Path))"
                 } else {

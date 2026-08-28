@@ -35,5 +35,28 @@ Describe 'Pond scheduling safety' -Tag 'PondEngine','Regression-Only' {
         $selected = & (Get-Module SalmonRun.PondEngine) { param($p,$g,$c) Select-PondGroups -Pond $p -Groups $g -Context $c } $pond $groups $context
         @($selected | Where-Object RepoPath -eq 'C:\same') | Should -HaveCount 1
     }
-}
 
+    It 'recovers dead lanes to their source pond and leaves live lanes untouched' {
+        $taskRoot = Join-Path $TestDrive 'recovery/Tasks'
+        $working = Join-Path $taskRoot 'Working'
+        $deadLane = Join-Path $working 'lane-reviewer-4'
+        $liveLane = Join-Path $working 'lane-coder-1'
+        foreach ($path in $deadLane,$liveLane,(Join-Path $taskRoot 'Review'),(Join-Path $taskRoot 'Code')) {
+            New-Item -ItemType Directory -Path $path -Force | Out-Null
+        }
+        '# rejected review' | Set-Content (Join-Path $deadLane 'review.md') -NoNewline
+        '99999999' | Set-Content (Join-Path $deadLane '.pid') -NoNewline
+        '# active code' | Set-Content (Join-Path $liveLane 'code.md') -NoNewline
+        "$PID" | Set-Content (Join-Path $liveLane '.pid') -NoNewline
+        (Get-Item $deadLane).LastWriteTime = (Get-Date).AddMinutes(-10)
+        (Get-Item (Join-Path $deadLane 'review.md')).LastWriteTime = (Get-Date).AddMinutes(-10)
+        (Get-Item $liveLane).LastWriteTime = (Get-Date).AddMinutes(-10)
+        (Get-Item (Join-Path $liveLane 'code.md')).LastWriteTime = (Get-Date).AddMinutes(-10)
+
+        $result = & (Get-Module SalmonRun.PondEngine) { param($w,$r) Invoke-PondLaneRecovery -WorkingDir $w -TaskRoot $r -StaleThresholdSeconds 60 } $working $taskRoot
+        $result.Rescued | Should -Be 1
+        Join-Path $taskRoot 'Review/review.md' | Should -Exist
+        $deadLane | Should -Not -Exist
+        Join-Path $liveLane 'code.md' | Should -Exist
+    }
+}

@@ -24,17 +24,35 @@ function Select-PondGroups {
         }
     }
 
-    # Free lanes already account for active work across all streams.  Respect the
-    # pond's per-iteration throttle and the number of candidate groups.
+    # Free lanes account for physical capacity. ParallelCount is the global pond
+    # policy across all streams; without this bound, adding streams silently
+    # multiplies configured concurrency.
     $maxNew = if ($Pond.Operators.MaxNewPerIteration -gt 0) { $Pond.Operators.MaxNewPerIteration } else { $freeLanes }
     $limit = [math]::Min($freeLanes, $maxNew)
+    if ($Pond.Operators.ParallelCount -gt 0) {
+        $limit = [math]::Min($limit, $Pond.Operators.ParallelCount)
+    }
     $limit = [math]::Min($limit, $Groups.Count)
 
     if ($limit -le 0) { return @() }
 
-    # Prefer groups whose namespace is not already in use
+    # Prefer groups whose namespace is not already in use. Writer roles get one
+    # active group per underlying repository; commit mutexes remain the final
+    # safety net, but contention is prevented before expensive agent work starts.
     $available = @($Groups | Where-Object { -not $Context.UsedNamespaces.ContainsKey($_.Namespace) })
     if ($available.Count -eq 0) { return @() }
-
-    return @($available | Select-Object -First $limit)
+    $writerRole = $Pond.Role -in @('coder','auditor','qa')
+    $selected = [System.Collections.Generic.List[PondGroup]]::new()
+    $selectedRepos = @{}
+    $busyRepos = if ($Context.BusyNamespaces) { $Context.BusyNamespaces } else { @{} }
+    foreach ($group in $available) {
+        if ($selected.Count -ge $limit) { break }
+        if ($writerRole -and -not [string]::IsNullOrWhiteSpace($group.RepoPath)) {
+            $repoKey = "repo:$($group.RepoPath.ToLowerInvariant())"
+            if ($selectedRepos.ContainsKey($repoKey) -or $busyRepos.ContainsKey($repoKey)) { continue }
+            $selectedRepos[$repoKey] = $true
+        }
+        $selected.Add($group)
+    }
+    return $selected.ToArray()
 }

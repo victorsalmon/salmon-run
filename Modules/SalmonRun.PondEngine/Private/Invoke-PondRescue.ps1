@@ -66,3 +66,57 @@ function Invoke-PondRescue {
 
     return [pscustomobject]@{ Rescued = $rescued; Skipped = $skipped; Errors = $errors }
 }
+
+function Invoke-PondLaneRecovery {
+    <#
+    .SYNOPSIS
+        Recovers lane directories left behind by a terminated engine process.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$WorkingDir,
+        [Parameter(Mandatory)][string]$TaskRoot,
+        [int]$StaleThresholdSeconds = 300
+    )
+
+    $rescued = 0; $skipped = 0; $errors = 0
+    if (-not (Test-Path -LiteralPath $WorkingDir)) { return [pscustomobject]@{ Rescued=0; Skipped=0; Errors=0 } }
+    $cutoff = (Get-Date).AddSeconds(-$StaleThresholdSeconds)
+    foreach ($lane in Get-ChildItem -LiteralPath $WorkingDir -Directory -ErrorAction SilentlyContinue) {
+        $pidPath = Join-Path $lane.FullName '.pid'
+        $lanePid = 0
+        if (Test-Path -LiteralPath $pidPath) {
+            $null = [int]::TryParse((Get-Content -LiteralPath $pidPath -Raw -ErrorAction SilentlyContinue), [ref]$lanePid)
+        }
+        if ($lanePid -gt 0 -and (Get-Process -Id $lanePid -ErrorAction SilentlyContinue)) { $skipped++; continue }
+
+        $plans = @(Get-ChildItem -LiteralPath $lane.FullName -Filter '*.md' -File -ErrorAction SilentlyContinue)
+        $newest = @($plans + $lane | Sort-Object LastWriteTime -Descending | Select-Object -First 1)[0]
+        if ($newest -and $newest.LastWriteTime -ge $cutoff) { $skipped++; continue }
+
+        $target = switch -Regex ($lane.Name) {
+            '^lane-coder-'            { 'Code'; break }
+            '^lane-reviewer-'         { 'Review'; break }
+            '^lane-auditor-'          { 'Audit'; break }
+            '^lane-qa-'               { 'QA'; break }
+            '^lane-project-reviewer-' { 'ProjectReview'; break }
+            '^lane-project-planner-'  { 'Project'; break }
+            '^lane-planner-'          { 'Intake'; break }
+            default                   { 'Code' }
+        }
+        try {
+            if ($plans.Count -gt 0) {
+                $result = Invoke-PondRescue -SourceDir $lane.FullName -TargetDir (Join-Path $TaskRoot $target) -StaleThresholdSeconds 0
+                $rescued += $result.Rescued
+                $errors += $result.Errors
+            }
+            if (@(Get-ChildItem -LiteralPath $lane.FullName -Filter '*.md' -File -ErrorAction SilentlyContinue).Count -eq 0) {
+                Remove-Item -LiteralPath $lane.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        } catch {
+            $errors++
+            Write-Warning "POND_LANE_RECOVERY_FAILED lane=$($lane.Name) error=$($_.Exception.Message)"
+        }
+    }
+    return [pscustomobject]@{ Rescued=$rescued; Skipped=$skipped; Errors=$errors }
+}
