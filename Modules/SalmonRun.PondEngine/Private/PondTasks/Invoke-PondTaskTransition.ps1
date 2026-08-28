@@ -71,6 +71,12 @@ function Invoke-PondTaskTransition {
         if ($Context.Success -and $Pond.OnSuccess.MoveTo -eq 'Complete') {
             $newStatus = 'complete'
         }
+        if (-not $Context.Success -and $finalDest -notin @('Complete','Failed')) {
+            # The plan is being retried in a work pond; leave it eligible so the
+            # next matching lane can pick it up. The Retry counter already tracks
+            # how many times it has failed.
+            $newStatus = 'ready'
+        }
         if ($c -match '(?im)^\*\*Status\*\*:\s*[^\r\n]+') {
             $c = $c -replace '(?im)^\*\*Status\*\*:\s*[^\r\n]+', "**Status**: $newStatus"
         } else {

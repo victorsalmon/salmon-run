@@ -16,12 +16,18 @@
 
 .PARAMETER HistoryHours
     How far back to look for completions and log errors.  Default 24.
+
+.PARAMETER LiveStaleThresholdSeconds
+    How long a live (process-still-running) working lane may be idle before it is
+    considered stale.  Default 1800 (30 minutes); should be at least the engine's
+    subprocess timeout.
 #>
 [CmdletBinding()]
 param(
     [string]$TaskRoot = '',
     [string]$LogDir = '',
-    [int]$HistoryHours = 24
+    [int]$HistoryHours = 24,
+    [int]$LiveStaleThresholdSeconds = 1800
 )
 
 $ErrorActionPreference = 'Continue'
@@ -66,11 +72,11 @@ if (Test-Path -LiteralPath $historyPath) {
         $history = Get-Content -LiteralPath $historyPath -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
         if ($history -and $history.queueCounts) {
             foreach ($p in $ponds) {
-                $old = if ($history.queueCounts.$p -ne $null) { $history.queueCounts.$p } else { 0 }
+                $old = if ($history.queueCounts.$null -ne $p) { $history.queueCounts.$p } else { 0 }
                 $report.queueDeltas[$p] = $report.queueCounts[$p] - $old
             }
         }
-    } catch {}
+    } catch { Write-Verbose "Suppressed health-report aggregation error: $_" }
 }
 
 # Heartbeat freshness
@@ -83,7 +89,7 @@ if (Test-Path -LiteralPath $heartbeatPath) {
         $processAlive = $false
         if ($hbPid) {
             $process = Get-Process -Id $hbPid -ErrorAction SilentlyContinue
-            $processAlive = $process -ne $null
+            $processAlive = $null -ne $process
         }
         $report.heartbeat = [ordered]@{
             path      = $heartbeatPath
@@ -118,7 +124,7 @@ if (Test-Path -LiteralPath $workingDir) {
             $pidText = Get-Content -LiteralPath $pidFile -Raw -ErrorAction SilentlyContinue
             $null = [int]::TryParse($pidText, [ref]$lanePid)
             $process = if ($lanePid) { Get-Process -Id $lanePid -ErrorAction SilentlyContinue }
-            $processAlive = $process -ne $null
+            $processAlive = $null -ne $process
         }
         # Find the most recently written file in the lane (logs, sentinels, etc.)
         $newestFile = Get-ChildItem -LiteralPath $lane.FullName -File -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
@@ -131,7 +137,7 @@ if (Test-Path -LiteralPath $workingDir) {
             processAlive = $processAlive
             lastWrite = $lastWrite.ToString('o')
             ageSeconds = $ageSeconds
-            stale     = if ($processAlive) { $ageSeconds -gt 1800 } else { $ageSeconds -gt 600 }
+            stale     = if ($processAlive) { $ageSeconds -gt $LiveStaleThresholdSeconds } else { $ageSeconds -gt 600 }
         }
         $report.working += $laneInfo
         if ($laneInfo.stale) { $report.staleWorking++ }
@@ -196,3 +202,4 @@ $countsOnly = [ordered]@{ queueCounts = $report.queueCounts }
 $countsOnly | ConvertTo-Json -Depth 2 | Set-Content -LiteralPath $historyPath -Encoding utf8 -NoNewline
 
 $report
+

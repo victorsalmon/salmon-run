@@ -25,7 +25,7 @@
 [CmdletBinding()]
 param(
     [int]$PollIntervalSeconds = 300,
-    [int]$SubprocessTimeoutMinutes = 30,
+    [int]$SubprocessTimeoutMinutes = 60,
     [string]$ConfigPath = '',
     [string]$LogDir = ''
 )
@@ -202,7 +202,8 @@ while ($true) {
     # Health / churn watchdog: produce a report after every engine cycle.
     $healthScript = Join-Path $PSScriptRoot 'Tools' 'Get-SalmonRunHealthReport.ps1'
     if (Test-Path -LiteralPath $healthScript) {
-        $health = & $healthScript -TaskRoot $salmonHome -LogDir $LogDir -HistoryHours 24
+        $liveStale = ($SubprocessTimeoutMinutes * 60) + 300
+        $health = & $healthScript -TaskRoot $salmonHome -LogDir $LogDir -HistoryHours 24 -LiveStaleThresholdSeconds $liveStale
         if ($health) {
             Write-OrchestratorLog -Message "health: $($health.summary)" -Level 'INFO'
         }
