@@ -127,7 +127,13 @@ while ($true) {
         # health/churn report every 5 minutes so an unattended engine with
         # MaxIterations 0 still produces status output.
         $nextHealthCheck = (Get-Date).AddMinutes(5)
+        $nextHeartbeat = (Get-Date)
         while (-not $process.HasExited) {
+            if ((Get-Date) -ge $nextHeartbeat) {
+                $nextHeartbeat = (Get-Date).AddSeconds(30)
+                Write-Heartbeat -State 'running' -Detail "engine monitor"
+            }
+
             if (Test-Path -LiteralPath $stopFile) {
                 Write-OrchestratorLog -Message 'stop sentinel found; terminating pond engine' -Level 'INFO'
                 $null = taskkill /T /F /PID $process.Id 2>&1 | Out-Null
