@@ -12,7 +12,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: ghcr.io/clocklobster/salmon-run
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/salmon-run
 
 jobs:
   build:
@@ -55,4 +55,4 @@ jobs:
             ${{ env.IMAGE_NAME }}:latest
           labels: |
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
-            org.opencontainers.image.source=https://github.com/clocklobster/salmon-run
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
