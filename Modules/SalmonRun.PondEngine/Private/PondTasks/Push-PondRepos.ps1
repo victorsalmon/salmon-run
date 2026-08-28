@@ -32,76 +32,55 @@ function Push-PondRepos {
             return
         }
 
-        # Stage deletions of source files.
-        foreach ($src in $SourcePaths) {
-            if (Test-Path -LiteralPath $src) { continue }  # only deleted files
-            $null = & git -C $RepoPath add -u -- $src 2>&1
-        }
+        $fullRepoPath = (Resolve-Path -LiteralPath $RepoPath -ErrorAction SilentlyContinue)?.Path
+        if ([string]::IsNullOrWhiteSpace($fullRepoPath)) { $fullRepoPath = $RepoPath }
+        $repoHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($fullRepoPath))).Replace('-', '')
+        $mutexName = "Global\SalmonRun-$repoHash"
 
-        # Stage destination files and any edits.
-        foreach ($dst in $DestFiles) {
-            if (Test-Path -LiteralPath $dst.FullName) {
-                $null = & git -C $RepoPath add -- $dst.FullName 2>&1
+        $mutex = $null
+        $acquired = $false
+        try {
+            $mutex = [System.Threading.Mutex]::new($false, $mutexName, [ref]$null)
+            try {
+                $acquired = $mutex.WaitOne(300000)
+            } catch [System.Threading.AbandonedMutexException] {
+                $acquired = $true
             }
-        }
 
-        $staged = & git -C $RepoPath diff --cached --name-only 2>&1
-        if (-not $staged) { return }
+            if (-not $acquired) {
+                Write-Warning "POND_PUSH_MUTEX_TIMEOUT repo=$RepoLabel"
+                return
+            }
 
-        $null = & git -C $RepoPath commit -m "$CommitMessage" 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "POND_COMMIT_FAILED repo=$RepoLabel message='$CommitMessage'"
-            return
-        }
+            # Stage deletions of source files.
+            foreach ($src in $SourcePaths) {
+                if (Test-Path -LiteralPath $src) { continue }  # only deleted files
+                $null = & git -C $RepoPath add -u -- $src 2>&1
+            }
 
-        $sha = (& git -C $RepoPath log -1 --format=%H 2>&1) -as [string]
-        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($sha)) {
-            Write-Warning "POND_COMMIT_SHA_FAILED repo=$RepoLabel"
-            return
-        }
+            # Stage destination files and any edits.
+            foreach ($dst in $DestFiles) {
+                if (Test-Path -LiteralPath $dst.FullName) {
+                    $null = & git -C $RepoPath add -- $dst.FullName 2>&1
+                }
+            }
 
-        # Record the commit immediately so a later pull/push failure does not lose it.
-        foreach ($dst in $DestFiles) {
-            if (-not (Test-Path -LiteralPath $dst.FullName)) { continue }
-            $now = Get-Date -Format 'o'
-            $null = Add-PlanPondLog -PlanPath $dst.FullName -Entry @{
-                ts     = $now
-                pond   = $Pond.Name
-                role   = $Pond.Role
-                action = 'commit'
-                detail = "$RepoLabel`: $CommitMessage @ $sha"
-                agent  = 'PondEngine'
-            } -ErrorAction SilentlyContinue
-        }
+            $staged = & git -C $RepoPath diff --cached --name-only 2>&1
+            if (-not $staged) { return }
 
-        # Skip pull/push when there is no remote configured.
-        $remotes = & git -C $RepoPath remote 2>&1
-        if (-not $remotes) {
-            return
-        }
+            $null = & git -C $RepoPath commit -m "$CommitMessage" 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "POND_COMMIT_FAILED repo=$RepoLabel message='$CommitMessage'"
+                return
+            }
 
-        $branch = & git -C $RepoPath rev-parse --abbrev-ref HEAD 2>&1
-        if ([string]::IsNullOrWhiteSpace($branch) -or $LASTEXITCODE -ne 0) {
-            Write-Warning "POND_BRANCH_RESOLVE_FAILED repo=$RepoLabel"
-            return
-        }
+            $sha = (& git -C $RepoPath log -1 --format=%H 2>&1) -as [string]
+            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($sha)) {
+                Write-Warning "POND_COMMIT_SHA_FAILED repo=$RepoLabel"
+                return
+            }
 
-        $null = & git -C $RepoPath fetch origin $branch 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "POND_FETCH_FAILED repo=$RepoLabel"
-            return
-        }
-
-        $null = & git -C $RepoPath rebase --autostash "origin/$branch" 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "POND_REBASE_FAILED repo=$RepoLabel sha=$sha"
-            return
-        }
-
-        $null = & git -C $RepoPath push 2>&1
-        $pushed = ($LASTEXITCODE -eq 0)
-
-        if ($pushed) {
+            # Record the commit immediately so a later pull/push failure does not lose it.
             foreach ($dst in $DestFiles) {
                 if (-not (Test-Path -LiteralPath $dst.FullName)) { continue }
                 $now = Get-Date -Format 'o'
@@ -109,10 +88,57 @@ function Push-PondRepos {
                     ts     = $now
                     pond   = $Pond.Name
                     role   = $Pond.Role
-                    action = 'push'
-                    detail = "$RepoLabel`: pushed to origin"
+                    action = 'commit'
+                    detail = "$RepoLabel`: $CommitMessage @ $sha"
                     agent  = 'PondEngine'
                 } -ErrorAction SilentlyContinue
+            }
+
+            # Skip pull/push when there is no remote configured.
+            $remotes = & git -C $RepoPath remote 2>&1
+            if (-not $remotes) {
+                return
+            }
+
+            $branch = & git -C $RepoPath rev-parse --abbrev-ref HEAD 2>&1
+            if ([string]::IsNullOrWhiteSpace($branch) -or $LASTEXITCODE -ne 0) {
+                Write-Warning "POND_BRANCH_RESOLVE_FAILED repo=$RepoLabel"
+                return
+            }
+
+            $null = & git -C $RepoPath fetch origin $branch 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "POND_FETCH_FAILED repo=$RepoLabel"
+                return
+            }
+
+            $null = & git -C $RepoPath rebase --autostash "origin/$branch" 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "POND_REBASE_FAILED repo=$RepoLabel sha=$sha"
+                return
+            }
+
+            $null = & git -C $RepoPath push 2>&1
+            $pushed = ($LASTEXITCODE -eq 0)
+
+            if ($pushed) {
+                foreach ($dst in $DestFiles) {
+                    if (-not (Test-Path -LiteralPath $dst.FullName)) { continue }
+                    $now = Get-Date -Format 'o'
+                    $null = Add-PlanPondLog -PlanPath $dst.FullName -Entry @{
+                        ts     = $now
+                        pond   = $Pond.Name
+                        role   = $Pond.Role
+                        action = 'push'
+                        detail = "$RepoLabel`: pushed to origin"
+                        agent  = 'PondEngine'
+                    } -ErrorAction SilentlyContinue
+                }
+            }
+        } finally {
+            if ($null -ne $mutex) {
+                if ($acquired) { [void]$mutex.ReleaseMutex() }
+                $mutex.Dispose()
             }
         }
     }
