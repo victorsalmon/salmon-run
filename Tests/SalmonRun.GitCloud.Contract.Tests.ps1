@@ -10,7 +10,7 @@ Describe "GitCloud push contract" -Tag "Contract", "Regression" {
         $modulePath = Join-Path $repoRoot 'Modules' 'SalmonRun.GitCloud' 'SalmonRun.GitCloud.psd1'
         $script:GitCloudModule = Import-Module -Name $modulePath -Force -ErrorAction Stop -PassThru
 
-        $script:GitHubOwner = 'clocklobster'
+        $script:GitHubOwner = 'victorsalmon'
         $script:GitHubRepo = 'salmon-run'
         $script:WorktreeOwner = 'clocklobster'
         $script:WorktreeRepo = 'salmon-run'
@@ -102,6 +102,10 @@ Describe "GitCloud push contract" -Tag "Contract", "Regression" {
             # Enable only by setting SALMON_RUN_GITCLOUD_LIVE=1 with real credentials configured.
             if ($env:SALMON_RUN_GITCLOUD_LIVE -eq '1') {
                 $env:SALMON_RUN_HOME = (Join-Path $HOME '.salmon')
+
+                # Make sure the disposable branch exists at the current HEAD.
+                # The push functions take a branch name and push that ref.
+                $null = git branch -f $script:TestBranch 2>&1
             }
         }
 
