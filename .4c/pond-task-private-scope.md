@@ -18,7 +18,17 @@
   - `Modules/SalmonRun.PondEngine/Public/Start-PondEngine.ps1:382-388` — duplicate dispatcher, but it runs inside module scope and currently resolves correctly; in scope for consolidation so the two paths cannot drift again.
 
 ## Countermeasure
-- Pending Cause gate.
+- Fix commits: `fc6d298` (module-owned dispatcher and pre-claim validation), `829e9cf` (restore in-process Local routing and its end-to-end contract), `ee17c57` (remove the public-package machine-path leak exposed by the full suite).
+- Siblings fixed: both duplicated dispatch loops now call `Invoke-PondLanePipeline`; default pond task references are validated before queue mutation. Local plans bypass worktree-only dispatch. The machine-specific repo fallback was removed in favor of `orchestrator.config.json` mappings.
 
 ## Check
-- Pending Countermeasure gate.
+- Repro test now: GREEN. `exports a module-scoped child-lane pipeline entrypoint` and `resolves every configured task through the child-lane module boundary` both pass.
+- Red-gate proof: test commit `52b7150` precedes fix commit `fc6d298`; before the fix Pester reported the missing export at test line 47 and the live lanes reported `POND_TASK_NOT_FOUND`.
+- Property suite: seed `20260828`, GREEN. The invariant is checked across every configured pond in deterministic randomized order.
+- TEETH proof: `rejects an unknown task before a lane can claim work` supplies a deliberately invalid task reference and confirms pre-claim validation rejects it. Existing Local Code, dependency, and multi-child Project end-to-end tests kill removal/inversion of the Local-routing guard.
+- Edge cases: unknown task rejected; empty pipeline accepted; Local groups execute without a git worktree; planner lane count contract updated.
+- Focused PondEngine suite: 53 passed, 0 failed (the earlier 51-test run was green before the final two edge cases were added; the full-suite run below includes all 53).
+- Full suite: 621 passed, 0 failed, 8 skipped in 4m34s. Documentation lint and public leak checks passed.
+- Mutation: no PondEngine source-mutation runner is configured in this repository. The invariant/TEETH tests above exercise equivalent broken implementations, but no numeric changed-file mutation score is available. This remains a QA-system gap and is not represented as a passing mutation portfolio.
+- Blast-radius scan: the only external private-task dispatcher was `Tools/Start-PondLane.ps1`; the in-module duplicate in `Start-PondEngine.ps1` was consolidated. No unresolved occurrences remain.
+- Quality scans: repository documentation lint and public-package leak scan passed. AQE bridge was not used; the local Pester and leak gates provided the available proof.
