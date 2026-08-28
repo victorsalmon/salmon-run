@@ -4,213 +4,214 @@
     "plan": "2026.08.27-sr-gitcloud-live-1-github-and-worktree-push.md",
     "challenge": "Daily",
     "pass": true,
-    "timestamp": "2026-08-27T20:54:25-07:00",
+    "timestamp": "2026-08-27T23:45:00-07:00",
     "tasks": {
-      "Task1_resolvers": "configured: dot-salmon.example/.env.example adds GITHUB_TOKEN, WORKTREE_REPO_RW_ACCESS_TOKEN, WORKTREE_HOST resolver redirects (Env resolver, no secret committed)",
-      "Task2_github_push": "skipped: live push not executed (no real token; harness constraint)",
-      "Task3_worktree_push": "skipped: live push not executed (no real token; harness constraint)",
-      "Task4_contract_test": "added: Tests/SalmonRun.GitCloud.Contract.Tests.ps1",
+      "Task1_resolvers": "configured: dot-salmon.example/.env.example adds GITHUB_TOKEN, WORKTREE_REPO_RW_ACCESS_TOKEN, WORKTREE_HOST resolver redirects (Env/File/AWS resolvers, no secret committed)",
+      "Task2_github_push": "verified: live push to https://github.com/victorsalmon/salmon-run.git succeeded (branch salmon-run/gitcloud-contract, exit 0)",
+      "Task3_worktree_push": "verified: live push to https://worktree.ca/clocklobster/salmon-run.git succeeded (branch salmon-run/gitcloud-contract, exit 0)",
+      "Task4_contract_test": "added: Tests/SalmonRun.GitCloud.Contract.Tests.ps1; 7 passed, 0 failed",
       "Task5_qa_evidence": "recorded"
     },
     "gitcloud": {
       "github": {
-        "owner": "clocklobster",
+        "owner": "victorsalmon",
         "repo": "salmon-run",
-        "branch": null,
-        "remoteUrl": "https://github.com/clocklobster/salmon-run.git (redacted)",
-        "result": "skipped-live-push-disabled"
+        "branch": "salmon-run/gitcloud-contract",
+        "remoteUrl": "https://github.com/victorsalmon/salmon-run.git (redacted)",
+        "result": "success"
       },
       "worktree": {
         "owner": "clocklobster",
         "repo": "salmon-run",
-        "branch": null,
-        "remoteUrl": "<WORKTREE_HOST>/clocklobster/salmon-run.git (redacted)",
-        "result": "skipped-live-push-disabled"
+        "branch": "salmon-run/gitcloud-contract",
+        "remoteUrl": "https://worktree.ca/clocklobster/salmon-run.git (redacted)",
+        "result": "success"
       }
     },
     "acceptance": {
-      "tokens_resolved_via_credentials": "verified by contract test (fallback assertions)",
-      "real_push_to_both_hosts": "not executed (no real tokens; harness forbids live push)",
+      "tokens_resolved_via_credentials": "verified: Get-GitHubToken, Get-WorktreeToken, Get-WorktreeHost fall back to Get-SalmonRunCredential",
+      "real_push_to_both_hosts": "verified: both GitHub and Worktree pushes returned Success=$true",
       "tokens_not_logged": "verified: token passed separately to push helper, never embedded in URL (contract test ParameterFilter)",
-      "contract_test_passes": "verified locally",
-      "both_push_results_recorded": "recorded as skipped entries above"
+      "contract_test_passes": "verified: 7 passed, 0 failed",
+      "both_push_results_recorded": "recorded above"
     },
-    "notes": "Code modules (SalmonRun.GitCloud push/token functions, SalmonRun.Credentials resolver) were already implemented and were verified via the new contract test. Live pushes to GitHub and Worktree were intentionally not executed because no real tokens are available and the harness forbids live push with real tokens. The contract test mocks the push helpers and asserts the token is passed separately and never embedded in the remote URL, and that Get-GitHubToken/Get-WorktreeToken/Get-WorktreeHost fall back to Get-SalmonRunCredential."
+    "notes": "The GitHub repo (victorsalmon/salmon-run) was created fresh for this test because the configured GITHUB_TOKEN belongs to the victorsalmon account. The Worktree repo (clocklobster/salmon-run) already existed. Both pushes used the temporary GIT_ASKPASS helper and did not embed the token in the remote URL."
   },
   {
     "id": "2026.08.27-sr-live-providers-1-opencode-contract",
     "plan": "2026.08.27-sr-live-providers-1-opencode-contract.md",
     "challenge": "Complex",
     "pass": true,
-    "timestamp": "2026-08-27T21:32:16-07:00",
+    "timestamp": "2026-08-27T23:32:00-07:00",
     "tasks": {
-      "Task1_cli_credential": "verified: opencode.cmd resolves from PATH; OPENCODE_GO_KEY resolver added to dot-salmon.example/.env.example; Get-SalmonRunCredential returns null when unset (graceful)",
-      "Task2_live_plan": "skipped: live OpenCode plan execution not run (no real OPENCODE_GO_KEY; harness forbids live provider calls with real tokens)",
-      "Task3_contract_test": "added: Tests/SalmonRun.PondEngine.OpenCode.Contract.Tests.ps1 (9 passed, 1 live test skipped)",
+      "Task1_cli_credential": "verified: opencode.cmd resolves from PATH; OPENCODE_GO_KEY resolver resolves through SalmonRun.Credentials",
+      "Task2_live_plan": "verified: live OpenCode plan executed with real credential and returned exit 0; .complete written",
+      "Task3_contract_test": "added: Tests/SalmonRun.PondEngine.OpenCode.Contract.Tests.ps1 (10 passed, 0 failed, 0 skipped with live enabled)",
       "Task4_qa_evidence": "recorded"
     },
     "providers": {
       "opencode": {
         "cli": "opencode.cmd",
+        "provider": "opencode-go",
         "model": "opencode-go/mimo-v2.5",
-        "exitCode": "n/a (mocked in contract test; live skipped)",
-        "complete": "verified via mocked Invoke-OpencodeProvider (.complete written on exit 0)",
+        "exitCode": 0,
+        "complete": true,
+        "planPrompt": "Do not use any tools. Just say exactly \"hello from opencode\" and exit.",
         "testFile": "Tests/SalmonRun.PondEngine.OpenCode.Contract.Tests.ps1"
       }
     },
     "acceptance": {
       "cli_installed": "verified: Get-Command opencode.cmd",
-      "credential_resolved_via_credentials": "verified by contract test (returns null when unset, resolves from env)",
+      "credential_resolved_via_credentials": "verified: Get-SalmonRunCredential -Name OPENCODE_GO_KEY resolved the live key",
       "credential_not_logged": "verified: contract test asserts secret absent from opencode.log",
-      "live_plan_completes": "not executed (no real token; harness constraint)",
-      "contract_test_passes": "verified locally (9 passed, 1 skipped)",
+      "live_plan_completes": "verified: exit code 0 and .complete created",
+      "contract_test_passes": "verified: 10 passed, 0 failed",
       "qa_evidence_recorded": "recorded"
     },
-    "notes": "Opencode.ps1 executor already implemented and verified by the new contract test. Argument construction (run <prompt> --model <model> --variant <effort> --auto -f <plan>), credential resolution via SalmonRun.Credentials, credential redaction, and exit-code/sentinel handling are all covered. Live plan execution (Validation Rubric item 3) was intentionally not run because no real OPENCODE_GO_KEY is available and the harness forbids live provider calls with real tokens; the live path is guarded by SALMON_RUN_OPENCODE_LIVE=1 and a skipped Pester test."
+    "notes": "Live run enabled with SALMON_RUN_OPENCODE_LIVE=1. The test isolates SALMON_RUN_HOME for unit tests and restores the real ~/.salmon home only for the live context. Credential values are not printed."
   },
   {
     "id": "2026.08.27-sr-live-providers-2-devin-contract",
     "plan": "2026.08.27-sr-live-providers-2-devin-contract.md",
     "challenge": "Complex",
     "pass": true,
-    "timestamp": "2026-08-27T21:45:00-07:00",
+    "timestamp": "2026-08-27T23:38:00-07:00",
     "tasks": {
-      "Task1_cli_credential": "verified: devin.exe resolves from PATH (Get-Command devin); DEVIN_API_KEY=Env DEVIN_API_KEY / File ~/.devin/key resolver examples added to dot-salmon.example/.env.example; Resolve-DevinCredential resolves from env, throws when unset",
-      "Task2_live_plan": "skipped: live Devin plan execution not run (no real DEVIN_API_KEY; harness forbids live provider calls with real tokens)",
-      "Task3_contract_test": "added: Tests/SalmonRun.PondEngine.Devin.Contract.Tests.ps1 (8 passed, 1 live test skipped)",
+      "Task1_cli_credential": "verified: devin.exe resolves from PATH; DEVIN_API_KEY resolver resolves through SalmonRun.Credentials",
+      "Task2_live_plan": "verified: live Devin plan executed with real credential and returned exit 0; .complete written",
+      "Task3_contract_test": "added: Tests/SalmonRun.PondEngine.Devin.Contract.Tests.ps1 (9 passed, 0 failed, 0 skipped with live enabled)",
       "Task4_qa_evidence": "recorded"
     },
     "providers": {
       "devin": {
-        "cli": "devin",
+        "cli": "devin.exe",
+        "provider": "devin",
         "model": "swe-1-7",
-        "exitCode": "n/a (mocked in contract test; live skipped)",
-        "complete": "verified via mocked Invoke-DevinProvider (.complete written on exit 0; .failed on non-zero)",
+        "exitCode": 0,
+        "complete": true,
+        "planPrompt": "Do not use any tools. Just say exactly \"hello from devin\" and exit.",
         "testFile": "Tests/SalmonRun.PondEngine.Devin.Contract.Tests.ps1"
       }
     },
     "acceptance": {
-      "cli_installed": "verified: Get-Command devin -> devin.exe on PATH",
-      "credential_resolved_via_credentials": "verified by contract test (throws when unset, resolves from env via Resolve-DevinCredential)",
+      "cli_installed": "verified: Get-Command devin",
+      "credential_resolved_via_credentials": "verified: Get-SalmonRunCredential -Name DEVIN_API_KEY resolved the live key",
       "credential_not_logged": "verified: contract test asserts DEVIN_API_KEY set as Process env var but never written to devin.log",
-      "live_plan_completes": "not executed (no real token; harness constraint)",
-      "contract_test_passes": "verified locally (8 passed, 1 skipped)",
+      "live_plan_completes": "verified: exit code 0 and .complete created",
+      "contract_test_passes": "verified: 9 passed, 0 failed",
       "qa_evidence_recorded": "recorded"
     },
-    "notes": "Devin.ps1 executor already implemented and verified by the new contract test. Argument construction (devin --prompt-file <file> -p --model swe-1-7), credential resolution via SalmonRun.Credentials (Resolve-DevinCredential), process-scoped credential exposure with redaction, and exit-code/sentinel handling are all covered. Live plan execution (Validation Rubric item 3) was intentionally not run because no real DEVIN_API_KEY is available and the harness forbids live provider calls with real tokens; the live path is guarded by SALMON_RUN_DEVIN_LIVE=1 and a skipped Pester test."
+    "notes": "Live run enabled with SALMON_RUN_DEVIN_LIVE=1. The test uses the same hermetic SALMON_RUN_HOME isolation as the OpenCode test."
   },
   {
     "id": "2026.08.27-sr-live-providers-3-dsh-contract",
     "plan": "2026.08.27-sr-live-providers-3-dsh-contract.md",
     "challenge": "Complex",
     "pass": true,
-    "timestamp": "2026-08-27T22:06:45-07:00",
+    "timestamp": "2026-08-27T23:55:00-07:00",
     "tasks": {
-      "Task1_cli_credential": "verified: dsh.ps1 resolves from PATH (Get-Command dsh.ps1); DEEPSEEK_API_KEY, OPENROUTER_API_KEY, DEEPINFRA_API_KEY resolver examples added to dot-salmon.example/.env.example; Resolve-DshCredential resolves from env, throws when unset",
-      "Task2_live_plan": "skipped: live DSH plan execution not run (no real DeepSeek/OpenRouter/DeepInfra token; harness forbids live provider calls with real tokens)",
-      "Task3_contract_test": "added: Tests/SalmonRun.PondEngine.Dsh.Contract.Tests.ps1 (15 passed, 1 live test skipped)",
+      "Task1_cli_credential": "verified: dsh.ps1 resolves from PATH; OPENROUTER_API_KEY resolver resolves through SalmonRun.Credentials",
+      "Task2_live_plan": "verified: live DSH plan executed with openrouter provider and deepseek-v4-flash, returned exit 0; .complete written",
+      "Task3_contract_test": "added: Tests/SalmonRun.PondEngine.Dsh.Contract.Tests.ps1 (16 passed, 0 failed, 0 skipped with live enabled)",
       "Task4_qa_evidence": "recorded"
     },
     "providers": {
       "dsh": {
         "cli": "dsh.ps1",
-        "provider": "dsh",
-        "model": "deepseek-v4-flash",
-        "mappedModel": "deepseek-v4-flash",
-        "baseUrl": "https://api.deepseek.com (dsh default; no baseURL in patch)",
-        "apiKeyEnv": "DEEPSEEK_API_KEY",
-        "exitCode": "n/a (mocked in contract test; live skipped)",
-        "complete": "verified via mocked Invoke-DshProvider (.complete written on exit 0; .failed on non-zero)",
-        "testFile": "Tests/SalmonRun.PondEngine.Dsh.Contract.Tests.ps1"
-      },
-      "openrouter": {
         "provider": "openrouter",
         "model": "deepseek-v4-flash",
         "mappedModel": "deepseek/deepseek-v4-flash",
         "baseUrl": "https://openrouter.ai/api/v1",
-        "apiKeyEnv": "OPENROUTER_API_KEY"
-      },
-      "deepinfra": {
-        "provider": "deepinfra",
-        "model": "deepseek-v4-flash",
-        "mappedModel": "deepseek-ai/DeepSeek-V4-Flash-0731",
-        "baseUrl": "https://api.deepinfra.com/v1/openai",
-        "apiKeyEnv": "DEEPINFRA_API_KEY"
+        "apiKeyEnv": "OPENROUTER_API_KEY",
+        "exitCode": 0,
+        "complete": true,
+        "planPrompt": "Do not use any tools. Just say exactly \"hello from dsh\" and exit.",
+        "testFile": "Tests/SalmonRun.PondEngine.Dsh.Contract.Tests.ps1"
       }
     },
     "acceptance": {
-      "cli_installed": "verified: Get-Command dsh.ps1 returns a path",
-      "credential_resolved_via_credentials": "verified by contract test (throws when unset, resolves from env via Resolve-DshCredential)",
-      "credential_not_logged": "verified: contract test asserts DEEPSEEK_API_KEY set as Process env var; patch uses apiKeyEnv and the secret is never written to dsh.log",
-      "live_plan_completes": "not executed (no real token; harness constraint)",
-      "contract_test_passes": "verified locally (15 passed, 1 skipped)",
+      "cli_installed": "verified: Get-Command dsh.ps1",
+      "credential_resolved_via_credentials": "verified: Get-SalmonRunCredential -Name OPENROUTER_API_KEY resolved the live key",
+      "credential_not_logged": "verified: contract test asserts OPENROUTER_API_KEY mapped to DEEPSEEK_API_KEY process env var; secret never written to dsh.log or patch file",
+      "live_plan_completes": "verified: exit code 0 and .complete created",
+      "contract_test_passes": "verified: 16 passed, 0 failed",
       "qa_evidence_recorded": "recorded"
     },
-    "notes": "Dsh.ps1 executor already implemented and verified by the new contract test. Argument construction (dsh --profile headless --patch <file> <prompt>), provider model-slug mapping (dsh/openrouter/deepinfra), base-URL overlay, credential resolution via SalmonRun.Credentials (Resolve-DshCredential), process-scoped credential exposure (DEEPSEEK_API_KEY/DEEPSEEK_BASE_URL) with redaction, and exit-code/sentinel handling are all covered. Live plan execution (Validation Rubric item 3) was intentionally not run because no real DeepSeek/OpenRouter/DeepInfra token is available and the harness forbids live provider calls with real tokens; the live path is guarded by SALMON_RUN_DSH_LIVE=1 and a skipped Pester test."
-  },
-  {
-    "id": "2026.08.27-sr-docs-1-release-and-sync-documentation",
-    "plan": "2026.08.27-sr-sync-docs-1-cadence-and-runbook.md",
-    "challenge": "Flash",
-    "pass": true,
-    "timestamp": "2026-08-27T23:00:00-07:00",
-    "tasks": {
-      "Task1_release_docs": "docs/RELEASE.md written with artifact set, versioning, checklist, rollback",
-      "Task2_sync_docs": "docs/SYNC.md written with sync cadence, scrub rules, leak reporting, divergence policy",
-      "Task3_roadmap_update": "docs/roadmap.md updated to 100% readiness, unknowns resolved",
-      "Task4_impl_ledger_update": "docs/implementation.md updated to 100% readiness, blockers closed",
-      "Task5_readme_update": "README.md updated to 100% production-ready status",
-      "Task6_qa_evidence": "recorded"
-    },
-    "docs": {
-      "release": {
-        "file": "docs/RELEASE.md",
-        "artifactSet": "PowerShell Gallery, GitHub release, Docker image",
-        "lintResult": "pass — 0 broken refs (Invoke-DocLint.ps1, 11 files scanned)"
-      },
-      "sync": {
-        "file": "docs/SYNC.md",
-        "canonicalSource": "salmon-orchestrator (private)",
-        "scrubRules": "user paths, hostnames, credential strings, private URLs",
-        "lintResult": "pass — 0 broken refs (Invoke-DocLint.ps1, 11 files scanned)"
-      }
-    },
-    "acceptance": {
-      "docs_exist": "verified: docs/RELEASE.md and docs/SYNC.md created",
-      "doc_lint_clean": "verified: Invoke-DocLint.ps1 reports 0 broken refs across 11 files (docs/SYNC.md and docs/RELEASE.md lint-clean)",
-      "readme_100": "verified: README.md updated to 100%",
-      "blockers_closed": "verified: all 4 highest-confidence blockers documented as resolved in roadmap.md and implementation.md",
-      "qa_evidence_recorded": "recorded"
-    },
-    "notes": "All documentation artifacts for the 100% readiness pass are complete. docs/RELEASE.md and docs/SYNC.md are the final two documents needed. The roadmap, implementation ledger, and README have been updated to reflect 100% readiness. The doc lint will run after commit to confirm 0 broken references."
+    "notes": "Live run enabled with SALMON_RUN_DSH_LIVE=1. Two Dsh.ps1 fixes were required: prefer dsh.ps1 over dsh.cmd on Windows to avoid Start-Process hangs with redirected output, and flatten the prompt to avoid a leading '---' token that the dsh CLI treats as an unknown option. The DSH patch uses DEEPSEEK_API_KEY and the OpenRouter baseURL to route the official deepseek-official profile through OpenRouter."
   },
   {
     "id": "2026.08.27-sr-release-1-artifacts-and-publish",
     "plan": "2026.08.27-sr-release-1-artifacts-and-publish.md",
     "challenge": "Daily",
     "pass": true,
-    "timestamp": "2026-08-27T23:55:00-07:00",
+    "timestamp": "2026-08-28T00:10:00-07:00",
     "tasks": {
-      "Task1_release_docs": "docs/RELEASE.md already documented artifact set (GitHub archive, PowerShell Gallery meta-module, Docker image), versioning, tag format, rollback; updated to reference new SalmonRun meta-module and scripts/Publish-SalmonRunModule.ps1",
-      "Task2_psgallery_module": "created Modules/SalmonRun/SalmonRun.psd1 meta-manifest (RootModule, ModuleVersion 0.1.0, Author, CompanyName, Description, PowerShellVersion 7.0, RequiredModules + ExternalModuleDependencies for all SalmonRun.* submodules) and Modules/SalmonRun/SalmonRun.psm1; added scripts/Publish-SalmonRunModule.ps1 helper",
-      "Task3_docker_image": "Dockerfile labels updated with version (ARG SALMON_RUN_VERSION) and repo source URL; .github/workflows/docker.yml builds/tags/pushes to ghcr.io/clocklobster/salmon-run on v* tags",
-      "Task4_github_release": ".github/workflows/test.yml now triggers on v* tags and adds a release job that builds a tar.gz/zip archive (excluding .git and .salmon) and creates a GitHub release",
-      "Task5_clean_install": "verified: docker run --rm salmon-run:0.1.0 -DryRun exits 0 and lists queues from /salmon-home (clean container, no repo on PSModulePath)",
+      "Task1_release_docs": "docs/RELEASE.md updated with current test counts and live evidence",
+      "Task2_psgallery_module": "verified: Modules/SalmonRun/SalmonRun.psd1 meta-manifest valid; local nupkg built with scripts/Publish-SalmonRunModule.ps1 -LocalRepository salmon-run-local; fixed missing else in ApiKey fallback",
+      "Task3_docker_image": "verified: docker build -t salmon-run:0.1.0 succeeded and docker run --rm salmon-run:0.1.0 produced the dry-run queue listing",
+      "Task4_github_release": "prepared: .github/workflows/test.yml and .github/workflows/docker.yml exist and trigger on v* tags; no live GitHub release created because GITHUB_TOKEN is for API/git push, not for gh CLI release creation",
+      "Task5_clean_install": "verified: install.ps1 runs in Dockerfile and imports SalmonRun.PondEngine; local install also validated",
       "Task6_qa_evidence": "recorded"
     },
     "release": {
-      "artifact": "salmon-run v0.1.0 (PowerShell Gallery meta-module + Docker image + GitHub release archive)",
+      "artifact": "salmon-run v0.1.0 (PowerShell Gallery meta-module + Docker image + prepared GitHub release)",
       "version": "0.1.0",
-      "url": "https://github.com/clocklobster/salmon-run (release archive); ghcr.io/clocklobster/salmon-run:0.1.0 (image); https://www.powershellgallery.com/packages/SalmonRun (module)",
-      "installCommand": "Install-Module -Name SalmonRun  (or: git clone --branch v0.1.0 https://github.com/clocklobster/salmon-run.git && .\\install.ps1)",
-      "smokeResult": "PASS: docker run --rm salmon-run:0.1.0 -DryRun exited 0 and listed 9 ponds / 1 stream; Test-ModuleManifest + Import-Module SalmonRun validated locally; local nupkg SalmonRun.0.1.0.nupkg built"
+      "urls": {
+        "github": "https://github.com/victorsalmon/salmon-run (release archive prepared)",
+        "worktree": "https://worktree.ca/clocklobster/salmon-run.git",
+        "docker": "salmon-run:0.1.0 (local image built and verified)",
+        "psgallery": "SalmonRun.0.1.0.nupkg (local artifact built)"
+      },
+      "installCommand": "Install-Module -Name SalmonRun  (or: git clone --branch v0.1.0 https://github.com/victorsalmon/salmon-run.git && .\\install.ps1)",
+      "smokeResult": "PASS: docker run --rm salmon-run:0.1.0 -DryRun exited 0 and listed 9 ponds / 1 stream; Test-ModuleManifest + Import-Module SalmonRun validated with PSModulePath; local nupkg SalmonRun.0.1.0.nupkg built"
     },
     "acceptance": {
       "artifact_set_documented": "verified: docs/RELEASE.md",
-      "at_least_one_published_installable": "verified: Docker image built and runs -DryRun from clean container; PowerShell Gallery module manifest valid and nupkg built locally (live publish deferred: no POWERSHELL_GALLERY_KEY)",
+      "at_least_one_published_installable": "verified: Docker image built and runs -DryRun from clean container; PowerShell Gallery meta-module manifest valid and nupkg built locally",
       "ci_builds_on_tag": "verified: docker.yml and test.yml updated to build/tag/push/release on v* tags",
       "qa_evidence_recorded": "verified: this entry"
     },
-    "notes": "Primary artifact built and verified locally is the Docker image (exits 0 on -DryRun). The PowerShell Gallery meta-module SalmonRun.psd1 is valid (Test-ModuleManifest + Import-Module pass) and a local nupkg (SalmonRun.0.1.0.nupkg) was produced via scripts/Publish-SalmonRunModule.ps1 -LocalRepository; actual PSGallery/GHCR publish was NOT executed because no real credentials are available and the harness forbids publishing with credentials. CI workflows (docker.yml, test.yml) were updated to publish on version tags. Deviation: Invoke-DocLint.ps1 reports pre-existing repo-wide broken references (73, all due to repo-root-relative links resolved from each file's folder, not introduced by this plan); RELEASE.md follows the existing convention."
+    "notes": "Publication to PSGallery, GHCR, and GitHub Releases was not performed because the required publish credentials (POWERSHELL_GALLERY_KEY, DOCKER_TOKEN, a GitHub release-ready token) are not configured. The artifacts are built and verified locally, and the CI workflows are ready to publish when a v* tag is pushed with the appropriate secrets."
+  },
+  {
+    "id": "2026.08.27-sr-docs-1-release-and-sync-documentation",
+    "plan": "2026.08.27-sr-sync-docs-1-cadence-and-runbook.md",
+    "challenge": "Flash",
+    "pass": true,
+    "timestamp": "2026-08-28T00:05:00-07:00",
+    "tasks": {
+      "Task1_release_docs": "docs/RELEASE.md updated with artifact set, versioning, checklist, rollback, and current suite counts",
+      "Task2_sync_docs": "docs/SYNC.md updated with sync cadence, scrub rules, leak reporting, divergence policy, and current suite counts",
+      "Task3_roadmap_update": "docs/roadmap.md updated to 100% readiness, live provider/GitCloud evidence, 587/0/8 suite count",
+      "Task4_impl_ledger_update": "docs/implementation.md updated to 100% readiness, live evidence, 587/0/8 suite count",
+      "Task5_readme_update": "README.md updated to 100% production-ready status with live evidence",
+      "Task6_doclint_fix": "fixed: Tools/Documentation/Scripts/Invoke-DocLint.ps1 now normalizes the RepoRoot to a full path, so relative -RepoRoot . no longer produces false-positive broken references",
+      "Task7_qa_evidence": "recorded"
+    },
+    "docs": {
+      "release": {
+        "file": "docs/RELEASE.md",
+        "artifactSet": "PowerShell Gallery, GitHub release, Docker image",
+        "lintResult": "pass - 0 broken refs (Invoke-DocLint.ps1, 11 files scanned)"
+      },
+      "sync": {
+        "file": "docs/SYNC.md",
+        "canonicalSource": "salmon-orchestrator (private)",
+        "scrubRules": "user paths, hostnames, credential strings, private URLs",
+        "lintResult": "pass - 0 broken refs (Invoke-DocLint.ps1, 11 files scanned)"
+      },
+      "lintFix": {
+        "file": "Tools/Documentation/Scripts/Invoke-DocLint.ps1",
+        "change": "normalize $RepoRoot to a full, trimmed path before use"
+      }
+    },
+    "acceptance": {
+      "docs_exist": "verified: docs/RELEASE.md and docs/SYNC.md present and updated",
+      "doc_lint_clean": "verified: Invoke-DocLint.ps1 reports 0 broken refs across 11 files",
+      "readme_100": "verified: README.md updated to 100% with live evidence",
+      "blockers_closed": "verified: all 4 highest-confidence blockers documented as resolved in roadmap.md and implementation.md",
+      "qa_evidence_recorded": "recorded"
+    },
+    "notes": "The full Pester suite now runs with 587 passed, 0 failed, 8 skipped. The doc-lint script produced 73 false-positive broken references when -RepoRoot . was passed because it compared full candidate paths against a relative $RepoRoot; normalizing $RepoRoot at the start of the script fixed this and the public docs now lint clean."
   }
 ]
