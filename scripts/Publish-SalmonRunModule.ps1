@@ -37,7 +37,7 @@ Write-Host "Validating manifest: $resolvedModule" -ForegroundColor Cyan
 Test-ModuleManifest -Path (Join-Path $resolvedModule.Path 'SalmonRun.psd1') -ErrorAction Stop
 Write-Host 'Module manifest valid.' -ForegroundColor Green
 
-$key = if ($ApiKey) { $ApiKey } { $env:POWERSHELL_GALLERY_KEY }
+$key = if ($ApiKey) { $ApiKey } else { $env:POWERSHELL_GALLERY_KEY }
 
 if ($WhatIf -or -not $key) {
     if ($LocalRepository) {
