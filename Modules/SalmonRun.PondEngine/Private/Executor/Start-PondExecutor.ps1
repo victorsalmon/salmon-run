@@ -98,7 +98,8 @@ function Start-PondExecutor {
         }
 
         if ($proc -and -not $proc.HasExited) {
-            Write-Verbose "Start-PondExecutor: timeout ($timeoutMinutes min) for role '$($Command.Role)'; stopping process $($proc.Id)"
+            Write-Verbose "Start-PondExecutor: timeout ($timeoutMinutes min) for role '$($Command.Role)'; stopping process tree $($proc.Id)"
+            $null = taskkill /T /F /PID $proc.Id 2>&1 | Out-Null
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
             $exitCode = -2
         } else {

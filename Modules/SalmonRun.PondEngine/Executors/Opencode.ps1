@@ -382,12 +382,17 @@ function Invoke-OpencodeProvider {
             -RedirectStandardError $errLog `
             -NoNewWindow -PassThru -ErrorAction Stop
 
+        if ($process) {
+            $process.Id.ToString() | Set-Content -LiteralPath (Join-Path $LanePath '.pid') -Encoding utf8 -NoNewline
+        }
+
         $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
         while ((Get-Date) -lt $deadline -and $process -and -not $process.HasExited) {
             Start-Sleep -Seconds 1
         }
 
         if ($process -and -not $process.HasExited) {
+            $null = taskkill /T /F /PID $process.Id 2>&1 | Out-Null
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
             $exitCode = 1
         } else {
@@ -409,6 +414,12 @@ function Invoke-OpencodeProvider {
     } catch {
         $_.Exception.Message | Set-Content -LiteralPath $errLog -Encoding utf8 -NoNewline
         $exitCode = 1
+    } finally {
+        # Ensure the child opencode process does not outlive this wrapper.
+        if ($process -and -not $process.HasExited) {
+            $null = taskkill /T /F /PID $process.Id 2>&1 | Out-Null
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
     }
 
     $resultAction = if ($exitCode -eq 0) { 'external-complete' } else { 'external-fail' }
