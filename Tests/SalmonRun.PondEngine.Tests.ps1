@@ -40,6 +40,14 @@ Describe 'SalmonRun.PondEngine Module Manifest' -Tag 'PondEngine', 'Regression-O
         $manifest.FunctionsToExport | Should -Contain 'Get-SalmonRunPonds'
         $manifest.FunctionsToExport | Should -Contain 'Start-PondEngine'
     }
+
+    It 'exports a module-scoped child-lane pipeline entrypoint' {
+        $manifest = Import-PowerShellDataFile -Path $script:PondEnginePsd1
+
+        $manifest.FunctionsToExport | Should -Contain 'Invoke-PondLanePipeline'
+        Get-Command Invoke-PondLanePipeline -Module SalmonRun.PondEngine -ErrorAction SilentlyContinue |
+            Should -Not -BeNullOrEmpty
+    }
 }
 
 Describe 'Get-SalmonRunPonds' -Tag 'PondEngine', 'Regression-Only' {
