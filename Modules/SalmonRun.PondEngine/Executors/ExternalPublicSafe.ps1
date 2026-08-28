@@ -52,7 +52,7 @@ try {
         $envPath = Join-Path $salmonHome '.env'
         foreach ($name in $Credentials) {
             $value = $null
-            try { $value = Get-SalmonRunCredential -Name $name -EnvPath $envPath } catch { }
+            try { $value = Get-SalmonRunCredential -Name $name -EnvPath $envPath } catch { Write-Verbose "Suppressed credential resolution error for ${name}: $_" }
             if ($null -ne $value) { $credentialValues += $name }
         }
     }

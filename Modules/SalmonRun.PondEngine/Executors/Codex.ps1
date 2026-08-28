@@ -174,6 +174,7 @@ function Write-PlanLog {
             } -ErrorAction SilentlyContinue
         } catch {
             # PondLog failures must not stop the executor.
+            Write-Verbose "Suppressed non-fatal PondLog error: $_"
         }
     }
 }

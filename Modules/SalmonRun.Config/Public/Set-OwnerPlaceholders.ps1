@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Configures or reconfigures owner placeholder values interactively.
 .DESCRIPTION
@@ -78,13 +78,13 @@ function Set-OwnerPlaceholders {
         if ($key -eq "OWNER_BUSINESS_NAME" -and [string]::IsNullOrWhiteSpace($existingVal)) {
             $promptText = "  $($meta.Prompt) [{OWNER_BUSINESS}]"
         }
-        $input = Read-Host $promptText
-        if ([string]::IsNullOrWhiteSpace($input)) { $input = $existingVal }
-        if ($input -match '^\(example\)') {
-            Write-Warning "  Value '$input' looks like an example — please enter a real value."
-            $input = Read-Host "  $($meta.Prompt) [REQUIRED]"
+        $inputValue = Read-Host $promptText
+        if ([string]::IsNullOrWhiteSpace($inputValue)) { $inputValue = $existingVal }
+        if ($inputValue -match '^\(example\)') {
+            Write-Warning "  Value '$inputValue' looks like an example — please enter a real value."
+            $inputValue = Read-Host "  $($meta.Prompt) [REQUIRED]"
         }
-        $newConfig[$key] = $input
+        $newConfig[$key] = $inputValue
     }
 
     $configDir = Split-Path $script:OwnerConfigPath -Parent
@@ -97,4 +97,5 @@ function Set-OwnerPlaceholders {
 
     return $newConfig
 }
+
 

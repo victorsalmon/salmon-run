@@ -107,13 +107,13 @@ function Get-PlanPondLog {
             [System.Text.RegularExpressions.RegexOptions]::Singleline
         )
 
-        $matches = $re.Matches($content)
-        if ($matches.Count -eq 0) {
+        $srMatchResults = $re.Matches($content)
+        if ($srMatchResults.Count -eq 0) {
             return @()
         }
 
         $allEntries = [System.Collections.Generic.List[object]]::new()
-        foreach ($m in $matches) {
+        foreach ($m in $srMatchResults) {
             $json = $m.Groups[1].Value.Trim()
             $parsed, $extra = Read-PondLogJsonArray -Text $json
             if ($parsed) {
@@ -215,11 +215,11 @@ function Add-PlanPondLog {
             [System.Text.RegularExpressions.RegexOptions]::Singleline
         )
 
-        $matches = $re.Matches($content)
+        $srMatchResults = $re.Matches($content)
         $allEntries = [System.Collections.Generic.List[object]]::new()
         $extraText = [System.Collections.Generic.List[string]]::new()
-        if ($matches.Count -gt 0) {
-            foreach ($m in $matches) {
+        if ($srMatchResults.Count -gt 0) {
+            foreach ($m in $srMatchResults) {
                 $json = $m.Groups[1].Value
                 $parsed, $extra = Read-PondLogJsonArray -Text $json
                 if ($parsed) {
@@ -249,3 +249,4 @@ function Add-PlanPondLog {
 
     return $newEntry
 }
+

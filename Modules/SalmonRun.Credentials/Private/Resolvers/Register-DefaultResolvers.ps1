@@ -71,7 +71,7 @@ function Register-DefaultSalmonRunCredentialResolvers {
         param([string[]]$Arguments)
         if ($Arguments.Count -lt 3) { throw 'AWS resolver requires at least profile, mode, and target' }
 
-        $profile = $Arguments[0]
+        $execProfile = $Arguments[0]
         $mode = $Arguments[1].ToLower()
 
         switch ($mode) {
@@ -83,12 +83,12 @@ function Register-DefaultSalmonRunCredentialResolvers {
                 foreach ($line in [System.IO.File]::ReadLines($credPath)) {
                     $trim = $line.Trim()
                     if ($trim -match '^\[(.+?\s*)\]') {
-                        $inProfile = ($matches[1].Trim() -eq $profile -or $matches[1].Trim() -eq "profile $profile")
+                        $inProfile = ($matches[1].Trim() -eq $execProfile -or $matches[1].Trim() -eq "profile $execProfile")
                     } elseif ($inProfile -and $trim -match "^$([regex]::Escape($key))\s*=\s*(.+)") {
                         return $matches[1].Trim()
                     }
                 }
-                throw "AWS credentials key '$key' not found for profile '$profile'"
+                throw "AWS credentials key '$key' not found for profile '$execProfile'"
             }
             'config' {
                 $key = $Arguments[2]
@@ -98,12 +98,12 @@ function Register-DefaultSalmonRunCredentialResolvers {
                 foreach ($line in [System.IO.File]::ReadLines($configPath)) {
                     $trim = $line.Trim()
                     if ($trim -match '^(?:\[profile\s+)?(.+?)\s*\]') {
-                        $inProfile = ($matches[1].Trim() -eq $profile)
+                        $inProfile = ($matches[1].Trim() -eq $execProfile)
                     } elseif ($inProfile -and $trim -match "^$([regex]::Escape($key))\s*=\s*(.+)") {
                         return $matches[1].Trim()
                     }
                 }
-                throw "AWS config key '$key' not found for profile '$profile'"
+                throw "AWS config key '$key' not found for profile '$execProfile'"
             }
             'secretsmanager' {
                 $secretName = $Arguments[2]
@@ -111,7 +111,7 @@ function Register-DefaultSalmonRunCredentialResolvers {
                 if (-not (Get-Command 'aws' -ErrorAction SilentlyContinue)) {
                     throw 'AWS CLI (aws) is not available'
                 }
-                $json = (& aws secretsmanager get-secret-value --secret-id $secretName --query 'SecretString' --output text --profile $profile 2>&1) | Out-String
+                $json = (& aws secretsmanager get-secret-value --secret-id $secretName --query 'SecretString' --output text --profile $execProfile 2>&1) | Out-String
                 if ($LASTEXITCODE -ne 0) { throw "AWS Secrets Manager lookup failed: $json" }
                 if ($jsonKey) {
                     $obj = $json | ConvertFrom-Json -ErrorAction SilentlyContinue
@@ -142,8 +142,8 @@ function Register-DefaultSalmonRunCredentialResolvers {
         }
         if ([string]::IsNullOrWhiteSpace($token)) { throw 'Worktree resolver: no token available' }
 
-        $host = Get-WorktreeHost
-        $uri = "$host/api/v1/repos/$owner/$repo/actions/secrets/$secretName"
+        $hostName = Get-WorktreeHost
+        $uri = "$hostName/api/v1/repos/$owner/$repo/actions/secrets/$secretName"
         $headers = @{
             Authorization = "token $token"
             Accept        = 'application/json'
@@ -171,3 +171,4 @@ function Register-DefaultSalmonRunCredentialResolvers {
         throw "GitHub resolver: env var '$varName' is not set"
     }
 }
+

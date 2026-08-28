@@ -17,8 +17,8 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$TaskRoot = 'C:\\Users\\RDP\\.salmon\\Tasks',
-    [string]$RepoDir = 'C:\\Repos\\Public\\Salmon-Run',
+    [string]$TaskRoot = (Join-Path $env:USERPROFILE '.salmon' 'Tasks'),
+    [string]$RepoDir = (Split-Path $PSScriptRoot -Parent),
     [string]$ConfigPath = ''
 )
 
@@ -26,7 +26,7 @@ $ErrorActionPreference = 'Continue'
 
 $moduleLoader = if ($RepoDir) { Join-Path $RepoDir 'Modules' 'SalmonRun.ModuleLoader' 'Public' 'Initialize-InterclawEnvironment.ps1' } else { $null }
 if (-not ($moduleLoader -and (Test-Path -LiteralPath $moduleLoader))) {
-    $moduleLoader = (Resolve-Path 'C:\Repos\Public\Salmon-Run\Modules\SalmonRun.ModuleLoader\Public\Initialize-InterclawEnvironment.ps1' -ErrorAction SilentlyContinue)?.Path
+    $moduleLoader = (Resolve-Path (Join-Path (Split-Path $PSScriptRoot -Parent) 'Modules' 'SalmonRun.ModuleLoader' 'Public' 'Initialize-InterclawEnvironment.ps1') -ErrorAction SilentlyContinue)?.Path
 }
 if (-not (Test-Path -LiteralPath $moduleLoader)) {
     throw "Start-WorkingLaneJanitor: module loader not found at $moduleLoader"
@@ -98,7 +98,7 @@ foreach ($lane in $lanes) {
             $pidText = Get-Content -LiteralPath $pidFile -Raw -ErrorAction SilentlyContinue
             $lanePid = $null
             if ([int]::TryParse($pidText, [ref]$lanePid)) {
-                try { $shouldRemove = (Get-Process -Id $lanePid -ErrorAction SilentlyContinue) -eq $null } catch { $shouldRemove = $true }
+                try { $shouldRemove = $null -eq (Get-Process -Id $lanePid -ErrorAction SilentlyContinue) } catch { $shouldRemove = $true }
             }
         }
         if ($shouldRemove) {
@@ -122,7 +122,7 @@ foreach ($lane in $lanes) {
         $pidText = Get-Content -LiteralPath $pidFile -Raw -ErrorAction SilentlyContinue
         $lanePid = $null
         if ([int]::TryParse($pidText, [ref]$lanePid)) {
-            try { $alive = (Get-Process -Id $lanePid -ErrorAction SilentlyContinue) -ne $null } catch { $alive = $false }
+            try { $alive = $null -ne (Get-Process -Id $lanePid -ErrorAction SilentlyContinue) } catch { $alive = $false }
         }
     }
     if ($alive) { continue }

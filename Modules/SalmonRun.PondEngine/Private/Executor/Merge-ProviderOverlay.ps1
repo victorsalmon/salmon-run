@@ -41,7 +41,7 @@ function Merge-ProviderOverlay {
         ($Base -is [array] -or $Base -is [System.Collections.IList])) {
         if ($Key -eq 'models') {
             $result = [System.Collections.ArrayList]::new()
-            if ($Base -ne $null) { foreach ($item in $Base) { $null = $result.Add($item) } }
+            if ($null -ne $Base) { foreach ($item in $Base) { $null = $result.Add($item) } }
 
             foreach ($overlayItem in $Overlay) {
                 $canonicalName = if ($overlayItem -is [hashtable]) { $overlayItem['canonicalName'] } else { $null }
@@ -67,3 +67,4 @@ function Merge-ProviderOverlay {
 
     return $Overlay
 }
+

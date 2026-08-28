@@ -30,7 +30,7 @@ function Get-RepoMermaidChunks {
         if ([string]::IsNullOrWhiteSpace($diagram)) { return 'unknown' }
         $first = ($diagram -split "`r?`n")[0].Trim()
         if ($first -match '^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|mindmap|timeline|gitgraph|requirementDiagram|c4c|journey)\b') {
-            return $Matches[1].Trim()
+            return $matches[1].Trim()
         }
         return 'unknown'
     }
@@ -61,10 +61,10 @@ function Get-RepoMermaidChunks {
         $content = Get-Content -LiteralPath $file.FullName -Raw -Encoding utf8
         if ([string]::IsNullOrWhiteSpace($content)) { continue }
 
-        $matches = [regex]::Matches($content, '```mermaid\s*\r?\n(.*?)\r?\n```', 'Singleline')
+        $matchResults = [regex]::Matches($content, '```mermaid\s*\r?\n(.*?)\r?\n```', 'Singleline')
         $index = 0
 
-        foreach ($m in $matches) {
+        foreach ($m in $matchResults) {
             $diagram = $m.Groups[1].Value.Trim()
             $sourceRel = & $relative $file.FullName
             $type = Get-MermaidDiagramType -diagram $diagram
@@ -106,3 +106,4 @@ function Get-RepoMermaidChunks {
 
     return $chunks.ToArray()
 }
+

@@ -39,12 +39,12 @@ function Get-WorktreeCiRun {
         throw "Get-WorktreeCiRun: no worktree token available. Set WORKTREE_REPO_RW_ACCESS_TOKEN or pass -Token."
     }
 
-    $host = if ($WorktreeHost) { $WorktreeHost } else { Get-WorktreeHost }
+    $hostName = if ($WorktreeHost) { $WorktreeHost } else { Get-WorktreeHost }
     $headers = @{
         'Authorization' = "token $resolvedToken"
         'Accept'        = 'application/json'
     }
-    $uri = "$host/api/v1/repos/$Owner/$Repo/actions/tasks"
+    $uri = "$hostName/api/v1/repos/$Owner/$Repo/actions/tasks"
 
     try {
         $response = Invoke-RestMethod -Uri $uri -Headers $headers -TimeoutSec 30 -ErrorAction Stop
@@ -60,3 +60,4 @@ function Get-WorktreeCiRun {
         throw "Get-WorktreeCiRun: failed to query worktree CI for $Owner/$Repo`: $_"
     }
 }
+

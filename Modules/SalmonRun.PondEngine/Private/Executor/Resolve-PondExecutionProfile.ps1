@@ -13,6 +13,8 @@ function Resolve-PondExecutionProfile {
 
         [string]$Harness,
 
+        [string]$Model,
+
         [string[]]$PlanFiles
     )
 
@@ -37,10 +39,22 @@ function Resolve-PondExecutionProfile {
         }
     }
 
-    # Choose the highest-scoring model for the tier.
-    $selected = $candidates |
-        Sort-Object -Property { [int]$_.capabilityScore } |
-        Select-Object -Last 1
+    # If a specific model is requested, pin to it (case-insensitive) instead of
+    # tier/capability scoring. This keeps the default resolution (highest
+    # capability score) intact while allowing tests and callers to target a
+    # particular catalog entry.
+    if (-not [string]::IsNullOrWhiteSpace($Model)) {
+        $pinned = @($catalog.models | Where-Object { $_.model -eq $Model })
+        if ($pinned.Count -eq 0) {
+            throw "Resolve-PondExecutionProfile: no model found with name '$Model'."
+        }
+        $selected = $pinned[0]
+    } else {
+        # Choose the highest-scoring model for the tier.
+        $selected = $candidates |
+            Sort-Object -Property { [int]$_.capabilityScore } |
+            Select-Object -Last 1
+    }
 
     if (-not $selected) {
         throw "Resolve-PondExecutionProfile: no model found for tier '$Tier'."
@@ -51,7 +65,6 @@ function Resolve-PondExecutionProfile {
     if (-not $harnessDefaults['harnesses'].ContainsKey($harnessName)) {
         throw "Resolve-PondExecutionProfile: unknown harness '$harnessName'."
     }
-    $harnessCfg = $harnessDefaults['harnesses'][$harnessName]
 
     $provider = $selected.provider
     if (-not $harnessDefaults['providers'].ContainsKey($provider)) {
@@ -131,36 +144,38 @@ function Resolve-PondExecutionProfile {
         $effectiveCost * (1.0 + $thinkingTokenRatio)
     }
 
-    $profile = [PondExecutionProfile]::new()
-    $profile.Tier         = $Tier
-    $profile.Harness      = $harnessName
-    $profile.Provider     = $provider
-    $profile.Model        = $model
-    $profile.Effort       = $effort
-    $profile.Cli          = $providerCfg['cli']
-    $profile.ExecutorFile = $providerCfg['executorFile']
-    $profile.TimeoutMinutes = if ($providerCfg['defaultTimeoutMinutes']) { $providerCfg['defaultTimeoutMinutes'] } else { 30 }
-    $profile.Credentials  = [string[]](@($providerCfg['credentials'] | Where-Object { $_ -ne $null }))
-    $profile.CostRule     = $costRule
-    $profile.ApiCostPer1KTokens = $apiCost
-    $profile.EffectiveCostPer1KTokens = $effectiveCost
-    $profile.CostWithThinking = $costWithThinking
+    $srExecProfile = [PondExecutionProfile]::new()
+    $srExecProfile.Tier         = $Tier
+    $srExecProfile.Harness      = $harnessName
+    $srExecProfile.Provider     = $provider
+    $srExecProfile.Model        = $model
+    $srExecProfile.Effort       = $effort
+    $srExecProfile.Cli          = $providerCfg['cli']
+    $srExecProfile.ExecutorFile = $providerCfg['executorFile']
+    $srExecProfile.TimeoutMinutes = if ($providerCfg['defaultTimeoutMinutes']) { $providerCfg['defaultTimeoutMinutes'] } else { 30 }
+    $srExecProfile.Credentials  = [string[]](@($providerCfg['credentials'] | Where-Object { $null -ne $_ }))
+    $srExecProfile.CostRule     = $costRule
+    $srExecProfile.ApiCostPer1KTokens = $apiCost
+    $srExecProfile.EffectiveCostPer1KTokens = $effectiveCost
+    $srExecProfile.CostWithThinking = $costWithThinking
 
     if ($benchmarkData) {
-        if ($benchmarkData.ContainsKey('benchmarks')) { $profile.Benchmarks = $benchmarkData['benchmarks'] }
-        if ($benchmarkData.ContainsKey('tokenizer_efficiency')) { $profile.TokenizerEfficiency = [double]$benchmarkData['tokenizer_efficiency'] }
-        if ($benchmarkData.ContainsKey('speed_tok_per_s')) { $profile.SpeedTokPerS = [double]$benchmarkData['speed_tok_per_s'] }
-        if ($benchmarkData.ContainsKey('reasoning_effort')) { $profile.ReasoningEffort = $benchmarkData['reasoning_effort'] }
-        $profile.ThinkingTokenRatio = $thinkingTokenRatio
-        $profile.ThinkingTokensPer1KOutput = $thinkingTokenRatio * 1000.0
-        if ($benchmarkData.ContainsKey('providers')) { $profile.ProviderPricing = $benchmarkData['providers'] }
-        if ($benchmarkData.ContainsKey('references')) { $profile.References = [string[]]$benchmarkData['references'] }
+        if ($benchmarkData.ContainsKey('benchmarks')) { $srExecProfile.Benchmarks = $benchmarkData['benchmarks'] }
+        if ($benchmarkData.ContainsKey('tokenizer_efficiency')) { $srExecProfile.TokenizerEfficiency = [double]$benchmarkData['tokenizer_efficiency'] }
+        if ($benchmarkData.ContainsKey('speed_tok_per_s')) { $srExecProfile.SpeedTokPerS = [double]$benchmarkData['speed_tok_per_s'] }
+        if ($benchmarkData.ContainsKey('reasoning_effort')) { $srExecProfile.ReasoningEffort = $benchmarkData['reasoning_effort'] }
+        $srExecProfile.ThinkingTokenRatio = $thinkingTokenRatio
+        $srExecProfile.ThinkingTokensPer1KOutput = $thinkingTokenRatio * 1000.0
+        if ($benchmarkData.ContainsKey('providers')) { $srExecProfile.ProviderPricing = $benchmarkData['providers'] }
+        if ($benchmarkData.ContainsKey('references')) { $srExecProfile.References = [string[]]$benchmarkData['references'] }
     } else {
-        $profile.ThinkingTokenRatio = 0.0
-        $profile.ThinkingTokensPer1KOutput = 0.0
-        $profile.CostWithThinking = $effectiveCost
-        if ($selected.ContainsKey('benchmarks')) { $profile.Benchmarks = $selected['benchmarks'] }
+        $srExecProfile.ThinkingTokenRatio = 0.0
+        $srExecProfile.ThinkingTokensPer1KOutput = 0.0
+        $srExecProfile.CostWithThinking = $effectiveCost
+        if ($selected.ContainsKey('benchmarks')) { $srExecProfile.Benchmarks = $selected['benchmarks'] }
     }
 
-    return $profile
+    return $srExecProfile
 }
+
+

@@ -31,10 +31,10 @@ function Invoke-PondTaskMonitorStream {
     $Context.Success = $false
 
     $pidFile = Join-Path $lanePath '.pid'
-    $pid = $null
+    $processId = $null
     if (Test-Path -LiteralPath $pidFile) {
         $pidText = Get-Content -LiteralPath $pidFile -Raw -ErrorAction SilentlyContinue
-        $null = [int]::TryParse($pidText, [ref]$pid)
+        $null = [int]::TryParse($pidText, [ref]$processId)
     }
 
     # If sentinels already exist, return immediately.
@@ -65,10 +65,10 @@ function Invoke-PondTaskMonitorStream {
 
         # Defensive stale-PID check: if the tracked process is gone and no
         # sentinel was written, declare a failure so the lane can be retried.
-        if ($pid -and -not (Get-Process -Id $pid -ErrorAction SilentlyContinue)) {
+        if ($processId -and -not (Get-Process -Id $processId -ErrorAction SilentlyContinue)) {
             $pidGoneCount++
             if ($pidGoneCount -ge 2) {
-                Write-Verbose "Invoke-PondTaskMonitorStream: group '$($group.Namespace)' process $pid gone without sentinel; marking failed"
+                Write-Verbose "Invoke-PondTaskMonitorStream: group '$($group.Namespace)' process $processId gone without sentinel; marking failed"
                 '1' | Set-Content -LiteralPath $failedFile -Encoding utf8 -NoNewline
                 $Context.Success = $false
                 break
@@ -84,3 +84,4 @@ function Invoke-PondTaskMonitorStream {
 
     return $Context
 }
+

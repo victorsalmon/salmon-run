@@ -45,14 +45,14 @@ function Set-WorktreeRepositorySecret {
         throw "Set-WorktreeRepositorySecret: no worktree token available. Set WORKTREE_REPO_RW_ACCESS_TOKEN or pass -Token."
     }
 
-    $host = if ($WorktreeHost) { $WorktreeHost } else { Get-WorktreeHost }
+    $hostName = if ($WorktreeHost) { $WorktreeHost } else { Get-WorktreeHost }
     $headers = @{
         'Authorization'  = "token $resolvedToken"
         'Accept'         = 'application/json'
         'Content-Type'   = 'application/json'
     }
     $body = @{ data = $Value } | ConvertTo-Json -Compress
-    $uri = "$host/api/v1/repos/$Owner/$Repo/actions/secrets/$Name"
+    $uri = "$hostName/api/v1/repos/$Owner/$Repo/actions/secrets/$Name"
 
     try {
         $null = Invoke-WebRequest -Uri $uri -Method Put -Headers $headers -Body $body -TimeoutSec 30 -ErrorAction Stop
@@ -61,3 +61,4 @@ function Set-WorktreeRepositorySecret {
         throw "Set-WorktreeRepositorySecret: failed to set secret $Name for $Owner/$Repo`: $_"
     }
 }
+

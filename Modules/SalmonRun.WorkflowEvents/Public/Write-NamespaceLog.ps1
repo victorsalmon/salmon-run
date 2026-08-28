@@ -1,4 +1,4 @@
-function Write-NamespaceLog {
+﻿function Write-NamespaceLog {
     <#
     .SYNOPSIS
         Appends a JSONL entry to Tasks/Logs/<Namespace>.log for decision/knowledge logging.
@@ -40,13 +40,13 @@ function Write-NamespaceLog {
 
         [Parameter(Mandatory)]
         [ValidateSet('MEMORY', 'DECISION', 'LESSON', 'PIVOT', 'STATE_CHANGE', 'FAILURE_PATTERN', 'CONFUSION', 'NOTE')]
-        [string]$Type = 'MEMORY',
+        [string]$Type,
 
         [string]$Detail = '',
 
         [string[]]$Files = @(),
 
-        [string]$AgentId = ($env:OC_RESERVATION_AGENT_ID, '<unknown>' -ne $null -ne '')[0],
+        [string]$AgentId = $env:OC_RESERVATION_AGENT_ID,
 
         [string]$Phase = ''
     )
@@ -58,7 +58,7 @@ function Write-NamespaceLog {
     try {
         $null = New-Item -ItemType Directory -Path (Join-Path $taskRoot 'Logs') -Force
 
-        $event = @{
+        $eventItem = @{
             id     = (Get-Date -Format 'yyyyMMddHHmmssfff') + '-' + [System.IO.Path]::GetRandomFileName().Substring(0, 8)
             ts     = [datetime]::UtcNow.ToString('o')
             agent  = $AgentId
@@ -69,7 +69,7 @@ function Write-NamespaceLog {
             detail = $Detail
         }
 
-        $json = $event | ConvertTo-Json -Compress -ErrorAction SilentlyContinue
+        $json = $eventItem | ConvertTo-Json -Compress -ErrorAction SilentlyContinue
         if ($json) {
             Add-Content -Path $logFile -Value $json -Encoding utf8 -ErrorAction SilentlyContinue
         }
@@ -77,3 +77,4 @@ function Write-NamespaceLog {
         Write-Debug "Write-NamespaceLog failed: $_"
     }
 }
+

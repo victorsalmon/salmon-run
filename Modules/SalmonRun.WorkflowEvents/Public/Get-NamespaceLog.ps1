@@ -1,4 +1,4 @@
-function Get-NamespaceLog {
+﻿function Get-NamespaceLog {
     <#
     .SYNOPSIS
         Reads entries from Tasks/Logs/<Namespace>.log with optional date filtering.
@@ -59,7 +59,7 @@ function Get-NamespaceLog {
             ForEach-Object {
                 try { $_ | ConvertFrom-Json -ErrorAction SilentlyContinue } catch { $null }
             } |
-            Where-Object { $_ -ne $null }
+            Where-Object { $null -ne $_ }
 
         if ($Since) { $entries = $entries | Where-Object { $_.ts.ToUniversalTime() -ge $Since.ToUniversalTime() } }
         if ($Until) { $entries = $entries | Where-Object { $_.ts.ToUniversalTime() -le $Until.ToUniversalTime() } }
@@ -70,3 +70,4 @@ function Get-NamespaceLog {
         return @()
     }
 }
+

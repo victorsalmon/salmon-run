@@ -41,12 +41,10 @@ function Start-PondExecutor {
     if ($startInfo -and $startInfo.PSObject.Properties['FilePath'] -and $startInfo.FilePath) {
         $filePath = $startInfo.FilePath
         $argumentList = @($startInfo.ArgumentList)
-        $shellCommand = $null
     } else {
         $filePath = if ($IsWindows -or ($PSVersionTable.Platform -eq 'Win32NT')) { 'cmd.exe' } else { '/bin/sh' }
         $shellFlag = if ($IsWindows -or ($PSVersionTable.Platform -eq 'Win32NT')) { '/c' } else { '-c' }
         $argumentList = @($shellFlag, $Command.Command)
-        $shellCommand = $Command.Command
     }
 
     $outFile = if ($LogPath) { $LogPath } else { Join-Path $LanePath 'executor.log' }
@@ -56,13 +54,13 @@ function Start-PondExecutor {
 
     # Resolve credentials and backup current process values so we can restore.
     $envBackup = @{}
-    $credentialNames = if ($Command.PSObject.Properties['Credentials']) { [string[]](@($Command.Credentials | Where-Object { $_ -ne $null })) } else { [string[]]@() }
+    $credentialNames = if ($Command.PSObject.Properties['Credentials']) { [string[]](@($Command.Credentials | Where-Object { $null -ne $_ })) } else { [string[]]@() }
     if ($credentialNames -and (Get-Command Get-SalmonRunCredential -ErrorAction SilentlyContinue)) {
         $salmonHome = if (Get-Command Get-SalmonHome -ErrorAction SilentlyContinue) { Get-SalmonHome } else { Join-Path $HOME '.salmon' }
         $envPath = Join-Path $salmonHome '.env'
         foreach ($name in $credentialNames) {
             $value = $null
-            try { $value = Get-SalmonRunCredential -Name $name -EnvPath $envPath } catch { }
+            try { $value = Get-SalmonRunCredential -Name $name -EnvPath $envPath } catch { Write-Verbose "Suppressed credential resolution error for ${name}: $_" }
             if ($null -ne $value) {
                 $envBackup[$name] = if (Test-Path "Env:\$name") { (Get-Item "Env:\$name").Value } else { $null }
                 [Environment]::SetEnvironmentVariable($name, $value, 'Process')
@@ -92,7 +90,7 @@ function Start-PondExecutor {
             Start-Sleep -Seconds 1
             if ((Get-Date) -ge $nextHeartbeat) {
                 (Get-Date -Format 'o') | Set-Content -LiteralPath $heartbeatFile -Encoding utf8 -NoNewline
-                if ($heartbeatCmd) { try { $null = & $heartbeatCmd $agentId } catch {} }
+                if ($heartbeatCmd) { try { $null = & $heartbeatCmd $agentId } catch { Write-Verbose "Suppressed heartbeat command error: $_" } }
                 $nextHeartbeat = (Get-Date).AddSeconds(10)
             }
         }
@@ -144,3 +142,4 @@ function Start-PondExecutor {
     Write-Verbose "Start-PondExecutor: role '$($Command.Role)' finished with exit $exitCode"
     return ($Command | Select-Object *, @{N='ExitCode';E={$exitCode}})
 }
+

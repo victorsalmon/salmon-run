@@ -7,7 +7,7 @@ function Get-PondExecutorCommand {
     [OutputType([PSCustomObject])]
     param(
         [Parameter(Mandatory)]
-        [PondExecutionProfile]$Profile,
+        [PondExecutionProfile]$srExecProfile,
 
         [Parameter(Mandatory)]
         [string]$Role,
@@ -33,32 +33,32 @@ function Get-PondExecutorCommand {
         throw "Get-PondExecutorCommand: SalmonRun.PondEngine module is required."
     }
 
-    $executorPath = Join-Path $orchModule.ModuleBase 'Executors' "$($Profile.ExecutorFile).ps1"
+    $executorPath = Join-Path $orchModule.ModuleBase 'Executors' "$($srExecProfile.ExecutorFile).ps1"
     if (-not (Test-Path -LiteralPath $executorPath)) {
         throw "Get-PondExecutorCommand: executor script not found at '$executorPath'."
     }
 
-    $Credentials = [string[]](@($Credentials | Where-Object { $_ -ne $null }))
+    $Credentials = [string[]](@($Credentials | Where-Object { $null -ne $_ }))
     if ($Credentials.Count -eq 0) {
-        $Credentials = [string[]](@($Profile.Credentials | Where-Object { $_ -ne $null }))
+        $Credentials = [string[]](@($srExecProfile.Credentials | Where-Object { $null -ne $_ }))
     }
 
     $quotedFiles = @($PlanFiles | ForEach-Object { "`"$_`"" })
     $fileArgs = $quotedFiles -join ' '
 
     # Descriptive command string for logging. The real execution uses StartInfo.
-    $command = if ($Profile.Provider -in @('opencode','opencode-go')) {
-        "$($Profile.Cli) run <prompt> --model $($Profile.Model) --variant $($Profile.Effort) --auto -f $fileArgs"
-    } elseif ($Profile.Provider -eq 'local' -or $Profile.Cli -in @('powershell','pwsh')) {
-        "$($Profile.Cli) -File `"$executorPath`" -Role $Role -LanePath `"$LanePath`" -RepoDir `"$RepoDir`" -Provider $($Profile.Provider) $fileArgs"
-    } elseif ($Profile.Harness -eq 'deepseek' -or $Profile.Provider -in @('dsh','openrouter','deepinfra')) {
-        "dsh --profile headless --provider $($Profile.Provider) --model $($Profile.Model) --prompt <plans>"
-    } elseif ($Profile.Provider -eq 'devin') {
-        "devin --prompt-file $fileArgs --model $($Profile.Model) -p"
-    } elseif ($Profile.Provider -eq 'codex' -or $Profile.Harness -eq 'codex') {
-        "codex exec -m $($Profile.Model) -C <RepoDir> -c model_reasoning_effort=$($Profile.Effort) --output-last-message <out> - < $fileArgs"
+    $command = if ($srExecProfile.Provider -in @('opencode','opencode-go')) {
+        "$($srExecProfile.Cli) run <prompt> --model $($srExecProfile.Model) --variant $($srExecProfile.Effort) --auto -f $fileArgs"
+    } elseif ($srExecProfile.Provider -eq 'local' -or $srExecProfile.Cli -in @('powershell','pwsh')) {
+        "$($srExecProfile.Cli) -File `"$executorPath`" -Role $Role -LanePath `"$LanePath`" -RepoDir `"$RepoDir`" -Provider $($srExecProfile.Provider) $fileArgs"
+    } elseif ($srExecProfile.Harness -eq 'deepseek' -or $srExecProfile.Provider -in @('dsh','openrouter','deepinfra')) {
+        "dsh --profile headless --provider $($srExecProfile.Provider) --model $($srExecProfile.Model) --prompt <plans>"
+    } elseif ($srExecProfile.Provider -eq 'devin') {
+        "devin --prompt-file $fileArgs --model $($srExecProfile.Model) -p"
+    } elseif ($srExecProfile.Provider -eq 'codex' -or $srExecProfile.Harness -eq 'codex') {
+        "codex exec -m $($srExecProfile.Model) -C <RepoDir> -c model_reasoning_effort=$($srExecProfile.Effort) --output-last-message <out> - < $fileArgs"
     } else {
-        "$($Profile.Cli) run --command work-$Role-once --model $($Profile.Model) --effort $($Profile.Effort) --files $fileArgs"
+        "$($srExecProfile.Cli) run --command work-$Role-once --model $($srExecProfile.Model) --effort $($srExecProfile.Effort) --files $fileArgs"
     }
 
     $filePath = if (Get-Command -Name 'pwsh' -CommandType Application -ErrorAction SilentlyContinue) {
@@ -74,15 +74,15 @@ function Get-PondExecutorCommand {
         '-Role', $Role
         '-LanePath', $LanePath
         '-RepoDir', $RepoDir
-        '-Provider', $Profile.Provider
+        '-Provider', $srExecProfile.Provider
     )
-    if (-not [string]::IsNullOrWhiteSpace($Profile.Model)) {
+    if (-not [string]::IsNullOrWhiteSpace($srExecProfile.Model)) {
         $argumentList += '-Model'
-        $argumentList += $Profile.Model
+        $argumentList += $srExecProfile.Model
     }
-    if (-not [string]::IsNullOrWhiteSpace($Profile.Effort)) {
+    if (-not [string]::IsNullOrWhiteSpace($srExecProfile.Effort)) {
         $argumentList += '-Effort'
-        $argumentList += $Profile.Effort
+        $argumentList += $srExecProfile.Effort
     }
     if ($TimeoutMinutes -gt 0) {
         $argumentList += '-TimeoutMinutes'
@@ -105,3 +105,5 @@ function Get-PondExecutorCommand {
         Credentials  = $Credentials
     }
 }
+
+

@@ -36,9 +36,10 @@ function Get-SalmonRunGitCloudRemoteUrl {
     switch ($Provider) {
         'GitHub'   { return "https://github.com/$Owner/$Repo.git" }
         'Worktree' {
-            $host = if ($WorktreeHost) { $WorktreeHost } else { Get-WorktreeHost }
-            return "$host/$Owner/$Repo.git"
+            $hostName = if ($WorktreeHost) { $WorktreeHost } else { Get-WorktreeHost }
+            return "$hostName/$Owner/$Repo.git"
         }
         default    { throw "Unknown GitCloud provider: $Provider" }
     }
 }
+
