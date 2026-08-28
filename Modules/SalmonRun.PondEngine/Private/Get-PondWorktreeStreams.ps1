@@ -236,13 +236,11 @@ function Get-PondWorktreeStreams {
 
         $baseRepo = $tempGroup.RepoPath
 
-        # The resolver may fall back to the salmon-run repo.  Prefer an explicit
-        # C:\Repos\<namespace> directory if one exists and is a git repo.
+        # The resolver may fall back to the salmon-run repo. Public Salmon Run
+        # must not guess a machine-specific fleet root; callers map namespaces
+        # through orchestrator.config.json when target repos live elsewhere.
         if (-not (Test-Path -LiteralPath (Join-Path $baseRepo '.git'))) {
-            $defaultRepo = Join-Path 'C:\Repos' $ns
-            if (Test-Path -LiteralPath (Join-Path $defaultRepo '.git')) {
-                $baseRepo = $defaultRepo
-            } elseif (Test-Path -LiteralPath (Join-Path $RepoDir '.git')) {
+            if (Test-Path -LiteralPath (Join-Path $RepoDir '.git')) {
                 $baseRepo = $RepoDir
             } else {
                 Write-Warning "Get-PondWorktreeStreams: no git repo found for namespace '$ns'; skipping"
