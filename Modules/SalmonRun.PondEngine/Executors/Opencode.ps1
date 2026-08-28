@@ -139,8 +139,10 @@ queue; the orchestrator will route the feedback to the previous gate.
 ROLE: Auditor
 Run the lint / fix-code-smell stage on the target repository. Address
 readability, naming, and safe refactor opportunities that improve testability
-without changing behavior or outputs. Update the plan's **ConnascenceScope** if
-you touch additional files. After auditing, append:
+without changing behavior or outputs. You may run fast syntax/type checks, but
+do NOT run the full test suite, do NOT start servers, and do NOT run long-lived
+watch/build processes. Update the plan's **ConnascenceScope** if you touch
+additional files. After auditing, append:
 
 **Audit**: passed by opencode-go/hy3
 
