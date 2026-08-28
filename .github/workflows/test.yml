@@ -22,7 +22,8 @@ jobs:
         shell: pwsh
         run: |
           $env:PSModulePath = "${{ github.workspace }}\Modules;" + $env:PSModulePath
-          if (-not (Get-Module -ListAvailable -Name Pester -MinimumVersion 6.0.0)) {
+          $pester = Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version -ge [version]'6.0.0' } | Select-Object -First 1
+          if (-not $pester) {
             Install-Module Pester -MinimumVersion 6.0.0 -Force -SkipPublisherCheck -Scope CurrentUser
           }
           Invoke-Pester -Path 'Tests' -Output Detailed
