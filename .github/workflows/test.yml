@@ -52,10 +52,16 @@ jobs:
         run: |
           VERSION="${GITHUB_REF#refs/tags/}"
           ARCHIVE="salmon-run-${VERSION}"
+          TMP_DIR=$(mktemp -d)
           # Exclude the private .git metadata and any stray runtime home.
-          tar --exclude='.git' --exclude='.salmon' --exclude="${ARCHIVE}" \
-              -czf "${ARCHIVE}.tar.gz" -C "${GITHUB_WORKSPACE}" .
-          zip -r "${ARCHIVE}.zip" . -x '*.git*' -x '*.salmon*'
+          # Build the archives outside the workspace so tar/zip do not try to
+          # pack the files they are writing.
+          tar --exclude='.git' --exclude='.salmon' \
+              -czf "${TMP_DIR}/${ARCHIVE}.tar.gz" -C "${GITHUB_WORKSPACE}" .
+          cd "${GITHUB_WORKSPACE}"
+          zip -r "${TMP_DIR}/${ARCHIVE}.zip" . -x '*.git*' -x '*.salmon*'
+          mv "${TMP_DIR}/${ARCHIVE}.tar.gz" "${GITHUB_WORKSPACE}/"
+          mv "${TMP_DIR}/${ARCHIVE}.zip" "${GITHUB_WORKSPACE}/"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Verify archive contents
