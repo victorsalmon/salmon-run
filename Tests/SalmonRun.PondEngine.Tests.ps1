@@ -99,6 +99,11 @@ Describe 'Get-SalmonRunPonds' -Tag 'PondEngine', 'Regression-Only' {
             $p.Entry.OnInvalid | Should -Be 'Paused' -Because "pond '$($p.Name)' should park invalid plans"
         }
     }
+
+    It 'keeps Review failures in Review so feedback can be written to Code' {
+        $review = Get-SalmonRunPonds | Where-Object { $_.Name -eq 'Review' }
+        $review.OnFailure.MoveTo | Should -Be 'Review'
+    }
 }
 
 Describe 'Start-PondEngine dry run' -Tag 'PondEngine', 'Regression-Only' {
