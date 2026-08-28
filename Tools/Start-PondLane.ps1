@@ -84,8 +84,11 @@ try {
 
     $null = Initialize-InterclawEnvironment -RepoRoot $RepoDir
 
-    $pondEnginePsd1 = Join-Path $RepoDir 'Modules' 'SalmonRun.PondEngine' 'SalmonRun.PondEngine.psd1'
-    Import-Module -Name $pondEnginePsd1 -Force -DisableNameChecking -ErrorAction Stop
+    $pondEnginePsm1 = Join-Path $RepoDir 'Modules' 'SalmonRun.PondEngine' 'SalmonRun.PondEngine.psm1'
+    if (-not (Test-Path -LiteralPath $pondEnginePsm1)) {
+        throw "Start-PondLane: module script not found at $pondEnginePsm1"
+    }
+    . $pondEnginePsm1
 
     $ponds = Get-SalmonRunPonds
     $pond = $ponds | Where-Object { $_.Name -eq $PondName } | Select-Object -First 1

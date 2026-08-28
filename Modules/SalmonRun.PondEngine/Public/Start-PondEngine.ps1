@@ -270,8 +270,12 @@ function Start-PondEngine {
                 if ($isAgentic) {
                     $stream = Get-StreamForGroup -Group $group -Ctx $context
                     if (-not $stream) {
-                        Write-Verbose "POND_NO_STREAM pond=$($pond.Name) ns=$($group.Namespace)"
-                        continue
+                        Add-WorktreeStreams -Ctx $context -Workdir $TaskRoot -Repo $RepoDir -Cfg $ConfigPath
+                        $stream = Get-StreamForGroup -Group $group -Ctx $context
+                        if (-not $stream) {
+                            Write-Verbose "POND_NO_STREAM pond=$($pond.Name) ns=$($group.Namespace)"
+                            continue
+                        }
                     }
 
                     $group.Stream = $stream
@@ -282,6 +286,15 @@ function Start-PondEngine {
                         Write-Verbose "POND_NO_FREE_LANE pond=$($pond.Name) ns=$($group.Namespace)"
                         continue
                     }
+
+                    $worktreeReady = Initialize-PondWorktree -Stream $stream -BaseRepo $stream.BaseRepo
+                    if (-not $worktreeReady) {
+                        Write-Warning "POND_WORKTREE_NOT_READY pond=$($pond.Name) ns=$($group.Namespace) path=$($stream.Path)"
+                        $lane.Idle = $true
+                        $null = $context.UsedNamespaces.Remove($group.Namespace)
+                        continue
+                    }
+                    $group.RepoPath = $stream.Path
                     $group.LaneId = $lane.Id
                     $group.StreamPath = $lane.Path
 

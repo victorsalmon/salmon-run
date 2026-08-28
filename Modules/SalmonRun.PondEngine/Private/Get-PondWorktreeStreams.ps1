@@ -1,12 +1,185 @@
+function ConvertTo-GitSafeName {
+    param([string]$Name)
+    $safe = $Name -replace '[^a-zA-Z0-9_.@{}/\-]+', '-'
+    $safe = $safe -replace '_{2,}', '_'
+    $safe = $safe -replace '-{2,}', '-'
+    $safe = $safe -replace '\.{2,}', '.'
+    $safe = $safe.Trim('-.')
+    if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'namespace' }
+    return $safe
+}
+
+function Get-RepoWorktreeList {
+    param([string]$RepoPath)
+    $list = @()
+    $raw = & git -C $RepoPath worktree list --porcelain 2>&1
+    if ($LASTEXITCODE -ne 0) { return $list }
+    $current = $null
+    foreach ($line in ($raw -split '\r?\n')) {
+        if ($line -match '^worktree (.+)') {
+            if ($current) { $list += $current }
+            $current = [PSCustomObject]@{ Path = ($Matches[1].Trim() -replace '/', '\'); Branch = ''; Head = '' }
+        } elseif ($line -match '^HEAD (.+)') {
+            if ($current) { $current.Head = $Matches[1].Trim() }
+        } elseif ($line -match '^branch (.+)') {
+            if ($current) { $current.Branch = $Matches[1].Trim() }
+        } elseif ($line -eq '') {
+            if ($current) { $list += $current; $current = $null }
+        }
+    }
+    if ($current) { $list += $current }
+    return $list
+}
+
+function Test-BranchExists {
+    param([string]$RepoPath, [string]$Branch)
+    $null = & git -C $RepoPath show-ref --verify --quiet "refs/heads/$Branch" 2>&1
+    return ($LASTEXITCODE -eq 0)
+}
+
+function New-PondWorktreeStream {
+    <#
+    .SYNOPSIS
+        Builds a PondStream metadata object for a namespace/worktree without
+        touching git.  The worktree path and branch are computed from the
+        resolved base repo and the plan namespace.
+    #>
+    [CmdletBinding()]
+    [OutputType([PondStream])]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Namespace,
+
+        [Parameter(Mandatory)]
+        [string]$RepoPath,
+
+        [string]$TaskRoot = (Get-SalmonTaskRoot)
+    )
+
+    $sanitized = ConvertTo-GitSafeName -Name $Namespace
+    $branchName = "salmon-$sanitized"
+
+    $repoParent = Split-Path -Path $RepoPath -Parent
+    $repoName = Split-Path -Path $RepoPath -Leaf
+    $worktreePath = Join-Path $repoParent "$repoName-salmon-$sanitized"
+
+    $stream = New-PondStream -Id $Namespace -Branch $branchName -Path $worktreePath -TaskRoot $TaskRoot -LaneIdPrefix "$sanitized-"
+    $stream | Add-Member -NotePropertyName BaseRepo -NotePropertyValue $RepoPath -Force
+    return $stream
+}
+
+function Initialize-PondWorktree {
+    <#
+    .SYNOPSIS
+        Creates the git worktree/branch for a PondStream if it does not exist.
+    .OUTPUTS
+        bool.  $true if a usable worktree is available at $Stream.Path.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)]
+        [PondStream]$Stream,
+
+        [string]$BaseRepo = $Stream.BaseRepo
+    )
+
+    if ([string]::IsNullOrWhiteSpace($BaseRepo)) {
+        Write-Warning "Initialize-PondWorktree: no base repo for stream '$($Stream.Id)'"
+        return $false
+    }
+
+    $worktreePath = $Stream.Path
+    $branchName = $Stream.Branch
+
+    $worktreeList = Get-RepoWorktreeList -RepoPath $BaseRepo
+    $existingByPath = $worktreeList | Where-Object { $_.Path -eq $worktreePath } | Select-Object -First 1
+    $existingByBranch = $worktreeList | Where-Object { $_.Branch -eq "refs/heads/$branchName" } | Select-Object -First 1
+
+    if ($existingByPath) {
+        Write-Verbose "Initialize-PondWorktree: reusing worktree $worktreePath for $($Stream.Id)"
+        return $true
+    }
+
+    if ($existingByBranch) {
+        # The branch is already checked out elsewhere; point this stream at the existing worktree.
+        $Stream.Path = $existingByBranch.Path
+        Write-Verbose "Initialize-PondWorktree: branch $branchName already in worktree $($existingByBranch.Path) for $($Stream.Id)"
+        return $true
+    }
+
+    if (Test-Path -LiteralPath $worktreePath) {
+        Write-Warning "Initialize-PondWorktree: path $worktreePath exists but is not a valid worktree for $($Stream.Id); skipping"
+        return $false
+    }
+
+    $currentBranch = & git -C $BaseRepo rev-parse --abbrev-ref HEAD 2>&1
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($currentBranch)) {
+        $currentBranch = 'main'
+    }
+
+    $null = & git -C $BaseRepo fetch origin $currentBranch 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Verbose "Initialize-PondWorktree: fetch for $BaseRepo reported a non-zero exit; continuing"
+    }
+
+    # Only reset the main worktree if it is clean and not ahead of the remote.
+    $remoteBranch = "origin/$currentBranch"
+    $null = & git -C $BaseRepo show-ref --verify --quiet "refs/remotes/$remoteBranch" 2>&1
+    $hasRemote = ($LASTEXITCODE -eq 0)
+    $isDirty = $false
+    $isAhead = $false
+    if ($hasRemote) {
+        $null = & git -C $BaseRepo diff --quiet 2>&1
+        $isDirty = $LASTEXITCODE -ne 0
+        $null = & git -C $BaseRepo diff --cached --quiet 2>&1
+        $isDirty = $isDirty -or ($LASTEXITCODE -ne 0)
+        $aheadOutput = & git -C $BaseRepo rev-list --count "$remoteBranch..$currentBranch" 2>&1
+        $aheadCount = 0
+        if ($LASTEXITCODE -eq 0) {
+            $null = [int]::TryParse($aheadOutput, [ref]$aheadCount)
+        }
+        if ($aheadCount -gt 0) { $isAhead = $true }
+
+        if (-not $isDirty -and -not $isAhead) {
+            $null = & git -C $BaseRepo reset --hard $remoteBranch 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Verbose "Initialize-PondWorktree: reset of $BaseRepo to $remoteBranch failed; continuing"
+            }
+        }
+    }
+
+    $branchExists = Test-BranchExists -RepoPath $BaseRepo -Branch $branchName
+    if ($branchExists) {
+        $null = & git -C $BaseRepo worktree add $worktreePath $branchName 2>&1
+    } else {
+        $baseRef = if ($hasRemote) { $remoteBranch } else { $currentBranch }
+        $null = & git -C $BaseRepo worktree add -b $branchName $worktreePath $baseRef 2>&1
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Initialize-PondWorktree: could not add worktree $worktreePath for $($Stream.Id)"
+        return $false
+    }
+
+    $worktreeList = Get-RepoWorktreeList -RepoPath $BaseRepo
+    $added = $worktreeList | Where-Object { $_.Path -eq $worktreePath } | Select-Object -First 1
+    if (-not $added) {
+        Write-Warning "Initialize-PondWorktree: worktree list does not contain $worktreePath for $($Stream.Id) after add"
+        return $false
+    }
+
+    return $true
+}
+
 function Get-PondWorktreeStreams {
     <#
     .SYNOPSIS
-        Allocates one git worktree stream for each namespace that appears in the
-        agentic queues.
+        Discovers one PondStream per queued namespace.
     .DESCRIPTION
         Scans Code, Review, Audit and QA for .md plan files, groups them by
-        namespace, resolves a target code repo for each namespace, and ensures a
-        per-namespace worktree branch exists.  Existing worktrees are reused.
+        namespace, resolves a target code repo for each group, and returns a
+        PondStream with computed (but not necessarily created) worktree metadata.
     .OUTPUTS
         PondStream[]
     #>
@@ -17,47 +190,10 @@ function Get-PondWorktreeStreams {
 
         [string]$RepoDir = (Get-SalmonRunRepoRoot),
 
-        [string]$ConfigPath = (Join-Path (Get-SalmonHome) 'orchestrator.config.json')
+        [string]$ConfigPath = (Join-Path (Get-SalmonHome) 'orchestrator.config.json'),
+
+        [switch]$Create
     )
-
-    function ConvertTo-GitSafeName {
-        param([string]$Name)
-        $safe = $Name -replace '[^a-zA-Z0-9_.@{}\/-]+', '-'
-        $safe = $safe -replace '_{2,}', '_'
-        $safe = $safe -replace '-{2,}', '-'
-        $safe = $safe -replace '\.{2,}', '.'
-        $safe = $safe.Trim('-.')
-        if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'namespace' }
-        return $safe
-    }
-
-    function Get-RepoWorktreeList {
-        param([string]$RepoPath)
-        $list = @()
-        $raw = & git -C $RepoPath worktree list --porcelain 2>&1
-        if ($LASTEXITCODE -ne 0) { return $list }
-        $current = $null
-        foreach ($line in ($raw -split '\r?\n')) {
-            if ($line -match '^worktree (.+)') {
-                if ($current) { $list += $current }
-                $current = [PSCustomObject]@{ Path = $Matches[1].Trim(); Branch = ''; Head = '' }
-            } elseif ($line -match '^HEAD (.+)') {
-                if ($current) { $current.Head = $Matches[1].Trim() }
-            } elseif ($line -match '^branch (.+)') {
-                if ($current) { $current.Branch = $Matches[1].Trim() }
-            } elseif ($line -eq '') {
-                if ($current) { $list += $current; $current = $null }
-            }
-        }
-        if ($current) { $list += $current }
-        return $list
-    }
-
-    function Test-BranchExists {
-        param([string]$RepoPath, [string]$Branch)
-        $null = & git -C $RepoPath show-ref --verify --quiet "refs/heads/$Branch" 2>&1
-        return ($LASTEXITCODE -eq 0)
-    }
 
     $namespaceRepoMap = @{}
     if ($ConfigPath -and (Test-Path -LiteralPath $ConfigPath)) {
@@ -75,7 +211,8 @@ function Get-PondWorktreeStreams {
     foreach ($queue in @('Code', 'Review', 'Audit', 'QA')) {
         $queuePath = Join-Path $TaskRoot $queue
         if (-not (Test-Path -LiteralPath $queuePath)) { continue }
-        $planFiles.AddRange(@(Get-ChildItem -Path "$queuePath/*.md" -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' }))
+        $files = @(Get-ChildItem -Path "$queuePath/*.md" -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' })
+        foreach ($f in $files) { $planFiles.Add($f) }
     }
 
     if ($planFiles.Count -eq 0) { return @() }
@@ -113,88 +250,13 @@ function Get-PondWorktreeStreams {
             }
         }
 
-        $sanitizedNs = ConvertTo-GitSafeName -Name $ns
-        $branchName = "salmon-$sanitizedNs"
+        $stream = New-PondWorktreeStream -Namespace $ns -RepoPath $baseRepo -TaskRoot $TaskRoot
 
-        $repoParent = Split-Path -Path $baseRepo -Parent
-        $repoName = Split-Path -Path $baseRepo -Leaf
-        $worktreePath = Join-Path $repoParent "$repoName-salmon-$sanitizedNs"
-
-        $worktreeList = Get-RepoWorktreeList -RepoPath $baseRepo
-        $existingByPath = $worktreeList | Where-Object { $_.Path -eq $worktreePath } | Select-Object -First 1
-        $existingByBranch = $worktreeList | Where-Object { $_.Branch -eq "refs/heads/$branchName" } | Select-Object -First 1
-
-        if ($existingByPath) {
-            Write-Verbose "Get-PondWorktreeStreams: reusing worktree $worktreePath for $ns"
-        } elseif ($existingByBranch) {
-            # The branch is already checked out elsewhere; use the existing worktree.
-            $worktreePath = $existingByBranch.Path
-            Write-Verbose "Get-PondWorktreeStreams: branch $branchName already in worktree $worktreePath for $ns"
-        } else {
-            if (Test-Path -LiteralPath $worktreePath) {
-                Write-Warning "Get-PondWorktreeStreams: path $worktreePath exists but is not a valid worktree for $ns; skipping"
-                continue
-            }
-
-            $currentBranch = & git -C $baseRepo rev-parse --abbrev-ref HEAD 2>&1
-            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($currentBranch)) {
-                $currentBranch = 'main'
-            }
-
-            $null = & git -C $baseRepo fetch origin $currentBranch 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                Write-Verbose "Get-PondWorktreeStreams: fetch for $baseRepo reported a non-zero exit; continuing"
-            }
-
-            # Only reset the main worktree if it is clean and not ahead of the
-            # remote, so we do not discard uncommitted orchestrator state.
-            $remoteBranch = "origin/$currentBranch"
-            $null = & git -C $baseRepo show-ref --verify --quiet "refs/remotes/$remoteBranch" 2>&1
-            $hasRemote = ($LASTEXITCODE -eq 0)
-            $isDirty = $false
-            $isAhead = $false
-            if ($hasRemote) {
-                $null = & git -C $baseRepo diff --quiet 2>&1
-                $isDirty = $LASTEXITCODE -ne 0
-                $null = & git -C $baseRepo diff --cached --quiet 2>&1
-                $isDirty = $isDirty -or ($LASTEXITCODE -ne 0)
-                $aheadOutput = & git -C $baseRepo rev-list --count "$remoteBranch..$currentBranch" 2>&1
-                $aheadCount = 0
-                if ($LASTEXITCODE -eq 0) {
-                    $null = [int]::TryParse($aheadOutput, [ref]$aheadCount)
-                }
-                if ($aheadCount -gt 0) { $isAhead = $true }
-
-                if (-not $isDirty -and -not $isAhead) {
-                    $null = & git -C $baseRepo reset --hard $remoteBranch 2>&1
-                    if ($LASTEXITCODE -ne 0) {
-                        Write-Verbose "Get-PondWorktreeStreams: reset of $baseRepo to $remoteBranch failed; continuing"
-                    }
-                }
-            }
-
-            $branchExists = Test-BranchExists -RepoPath $baseRepo -Branch $branchName
-            if ($branchExists) {
-                $null = & git -C $baseRepo worktree add $worktreePath $branchName 2>&1
-            } else {
-                $baseRef = if ($hasRemote) { $remoteBranch } else { $currentBranch }
-                $null = & git -C $baseRepo worktree add -b $branchName $worktreePath $baseRef 2>&1
-            }
-
-            if ($LASTEXITCODE -ne 0) {
-                Write-Warning "Get-PondWorktreeStreams: could not add worktree $worktreePath for $ns"
-                continue
-            }
-
-            $worktreeList = Get-RepoWorktreeList -RepoPath $baseRepo
-            $added = $worktreeList | Where-Object { $_.Path -eq $worktreePath } | Select-Object -First 1
-            if (-not $added) {
-                Write-Warning "Get-PondWorktreeStreams: worktree list does not contain $worktreePath for $ns after add"
-                continue
-            }
+        if ($Create) {
+            $ready = Initialize-PondWorktree -Stream $stream -BaseRepo $baseRepo
+            if (-not $ready) { continue }
         }
 
-        $stream = New-PondStream -Id $ns -Branch $branchName -Path $worktreePath -TaskRoot $TaskRoot -LaneIdPrefix "$sanitizedNs-"
         $null = $streams.Add($stream)
     }
 

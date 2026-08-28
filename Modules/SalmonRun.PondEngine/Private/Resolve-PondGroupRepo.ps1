@@ -23,6 +23,7 @@ function Resolve-PondGroupRepo {
 
     $planPath = if ($Group.Files -and $Group.Files.Count -gt 0) { $Group.Files[0].FullName } else { $null }
     $repoPath = $null
+    $nsAlias = $null
 
     if ($planPath -and (Test-Path -LiteralPath $planPath)) {
         $content = Get-Content -LiteralPath $planPath -Raw -ErrorAction SilentlyContinue
@@ -30,9 +31,9 @@ function Resolve-PondGroupRepo {
         if ($m.Success) {
             $raw = $m.Groups['value'].Value.Trim()
             if (-not ($raw -in @('n/a', 'none'))) {
-                $repoPath = $raw
+                $nsAlias = $raw
                 # Strip trailing annotations like (existing) or (new).
-                $repoPath = $repoPath -replace '\s*\([^)]*\)\s*$', ''
+                $repoPath = $raw -replace '\s*\([^)]*\)\s*$', ''
                 # If it looks like a namespace alias (no path separators or .git), leave it for mapping.
                 if ($repoPath -match '[/\\:]' -or $repoPath -match '\.(git|ca|com)$') {
                     if (-not [System.IO.Path]::IsPathRooted($repoPath)) {
@@ -43,15 +44,19 @@ function Resolve-PondGroupRepo {
         }
     }
 
-    # If no explicit target repo, use the namespace map.
+    # If the repo path we have is not a valid git repo, try the namespace map.
+    $map = @{}
+    if ($Context.Config -and ($Context.Config.PSObject.Properties['NamespaceRepoMap'] -or ($Context.Config | Get-Member -Name 'NamespaceRepoMap' -MemberType NoteProperty))) {
+        $map = $Context.Config.NamespaceRepoMap
+    }
     if ([string]::IsNullOrWhiteSpace($repoPath) -or -not (Test-Path -LiteralPath (Join-Path $repoPath '.git') -ErrorAction SilentlyContinue)) {
-        $map = @{}
-        if ($Context.Config -and ($Context.Config.PSObject.Properties['NamespaceRepoMap'] -or ($Context.Config | Get-Member -Name 'NamespaceRepoMap' -MemberType NoteProperty))) {
-            $map = $Context.Config.NamespaceRepoMap
-        }
-        $ns = $Group.Namespace
-        if ($map -and -not [string]::IsNullOrWhiteSpace($ns) -and $map.ContainsKey($ns)) {
-            $repoPath = $map[$ns]
+        # Prefer the explicit TargetRepo alias, then the group namespace.
+        $keys = @($nsAlias, $Group.Namespace) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        foreach ($key in $keys) {
+            if ($map -and $map.ContainsKey($key)) {
+                $repoPath = $map[$key]
+                break
+            }
         }
     }
 
