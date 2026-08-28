@@ -39,12 +39,13 @@
     ],
     "opencode-go": {
       "cli": "opencode",
-      "defaultModel": "opencode-go/mimo-v2.5",
+      "defaultModel": "opencode-go/hy3",
       "defaultEffort": "default",
       "acceptedEfforts": ["max", "default"],
       "executorFile": "Opencode",
       "credentials": ["OPENCODE_GO_KEY"],
       "models": {
+        "opencode-go/hy3": { "defaultEffort": "max" },
         "opencode-go/mimo-v2.5": { "defaultEffort": "default" },
         "opencode-go/deepseek-v4-flash": { "defaultEffort": "max" },
         "opencode-go/deepseek-v4-pro": { "defaultEffort": "max" }

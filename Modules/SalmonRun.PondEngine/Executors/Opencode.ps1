@@ -51,7 +51,7 @@ $ErrorActionPreference = 'Stop'
 $script:SupportedProviders = @('opencode','opencode-go')
 $script:SupportedModels = @{
     'opencode'     = @('opencode/hy3-free','opencode/mimo-v2.5-free')
-    'opencode-go'  = @('opencode-go/mimo-v2.5','opencode-go/deepseek-v4-flash','opencode-go/deepseek-v4-pro')
+    'opencode-go'  = @('opencode-go/hy3','opencode-go/mimo-v2.5','opencode-go/deepseek-v4-flash','opencode-go/deepseek-v4-pro')
 }
 
 function Resolve-OpencodeCredential {
@@ -156,7 +156,7 @@ function Invoke-OpencodeProvider {
     # Determine the model, applying provider-specific defaults.
     if ([string]::IsNullOrWhiteSpace($Model)) {
         $Model = switch ($Provider) {
-            'opencode-go' { 'opencode-go/mimo-v2.5' }
+            'opencode-go' { 'opencode-go/hy3' }
             'opencode'    { 'opencode/hy3-free' }
             default       { 'opencode/hy3-free' }
         }

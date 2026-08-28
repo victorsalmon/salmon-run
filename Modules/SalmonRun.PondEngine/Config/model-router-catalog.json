@@ -323,6 +323,46 @@
       },
       "cacheContract": "none",
       "notes": "OpenAI Codex CLI with gpt-5.6-sol for complex architecture and review."
+    },
+    {
+      "canonicalName": "OpenCode Go/Hy3",
+      "harness": "opencode",
+      "provider": "opencode-go",
+      "model": "opencode-go/hy3",
+      "effort": "max",
+      "tier": "Flash",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 0.018,
+      "effectiveCostPer1KTokens": 0.018,
+      "capabilityScore": 65,
+      "benchmarks": {
+        "sweBench": 58.0,
+        "aime2024": 0,
+        "terminalBench21": 80.0,
+        "mmlu": 0
+      },
+      "cacheContract": "none",
+      "notes": "Paid Hy3 model on the opencode-go provider. Not the free opencode/hy3-free preview."
+    },
+    {
+      "canonicalName": "OpenCode Go/Hy3",
+      "harness": "opencode",
+      "provider": "opencode-go",
+      "model": "opencode-go/hy3",
+      "effort": "max",
+      "tier": "Daily",
+      "costRule": "normal",
+      "apiCostPer1KTokens": 0.018,
+      "effectiveCostPer1KTokens": 0.018,
+      "capabilityScore": 80,
+      "benchmarks": {
+        "sweBench": 58.0,
+        "aime2024": 0,
+        "terminalBench21": 80.0,
+        "mmlu": 0
+      },
+      "cacheContract": "none",
+      "notes": "Paid Hy3 model on the opencode-go provider. Not the free opencode/hy3-free preview."
     }
   ]
 }
