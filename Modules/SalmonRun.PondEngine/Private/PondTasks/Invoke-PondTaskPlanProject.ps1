@@ -3,11 +3,9 @@ function Invoke-PondTaskPlanProject {
     .SYNOPSIS
         Decomposes a Project plan into child Code plans and a ProjectReview plan.
     .DESCRIPTION
-        Reads the project plan from the current lane, parses its **Children**
-        header (comma-separated list or markdown bullets), and creates child
-        plans under Tasks/Code. It then updates the parent plan with a
-        **DependsOn** header listing the child stems so the ProjectReview pond
-        can gate on their completion.
+        Reads the project contract, creates substantive child plans under
+        Tasks/Code, and writes exact child membership back to the parent. Every
+        child carries an implementation estimate no greater than 100,000 tokens.
     #>
     [CmdletBinding()]
     param(
@@ -36,46 +34,76 @@ function Invoke-PondTaskPlanProject {
     $codeDir = Join-Path $Context.TaskRoot 'Code'
     $null = New-Item -ItemType Directory -Path $codeDir -Force -ErrorAction SilentlyContinue
 
-    $allChildStems = [System.Collections.Generic.List[string]]::new()
-
     foreach ($file in $files) {
         $content = Get-Content -LiteralPath $file.FullName -Raw -ErrorAction SilentlyContinue
         if ([string]::IsNullOrWhiteSpace($content)) { continue }
 
-        # Determine child task names from the **Children** header.
+        $parentChildStems = [System.Collections.Generic.List[string]]::new()
+
+        # Determine child task names from the explicit contract. A concept-only
+        # project gets a quality-first default decomposition rather than a
+        # content-free `child` placeholder.
         $children = @()
         if ($content -match '(?im)^\*\*Children\*\*:\s*(?<value>[^\r\n]+)') {
             $children = @($Matches['value'].Trim() -split ',\s*' | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
         }
         if (@($children).Count -eq 0) {
-            # If the project has no explicit children, assume a single child.
-            $children = @('child')
+            $children = @('architecture-and-contracts', 'implementation', 'verification-and-hardening')
         }
 
         $parentBase = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
         $parentNs = Get-PondFileNamespace -FileName $file.Name
-        $datePrefix = if ($file.Name -match '^(\d{4}[-. ]?\d{2}[-. ]?\d{2})') { $Matches[1] -replace '[. ]','-' } else { (Get-Date -Format 'yyyy-MM-dd') }
+        $projectIdMatch = [regex]::Match($content, '(?im)^\*\*ProjectId\*\*:\s*(?<value>[^\r\n]+)')
+        $projectId = if ($projectIdMatch.Success) { $projectIdMatch.Groups['value'].Value.Trim() } else { $parentNs }
+        $conceptMatch = [regex]::Match($content, '(?ims)^## Concept\s*\r?\n+(?<value>.*?)(?=^## |\z)')
+        $concept = if ($conceptMatch.Success) { $conceptMatch.Groups['value'].Value.Trim() } else { $projectId }
+        $targetMatch = [regex]::Match($content, '(?im)^\*\*SessionTargetTokens\*\*:\s*(?<value>\d+)')
+        $targetTokens = if ($targetMatch.Success) { [int]$targetMatch.Groups['value'].Value } else { 70000 }
+        $targetTokens = [math]::Min([math]::Max($targetTokens, 1), 100000)
 
         $childIndex = 0
         foreach ($child in $children) {
             $childIndex++
-            $childStem = "$parentBase-$child-$childIndex"
+            $childSlug = ($child.ToLowerInvariant() -replace '[^a-z0-9-]+','-' -replace '-{2,}','-').Trim('-')
+            if ([string]::IsNullOrWhiteSpace($childSlug)) { $childSlug = "session-$childIndex" }
+            $childStem = "$parentBase-$childSlug-$childIndex"
             $childPath = Join-Path $codeDir "$childStem.md"
 
             $childContent = @"
-# Child Plan: $child
+# Session Plan: $child
 **Status**: ready
-**Scope**: $parentNs
+**Scope**: Implement the $child work package for $projectId
 **Challenge**: Local
-**ProjectId**: $parentNs
+**ProjectId**: $projectId
+**ParentPlan**: $parentBase
+**EstimatedImplementationTokens**: $targetTokens
+
+## Outcome
+
+Deliver the $child portion of this project concept:
+
+$concept
+
+## Acceptance Criteria
+
+- The work package is implemented in the target repository, not merely described.
+- Focused regression tests cover the behavior changed by this work package.
+- The implementation stays within this plan's declared scope and token ceiling.
+- Review evidence records an explicit pass or rework decision and feedback artifact.
+
+## Verification
+
+- Run the repository's focused tests for the changed behavior.
+- Record exact commands and results in the plan evidence.
+- Leave full property and mutation testing for the batched project QA gate.
 "@
 
             $childContent | Set-Content -LiteralPath $childPath -Encoding utf8 -NoNewline
-            $allChildStems.Add($childStem)
+            $parentChildStems.Add($childStem)
         }
 
         # Update the parent plan with a DependsOn list so ProjectReview can gate.
-        $dependsOn = ($allChildStems | Select-Object -Unique) -join ', '
+        $dependsOn = ($parentChildStems | Select-Object -Unique) -join ', '
         if ($content -match '(?im)^\*\*DependsOn\*\*:\s*[^\r\n]+') {
             $content = $content -replace '(?im)^\*\*DependsOn\*\*:\s*[^\r\n]+', "**DependsOn**: $dependsOn"
         } else {
@@ -92,6 +120,6 @@ function Invoke-PondTaskPlanProject {
     }
 
     $Context.Success = $true
-    Write-Verbose "Invoke-PondTaskPlanProject: created $($allChildStems.Count) child plan(s) for '$($group.Namespace)'"
+    Write-Verbose "Invoke-PondTaskPlanProject: decomposed project '$($group.Namespace)'"
     return $Context
 }

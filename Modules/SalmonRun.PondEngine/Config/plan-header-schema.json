@@ -34,6 +34,19 @@
       "description": "Parent project plan ID, if this plan is a child of a Project.",
       "required": false,
       "mutable": false
+    },
+    "EstimatedImplementationTokens": {
+      "description": "Estimated coding workload for one session plan. Child plans must be between 1 and 100000.",
+      "required": false,
+      "mutable": true,
+      "minimum": 1,
+      "maximum": 100000
+    },
+    "SessionTokenCeiling": {
+      "description": "Hard implementation-token ceiling applied while decomposing a project.",
+      "required": false,
+      "mutable": false,
+      "maximum": 100000
     }
   },
   "pondLogActions": {
