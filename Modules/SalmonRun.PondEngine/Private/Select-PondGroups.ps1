@@ -24,9 +24,10 @@ function Select-PondGroups {
         }
     }
 
-    $limit = [math]::Min($Pond.Operators.ParallelCount, $freeLanes)
-    $limit = [math]::Max($limit, $Pond.Operators.MinGuarantee)
-    $limit = [math]::Min($limit, $Pond.Operators.MaxNewPerIteration)
+    # Free lanes already account for active work across all streams.  Respect the
+    # pond's per-iteration throttle and the number of candidate groups.
+    $maxNew = if ($Pond.Operators.MaxNewPerIteration -gt 0) { $Pond.Operators.MaxNewPerIteration } else { $freeLanes }
+    $limit = [math]::Min($freeLanes, $maxNew)
     $limit = [math]::Min($limit, $Groups.Count)
 
     if ($limit -le 0) { return @() }

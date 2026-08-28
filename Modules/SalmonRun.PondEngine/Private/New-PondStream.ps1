@@ -25,7 +25,8 @@ function New-PondStream {
             'project-planner' = 2
             'project-reviewer' = 1
             'archiver'        = 1
-        }
+        },
+        [string]$LaneIdPrefix = ''
     )
 
     $stream = [PondStream]::new()
@@ -40,7 +41,7 @@ function New-PondStream {
         $count = $RoleCounts[$role]
         for ($i = 1; $i -le $count; $i++) {
             $lane = [PondLane]::new()
-            $lane.Id = "lane-$role-$laneIndex"
+            $lane.Id = "lane-$role-$LaneIdPrefix$laneIndex"
             $lane.Role = $role
             $lane.StreamId = $Id
             $lane.Path = Join-Path $TaskRoot 'Working' $lane.Id
