@@ -156,14 +156,7 @@ try {
 
     $context.CurrentGroup = $group
 
-    foreach ($task in $pond.Tasks) {
-        if ($task.Name -eq 'Claim') { continue }
-        $taskFunction = Get-Command $task.Function -ErrorAction SilentlyContinue
-        if (-not $taskFunction) {
-            throw "POND_TASK_NOT_FOUND pond=$PondName task=$($task.Name) function=$($task.Function)"
-        }
-        $context = & $task.Function -Pond $pond -Task $task -Context $context
-    }
+    $context = Invoke-PondLanePipeline -Pond $pond -Context $context -SkipClaim
 
     if ($context.Success) {
         exit 0

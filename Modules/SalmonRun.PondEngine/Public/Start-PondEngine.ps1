@@ -63,6 +63,11 @@ function Start-PondEngine {
     $activeLanes = [System.Collections.ArrayList]::new()
     $laneScript = Join-Path $RepoDir 'Tools' 'Start-PondLane.ps1'
 
+    # Validate all string-based task references before a plan can be claimed.
+    foreach ($configuredPond in $Ponds) {
+        Invoke-PondLanePipeline -Pond $configuredPond -ValidateOnly
+    }
+
     function Add-WorktreeStreams {
         param([PondContext]$Ctx, [string]$Workdir, [string]$Repo, [string]$Cfg)
         $newStreams = @()
@@ -377,16 +382,7 @@ function Start-PondEngine {
                     foreach ($s in $context.Streams) { if ($s.Id -eq $lane.StreamId) { $group.Stream = $s; break } }
 
                     try {
-                        foreach ($task in $pond.Tasks) {
-                            if (-not $context.Continue) { break }
-                            $taskFunction = Get-Command $task.Function -ErrorAction SilentlyContinue
-                            if (-not $taskFunction) {
-                                Write-Verbose "POND_TASK_NOT_FOUND pond=$($pond.Name) task=$($task.Name) function=$($task.Function)"
-                                $context.Continue = $false
-                                break
-                            }
-                            $context = & $task.Function -Pond $pond -Task $task -Context $context
-                        }
+                        $context = Invoke-PondLanePipeline -Pond $pond -Context $context
                     } finally {
                         if ($lane) { $lane.Idle = $true }
                         $context.UsedNamespaces.Remove($group.Namespace)
