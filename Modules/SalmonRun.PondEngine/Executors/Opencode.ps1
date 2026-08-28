@@ -77,19 +77,129 @@ function Resolve-OpencodeCredential {
 function Get-OpencodeRolePrompt {
     <#
     .SYNOPSIS
-        Returns a short role-specific prompt for the opencode CLI.
+        Returns a detailed, role-specific prompt that encodes the Salmon Run
+        evidence and workflow contract for the opencode agent.
     #>
-    param([string]$Role)
-    switch ($Role) {
-        'reviewer'        { return 'Review the following salmon-run plan and suggest any improvements.' }
-        'auditor'         { return 'Audit the following salmon-run plan for security, privacy, and best-practice issues.' }
-        'qa'              { return 'QA the following salmon-run plan. Verify it is complete, testable, and free of defects.' }
-        'planner'         { return 'Plan the following salmon-run request. Break it into clear, actionable steps.' }
-        'project'         { return 'Manage the following salmon-run project plan and report progress.' }
-        'project-planner' { return 'Plan the following salmon-run project. Break it into child work items.' }
-        'project-reviewer'{ return 'Review the following salmon-run project plan and child work items.' }
-        default           { return 'Implement the following salmon-run plan.' }
+    param(
+        [string]$Role,
+        [string]$RepoDir
+    )
+
+    $common = @"
+You are a Salmon Run pond agent. You are running in the target code repository:
+  $RepoDir
+
+The attached plan file(s) live in the Salmon Run task queue (`.salmon/Tasks/*`).
+Treat the target repository as your working directory. Do not modify files in the
+`.salmon` task queue except to append evidence to the plan file(s) you were given.
+
+You are expected to perform your role, update the plan file(s) with the correct
+evidence header(s), append a canonical **PondLog** action, and then finish.
+Do not claim success unless you actually performed the work. Do not write
+`**.complete**` sentinels yourself; the Salmon Run executor creates those from
+your exit code. The orchestrator will commit and push both the `.salmon` task
+repo and the target code repo after you finish.
+"@
+
+    $taskInstructions = switch ($Role) {
+        'reviewer' {
+            @"
+
+ROLE: Reviewer
+This is a review confirmation gate, NOT an implementation phase. Confirm that the
+plan was implemented as specified. If it was, append:
+
+**Reviewed**: passed by opencode-go/hy3
+
+to the plan file and add a `review` action to the **PondLog**. Do not change
+code. If the implementation is missing or wrong, append:
+
+**Reviewed**: failed by opencode-go/hy3 - <reason>
+
+and add a `review` action with the failure reason. Leave the plan in the Review
+queue; the orchestrator will route the feedback to the previous gate.
+"@
+        }
+        'auditor' {
+            @"
+
+ROLE: Auditor
+Run the lint / fix-code-smell stage on the target repository. Address
+readability, naming, and safe refactor opportunities that improve testability
+without changing behavior or outputs. Update the plan's **ConnascenceScope** if
+you touch additional files. After auditing, append:
+
+**Audit**: passed by opencode-go/hy3
+
+and add an `audit` action to the **PondLog**. If you cannot pass, append
+`**Audit**: failed by opencode-go/hy3 - <reason>` instead.
+"@
+        }
+        'qa' {
+            @"
+
+ROLE: QA
+Adapt and run the property-based testing unit pipeline for the target code. Fix
+failing tests. Then run mutation testing and improve the mutation score to at
+least 95%, approaching 100% where reasonable. Behavior-preserving refactoring is
+allowed if it improves testability. Update **ConnascenceScope** with any new or
+changed files. After QA passes, append:
+
+**QA**: passed by opencode-go/hy3
+
+and add a `qa` action to the **PondLog**. If QA cannot pass, append
+`**QA**: failed by opencode-go/hy3 - <reason>` instead.
+"@
+        }
+        'planner' {
+            @"
+
+ROLE: Planner
+Decompose the request in the plan file into clear, actionable steps inside the
+target repository. Append a `plan` action to the **PondLog**. You do not need to
+implement.
+"@
+        }
+        default {
+            @"
+
+ROLE: Coder
+Implement the plan in the target repository. Update the plan's
+**ConnascenceScope** with the exact relative paths of files you create or modify
+(no broad commits). After implementing, append:
+
+**Implementation**: completed by opencode-go/hy3
+
+and add an `implement` action to the **PondLog**. If you cannot complete,
+append `**Implementation**: failed by opencode-go/hy3 - <reason>` instead and
+stop without writing `.complete`.
+"@
+        }
     }
+
+    $evidence = @"
+
+EVIDENCE FORMAT
+Append exactly one evidence line and one **PondLog** action per plan file. The
+legacy evidence line must look like:
+
+**<RoleEvidence>**: <state> by opencode-go/hy3
+
+For coder: **Implementation**: completed by opencode-go/hy3
+For reviewer: **Reviewed**: passed by opencode-go/hy3
+For auditor: **Audit**: passed by opencode-go/hy3
+For qa: **QA**: passed by opencode-go/hy3
+
+Also append a **PondLog** JSON action to the plan, for example:
+
+```json
+{ "ts": "<ISO-8601>", "pond": "<PondName>", "role": "$Role", "action": "<action>", "detail": "completed by opencode-go/hy3", "agent": "opencode-go/hy3" }
+```
+
+Use the correct pond name (Code, Review, Audit, QA, etc.) for the current gate.
+"@
+
+    return "$common`n$taskInstructions`n$evidence"
 }
 
 function Write-PlanLog {
@@ -181,7 +291,7 @@ function Invoke-OpencodeProvider {
         [Environment]::SetEnvironmentVariable('OPENCODE_GO_KEY', $credential, 'Process')
     }
 
-    $prompt = Get-OpencodeRolePrompt -Role $Role
+    $prompt = Get-OpencodeRolePrompt -Role $Role -RepoDir $RepoDir
 
     $outLog = Join-Path $LanePath 'opencode.log'
     $errLog = Join-Path $LanePath 'opencode.err'
