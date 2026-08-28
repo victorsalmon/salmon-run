@@ -22,6 +22,7 @@ function New-PondStream {
             'reviewer'        = 1
             'auditor'         = 1
             'qa'              = 1
+            'planner'         = 2
             'project-planner' = 2
             'project-reviewer' = 1
             'archiver'        = 1
