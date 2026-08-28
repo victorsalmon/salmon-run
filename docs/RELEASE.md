@@ -160,7 +160,7 @@ docker tag ghcr.io/victorsalmon/salmon-run:<version> ghcr.io/victorsalmon/salmon
 docker push ghcr.io/victorsalmon/salmon-run:latest
 ```
 
-> **Note:** New GHCR packages default to **private**. After the first successful push, the package owner must visit the package settings page and change visibility to **Public** before unauthenticated users can `docker pull`.
+> **Note:** The GHCR package is published as `ghcr.io/victorsalmon/salmon-run` and the package page is public. The `latest` and version tags are pushed automatically on every `v*` tag.
 
 ### 4. Verify a clean install
 

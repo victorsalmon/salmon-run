@@ -171,7 +171,7 @@
       "ci_builds_on_tag": "verified: docker.yml and test.yml run Pester, leak-check, archive, GHCR push, and GitHub release creation on v* tags (v0.1.6 green)",
       "qa_evidence_recorded": "verified: this entry"
     },
-    "notes": "GitHub Release v0.1.6 and GHCR image were published automatically by CI on the v0.1.6 tag. The GHCR package is initially pushed as private; the package owner must set it to Public in the package settings for unauthenticated `docker pull`. PowerShell Gallery nupkg builds locally but PSGallery push remains unexercised because POWERSHELL_GALLERY_KEY is not configured; the Publish-SalmonRunModule.ps1 helper is ready to publish when the key is provided."
+    "notes": "GitHub Release v0.1.6 and GHCR image were published automatically by CI on the v0.1.6 tag. The GHCR package is public and pullable at `ghcr.io/victorsalmon/salmon-run:<version>`. PowerShell Gallery nupkg builds locally but PSGallery push remains unexercised because POWERSHELL_GALLERY_KEY is not configured; the Publish-SalmonRunModule.ps1 helper is ready to publish when the key is provided."
   },
   {
     "id": "2026.08.27-sr-docs-1-release-and-sync-documentation",
