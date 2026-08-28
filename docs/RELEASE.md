@@ -15,7 +15,7 @@ release.
 | Artifact | Distribution | Install command | Audience |
 |----------|-------------|-----------------|----------|
 | **GitHub source archive** | [GitHub releases](https://github.com/clocklobster/salmon-run/releases) | `git clone --branch <tag> https://github.com/clocklobster/salmon-run.git && .\install.ps1` | Developers who want to inspect, fork, or contribute |
-| **PowerShell Gallery module** | [PowerShell Gallery](https://www.powershellgallery.com/packages/SalmonRun.PondEngine) | `Install-Module -Name SalmonRun.PondEngine` | PowerShell users who want the engine as a module |
+| **PowerShell Gallery module** | [PowerShell Gallery](https://www.powershellgallery.com/packages/SalmonRun) | `Install-Module -Name SalmonRun` | PowerShell users who want the whole control plane as one meta-module |
 | **Docker image** | GHCR or Docker Hub | `docker pull ghcr.io/clocklobster/salmon-run:<tag>` | Container-first and CI users |
 
 Each artifact is built from the same Git tag and carries the same version.
@@ -129,9 +129,16 @@ gh release create v<version> --title "salmon-run v<version>" --notes "<release-n
 
 #### PowerShell Gallery
 
+The published package is the `SalmonRun` meta-module (`Modules/SalmonRun/SalmonRun.psd1`),
+which declares every `SalmonRun.*` submodule as a `RequiredModules` dependency so a
+single `Import-Module SalmonRun` brings the full control plane online.
+
 ```powershell
-# From the repo root:
-Publish-Module -Path .\Modules\SalmonRun.PondEngine -NuGetApiKey $POWERSHELL_GALLERY_KEY
+# From the repo root, using the helper (builds nupkg locally when no key is set):
+.\scripts\Publish-SalmonRunModule.ps1 -NuGetApiKey $env:POWERSHELL_GALLERY_KEY
+
+# Or directly:
+Publish-Module -Path .\Modules\SalmonRun -NuGetApiKey $POWERSHELL_GALLERY_KEY
 ```
 
 #### Docker image
@@ -147,7 +154,7 @@ docker push ghcr.io/clocklobster/salmon-run:latest
 
 ```powershell
 # Fresh PowerShell session:
-Install-Module -Name SalmonRun.PondEngine
+Install-Module -Name SalmonRun
 Start-SalmonRun.ps1 -DryRun
 ```
 
