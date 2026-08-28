@@ -7,7 +7,8 @@
     Start-PondEngine is the next-generation orchestrator entry point.
     It reads a list of Pond objects, dispatches each through its configured
     task pipeline, and transitions plans between ponds on success or failure.
-    This function is the primary orchestrator entry point for salmon-run.
+    Agentic ponds run in background child processes, each in its own git
+    worktree branch, so different namespaces do not clobber one another.
 .PARAMETER Ponds
     Optional. An array of Pond objects. Defaults to Get-SalmonRunPonds.
 .PARAMETER RepoDir
@@ -19,11 +20,14 @@
 .PARAMETER PollIntervalSeconds
     Seconds to sleep when no work is available. Default 300.
 .PARAMETER Streams
-    Optional. An array of PondStream objects. Defaults to a single main-branch
-    stream with the default operator layout.
+    Optional. An array of PondStream objects. Defaults to worktree streams
+    discovered from the agentic queues.
 .PARAMETER NamespaceRepoMap
     Optional hashtable mapping plan namespace to the target repository path
     the agent should work in.
+.PARAMETER ConfigPath
+    Optional path to an orchestrator config JSON. Defaults to
+    ~/.salmon/orchestrator.config.json.
 #>
 function Start-PondEngine {
     [CmdletBinding()]
@@ -35,7 +39,8 @@ function Start-PondEngine {
         [int]$SubprocessTimeoutMinutes = 30,
         [int]$PollIntervalSeconds = 300,
         [PondStream[]]$Streams = @(),
-        [hashtable]$NamespaceRepoMap = @{}
+        [hashtable]$NamespaceRepoMap = @{},
+        [string]$ConfigPath = ''
     )
 
     $context = [PondContext]::new()
@@ -45,27 +50,163 @@ function Start-PondEngine {
     $context.UsedNamespaces = @{}
     $context.BusyNamespaces = @{}
     $context.Streams = [System.Collections.ArrayList]::new()
-    if ($Streams.Count -eq 0) {
-        $streamPath = if ([string]::IsNullOrWhiteSpace($RepoDir)) { Get-SalmonRunRepoRoot } else { $RepoDir }
-        $null = $context.Streams.Add((New-PondStream -Id 'stream-1' -Branch 'main' -Path $streamPath -TaskRoot $TaskRoot))
-    } else {
-        foreach ($s in $Streams) { $null = $context.Streams.Add($s) }
-    }
     $context.CrashHistory = [System.Collections.Generic.List[datetime]]::new()
     $context.Iteration = 0
     $context.Counts = $null
     $context.Config = [PSCustomObject]@{
-        TimeoutMinutes    = $SubprocessTimeoutMinutes
-        NamespaceRepoMap  = $NamespaceRepoMap
+        TimeoutMinutes   = $SubprocessTimeoutMinutes
+        NamespaceRepoMap = $NamespaceRepoMap
     }
     $context.Continue = $true
     $context.Success = $false
 
+    $activeLanes = [System.Collections.ArrayList]::new()
+    $laneScript = Join-Path $RepoDir 'Tools' 'Start-PondLane.ps1'
+
+    function Add-WorktreeStreams {
+        param([PondContext]$Ctx, [string]$Workdir, [string]$Repo, [string]$Cfg)
+        $newStreams = @()
+        try {
+            $newStreams = @(Get-PondWorktreeStreams -TaskRoot $Workdir -RepoDir $Repo -ConfigPath $Cfg)
+        } catch {
+            Write-Verbose "PondEngine: Get-PondWorktreeStreams failed: $_"
+        }
+        if ($newStreams.Count -eq 0) { return }
+        $existingIds = [System.Collections.Generic.HashSet[string]]::new([string[]]($Ctx.Streams | ForEach-Object { $_.Id }))
+        foreach ($s in $newStreams) {
+            if ($existingIds.Contains($s.Id)) { continue }
+            $null = $Ctx.Streams.Add($s)
+            $Ctx.ActiveStreams[$s.Id] = $s
+        }
+    }
+
+    if ($Streams.Count -gt 0) {
+        foreach ($s in $Streams) { $null = $context.Streams.Add($s) }
+    } else {
+        Add-WorktreeStreams -Ctx $context -Workdir $TaskRoot -Repo $RepoDir -Cfg $ConfigPath
+
+        if ($context.Streams.Count -eq 0) {
+            $streamPath = if ([string]::IsNullOrWhiteSpace($RepoDir)) { Get-SalmonRunRepoRoot } else { $RepoDir }
+            $null = $context.Streams.Add((New-PondStream -Id 'stream-1' -Branch 'main' -Path $streamPath -TaskRoot $TaskRoot))
+        }
+    }
+
     Write-Host "Starting PondEngine for $RepoDir" -ForegroundColor Cyan
+
+    function Get-StreamForGroup {
+        param([PondGroup]$Group, [PondContext]$Ctx)
+        $byId = $Ctx.Streams | Where-Object { $_.Id -eq $Group.Namespace } | Select-Object -First 1
+        if ($byId) { return $byId }
+        $byPath = $Ctx.Streams | Where-Object { $_.Path -eq $Group.RepoPath } | Select-Object -First 1
+        if ($byPath) { return $byPath }
+        return $Ctx.Streams | Select-Object -First 1
+    }
+
+    function Invoke-PondReapLane {
+        param(
+            [Pond]$Pond,
+            [PondLane]$Lane,
+            [PondStream]$Stream,
+            [int]$ExitCode,
+            [PondContext]$Ctx,
+            [string]$Workdir
+        )
+
+        $lanePath = $Lane.Path
+        $didReapWork = $false
+
+        if (Test-Path -LiteralPath $lanePath) {
+            $files = @(Get-ChildItem -LiteralPath $lanePath -Filter '*.md' -File -ErrorAction SilentlyContinue | Sort-Object Name)
+            $hasComplete = Test-Path -LiteralPath (Join-Path $lanePath '.complete')
+            $hasFailed = Test-Path -LiteralPath (Join-Path $lanePath '.failed')
+
+            $reapGroup = [PondGroup]::new()
+            $reapGroup.Role = $Pond.Role
+            $reapGroup.Files = $files
+            $reapGroup.LaneId = $Lane.Id
+            $reapGroup.StreamPath = $lanePath
+            $reapGroup.Stream = $Stream
+            $reapGroup.RepoPath = if ($Stream) { $Stream.Path } else { $Ctx.RepoDir }
+
+            if ($files.Count -gt 0 -and $files[0].Name -match '^\d{4}[-.]?\d{2}[-.]?\d{2}[-.]([^-]+)') {
+                $reapGroup.Namespace = $Matches[1]
+            } else {
+                $reapGroup.Namespace = $files[0].BaseName
+            }
+
+            if ($files.Count -gt 0) {
+                if ($hasComplete -or $hasFailed -or $ExitCode -eq 0) {
+                    $reapContext = [PondContext]::new()
+                    $reapContext.TaskRoot = $Workdir
+                    $reapContext.RepoDir = $Ctx.RepoDir
+                    $reapContext.Streams = $Ctx.Streams
+                    $reapContext.Config = $Ctx.Config
+                    $reapContext.ActiveStreams = $Ctx.ActiveStreams
+                    $reapContext.UsedNamespaces = @{}
+                    $reapContext.BusyNamespaces = @{}
+                    $reapContext.CurrentPond = $Pond
+                    $reapContext.CurrentGroup = $reapGroup
+                    $reapContext.Success = ($hasComplete -or ($ExitCode -eq 0 -and -not $hasFailed))
+                    $reapContext.Continue = $true
+
+                    $transitionTask = [PondTask]@{
+                        Name     = 'Transition'
+                        Type     = 'Group'
+                        Function = 'Invoke-PondTaskTransition'
+                    }
+
+                    try {
+                        $null = Invoke-PondTaskTransition -Pond $Pond -Task $transitionTask -Context $reapContext
+                        $didReapWork = $true
+                    } catch {
+                        Write-Warning "PondEngine: transition during reap for $($Lane.Id) failed: $_"
+                    }
+                }
+
+                $remaining = @(Get-ChildItem -LiteralPath $lanePath -Force -ErrorAction SilentlyContinue)
+                if ($remaining.Count -gt 0) {
+                    $onFailure = if ($Pond.OnFailure -and $Pond.OnFailure.MoveTo) { $Pond.OnFailure.MoveTo } else { 'Code' }
+                    $targetDir = Join-Path $Workdir $onFailure
+                    $rescue = Invoke-PondRescue -SourceDir $lanePath -TargetDir $targetDir -StaleThresholdSeconds 0
+                    if ($rescue.Rescued -gt 0) {
+                        $sourcePaths = @($files | ForEach-Object { $_.FullName })
+                        $destFiles = @()
+                        foreach ($f in $files) {
+                            $dest = Join-Path $targetDir $f.Name
+                            if (Test-Path -LiteralPath $dest) { $destFiles += (Get-Item -LiteralPath $dest) }
+                        }
+                        if ($destFiles.Count -gt 0) {
+                            $rescueContext = [PondContext]::new()
+                            $rescueContext.TaskRoot = $Workdir
+                            $rescueContext.RepoDir = $Ctx.RepoDir
+                            $rescueContext.Config = $Ctx.Config
+                            $rescueContext.Streams = $Ctx.Streams
+                            $rescueContext.CurrentPond = $Pond
+                            $rescueContext.CurrentGroup = $reapGroup
+                            $commitMsg = "rescue: $($destFiles[0].Name) from $($Pond.Name)"
+                            Push-PondRepos -Pond $Pond -Context $rescueContext -FinalDest $onFailure -SourcePaths $sourcePaths -DestFiles $destFiles -CommitMessage $commitMsg -TaskRepoOnly
+                        }
+                        $didReapWork = $true
+                    }
+                    Remove-Item -LiteralPath $lanePath -Recurse -Force -ErrorAction SilentlyContinue
+                }
+            } else {
+                Remove-Item -LiteralPath $lanePath -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        $Lane.Idle = $true
+        return $didReapWork
+    }
 
     $iterationLimit = if ($MaxIterations -le 0) { [int]::MaxValue } else { $MaxIterations }
     for ($context.Iteration = 1; $context.Iteration -le $iterationLimit; $context.Iteration++) {
         $didWork = $false
+
+        # Refresh worktree streams periodically so new namespaces get a lane.
+        if ($context.Iteration % 5 -eq 0 -or $context.Streams.Count -eq 0) {
+            Add-WorktreeStreams -Ctx $context -Workdir $TaskRoot -Repo $RepoDir -Cfg $ConfigPath
+        }
 
         # Rescue stale in-progress files before scanning ponds
         $rescue = Invoke-PondRescue -SourceDir (Join-Path $TaskRoot 'Working') -TargetDir (Join-Path $TaskRoot 'Code') -StaleThresholdSeconds $PollIntervalSeconds
@@ -82,6 +223,22 @@ function Start-PondEngine {
             $didWork = $true
         }
 
+        # Reap completed or failed child lanes.
+        for ($i = $activeLanes.Count - 1; $i -ge 0; $i--) {
+            $entry = $activeLanes[$i]
+            $proc = $entry.Process
+            if ($proc -and -not $proc.HasExited) { continue }
+
+            $exitCode = if ($proc) { $proc.ExitCode } else { 1 }
+            $reapDidWork = Invoke-PondReapLane -Pond $entry.Pond -Lane $entry.Lane -Stream $entry.Stream -ExitCode $exitCode -Ctx $context -Workdir $TaskRoot
+            if ($reapDidWork) { $didWork = $true }
+
+            $null = $context.UsedNamespaces.Remove($entry.Namespace)
+            $null = $activeLanes.RemoveAt($i)
+
+            Write-Verbose "PondEngine: lane $($entry.Lane.Id) for namespace '$($entry.Namespace)' exited with code $exitCode"
+        }
+
         foreach ($pond in $Ponds) {
             $context.CurrentPond = $pond
             if (-not $pond.Entry.Enabled) { continue }
@@ -94,6 +251,8 @@ function Start-PondEngine {
 
             $selected = @(Select-PondGroups -Pond $pond -Groups $groups -Context $context)
             if ($selected.Count -eq 0) { continue }
+
+            $isAgentic = [bool]($pond.Tasks | Where-Object { $_.Name -eq 'Spawn' -and $_.Type -eq 'Agent' })
 
             foreach ($group in $selected) {
                 $context.CurrentGroup = $group
@@ -108,41 +267,128 @@ function Start-PondEngine {
                     continue
                 }
 
-                $lane = Get-FreePondLane -Pond $pond -Context $context
-                if (-not $lane) {
-                    Write-Verbose "POND_NO_FREE_LANE pond=$($pond.Name) ns=$($group.Namespace)"
-                    continue
-                }
-                $group.LaneId = $lane.Id
-                $group.StreamPath = $lane.Path
-                $group.Stream = $null
-                foreach ($s in $context.Streams) { if ($s.Id -eq $lane.StreamId) { $group.Stream = $s; break } }
-
-                try {
-                    foreach ($task in $pond.Tasks) {
-                        if (-not $context.Continue) { break }
-                        $taskFunction = Get-Command $task.Function -ErrorAction SilentlyContinue
-                        if (-not $taskFunction) {
-                            Write-Verbose "POND_TASK_NOT_FOUND pond=$($pond.Name) task=$($task.Name) function=$($task.Function)"
-                            $context.Continue = $false
-                            break
-                        }
-                        $context = & $task.Function -Pond $pond -Task $task -Context $context
+                if ($isAgentic) {
+                    $stream = Get-StreamForGroup -Group $group -Ctx $context
+                    if (-not $stream) {
+                        Write-Verbose "POND_NO_STREAM pond=$($pond.Name) ns=$($group.Namespace)"
+                        continue
                     }
-                } finally {
-                    # Release the lane; the Transition task is responsible for moving files out.
-                    # If the pipeline aborted early, free the lane here.
-                    if ($lane) {
+
+                    $group.Stream = $stream
+                    $group.RepoPath = $stream.Path
+
+                    $lane = Get-FreePondLane -Pond $pond -Context $context -RepoPath $group.RepoPath
+                    if (-not $lane) {
+                        Write-Verbose "POND_NO_FREE_LANE pond=$($pond.Name) ns=$($group.Namespace)"
+                        continue
+                    }
+                    $group.LaneId = $lane.Id
+                    $group.StreamPath = $lane.Path
+
+                    $claimTask = $pond.Tasks | Where-Object { $_.Name -eq 'Claim' } | Select-Object -First 1
+                    if (-not $claimTask) {
                         $lane.Idle = $true
+                        Write-Warning "PondEngine: agentic pond '$($pond.Name)' has no Claim task"
+                        continue
                     }
-                    $context.UsedNamespaces.Remove($group.Namespace)
-                }
 
-                $didWork = $true
+                    try {
+                        $context = Invoke-PondTaskClaim -Pond $pond -Task $claimTask -Context $context
+                    } catch {
+                        Write-Warning "PondEngine: claim failed for $($group.Namespace) in $($pond.Name): $_"
+                        $lane.Idle = $true
+                        continue
+                    }
+
+                    if (-not (Test-Path -LiteralPath $laneScript)) {
+                        Write-Warning "PondEngine: lane runner not found at $laneScript"
+                        $lane.Idle = $true
+                        continue
+                    }
+
+                    $startArgs = @{
+                        FilePath         = 'pwsh'
+                        ArgumentList     = @(
+                            '-NoProfile'
+                            '-NonInteractive'
+                            '-File', $laneScript
+                            $TaskRoot
+                            $RepoDir
+                            $pond.Name
+                            $lane.Id
+                            $stream.Id
+                            $stream.Path
+                            $group.Namespace
+                            $group.RepoPath
+                            $SubprocessTimeoutMinutes
+                            $ConfigPath
+                        )
+                        WorkingDirectory = $group.RepoPath
+                        PassThru         = $true
+                        NoNewWindow      = $true
+                    }
+
+                    $proc = $null
+                    try {
+                        $proc = Start-Process @startArgs
+                    } catch {
+                        Write-Warning "PondEngine: failed to spawn lane for $($group.Namespace): $_"
+                        $lane.Idle = $true
+                        $context.UsedNamespaces.Remove($group.Namespace)
+                        continue
+                    }
+
+                    $null = $activeLanes.Add([PSCustomObject]@{
+                        Process    = $proc
+                        Pond       = $pond
+                        Lane       = $lane
+                        Namespace  = $group.Namespace
+                        StartTime  = Get-Date
+                        Stream     = $stream
+                        StreamPath = $stream.Path
+                        RepoPath   = $group.RepoPath
+                        Group      = $group
+                    })
+
+                    $context.UsedNamespaces[$group.Namespace] = $true
+                    $didWork = $true
+                    Write-Verbose "PondEngine: spawned lane $($lane.Id) for namespace '$($group.Namespace)' on stream '$($stream.Id)' ($($stream.Path))"
+                } else {
+                    $lane = Get-FreePondLane -Pond $pond -Context $context -RepoPath $group.RepoPath
+                    if (-not $lane) {
+                        Write-Verbose "POND_NO_FREE_LANE pond=$($pond.Name) ns=$($group.Namespace)"
+                        continue
+                    }
+                    $group.LaneId = $lane.Id
+                    $group.StreamPath = $lane.Path
+                    $group.Stream = $null
+                    foreach ($s in $context.Streams) { if ($s.Id -eq $lane.StreamId) { $group.Stream = $s; break } }
+
+                    try {
+                        foreach ($task in $pond.Tasks) {
+                            if (-not $context.Continue) { break }
+                            $taskFunction = Get-Command $task.Function -ErrorAction SilentlyContinue
+                            if (-not $taskFunction) {
+                                Write-Verbose "POND_TASK_NOT_FOUND pond=$($pond.Name) task=$($task.Name) function=$($task.Function)"
+                                $context.Continue = $false
+                                break
+                            }
+                            $context = & $task.Function -Pond $pond -Task $task -Context $context
+                        }
+                    } finally {
+                        if ($lane) { $lane.Idle = $true }
+                        $context.UsedNamespaces.Remove($group.Namespace)
+                    }
+
+                    $didWork = $true
+                }
             }
         }
 
-        if (-not $didWork) {
+        if ($activeLanes.Count -gt 0) {
+            Start-Sleep -Seconds 5
+            $didWork = $true
+        } elseif (-not $didWork) {
             Write-Verbose "PondEngine: no work, sleeping ${PollIntervalSeconds}s"
             Start-Sleep -Seconds $PollIntervalSeconds
         }

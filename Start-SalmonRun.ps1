@@ -149,4 +149,5 @@ Start-PondEngine `
     -MaxIterations $MaxIterations `
     -PollIntervalSeconds $PollIntervalSeconds `
     -SubprocessTimeoutMinutes $SubprocessTimeoutMinutes `
-    -NamespaceRepoMap $mergedMap
+    -NamespaceRepoMap $mergedMap `
+    -ConfigPath $salmonConfig
