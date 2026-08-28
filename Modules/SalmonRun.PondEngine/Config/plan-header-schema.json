@@ -111,6 +111,16 @@
       "description": "A routing or execution value was overridden (preserved as history, not just current state).",
       "requiredFields": ["ts", "pond", "role", "action", "detail"],
       "optionalFields": ["agent"]
+    },
+    "commit": {
+      "description": "The task repo or target repo was committed after a transition.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "push": {
+      "description": "The task repo or target repo was pushed after a commit.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
     }
   },
   "evidenceActions": {

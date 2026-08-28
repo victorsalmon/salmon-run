@@ -60,15 +60,7 @@ function Push-PondRepos {
             return
         }
 
-        $null = & git -C $RepoPath pull --rebase --autostash 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "POND_PULL_REBASE_FAILED repo=$RepoLabel sha=$sha"
-            return
-        }
-
-        $null = & git -C $RepoPath push 2>&1
-        $pushed = ($LASTEXITCODE -eq 0)
-
+        # Record the commit immediately so a later pull/push failure does not lose it.
         foreach ($dst in $DestFiles) {
             if (-not (Test-Path -LiteralPath $dst.FullName)) { continue }
             $now = Get-Date -Format 'o'
@@ -80,7 +72,27 @@ function Push-PondRepos {
                 detail = "$RepoLabel`: $CommitMessage @ $sha"
                 agent  = 'PondEngine'
             } -ErrorAction SilentlyContinue
-            if ($pushed) {
+        }
+
+        # Skip pull/push when there is no remote configured.
+        $remotes = & git -C $RepoPath remote 2>&1
+        if (-not $remotes) {
+            return
+        }
+
+        $null = & git -C $RepoPath pull --rebase --autostash 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "POND_PULL_REBASE_FAILED repo=$RepoLabel sha=$sha"
+            return
+        }
+
+        $null = & git -C $RepoPath push 2>&1
+        $pushed = ($LASTEXITCODE -eq 0)
+
+        if ($pushed) {
+            foreach ($dst in $DestFiles) {
+                if (-not (Test-Path -LiteralPath $dst.FullName)) { continue }
+                $now = Get-Date -Format 'o'
                 $null = Add-PlanPondLog -PlanPath $dst.FullName -Entry @{
                     ts     = $now
                     pond   = $Pond.Name
