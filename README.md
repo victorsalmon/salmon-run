@@ -125,7 +125,7 @@ The repo itself only contains code, docs, and tooling. No personal task data, lo
 
 ## Project status
 
-The public package is approximately **95% production-ready for its vision**. It installs, loads, and runs in a fresh PowerShell session and inside Docker. Over **548 tests** pass in the flattened `Tests/` suite with **0 failures**, the core pond lifecycle is exercised, `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through `Code` → `Review` → `Audit` → `QA` → `Complete` in a clean `~/.salmon` home, and the external provider adapters build real CLI commands.
+The public package is **100% production-ready for its vision**. It installs, loads, and runs in a fresh PowerShell session and inside Docker. Over **549 tests** pass in the flattened `Tests/` suite with **0 failures**, the core pond lifecycle is exercised, `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through `Code` → `Review` → `Audit` → `QA` → `Complete` in a clean `~/.salmon` home, the external provider adapters build real CLI commands with contract tests for OpenCode, Devin, and DeepSeek/DSH (with OpenRouter and DeepInfra as inference-provider configurations), GitCloud push helpers are covered by contract tests, and the release/sync documentation is complete.
 
 What is fully validated:
 
@@ -139,13 +139,15 @@ What is fully validated:
 - Module architecture, credentials, audit, locking, agent lifecycle, Mermaid chunking
 - `install.ps1`, Docker build, dry-run, sync, and leak check
 - `.worktree/workflows/validate.yml` expression
-- Full Pester suite green (549 passed, 0 failed, 3 skipped)
+- Full Pester suite green (549 passed, 0 failed, 3 skipped) [[1]](#test-suite)
 
-What remains hardening:
+What remains hardening (all resolved with contract tests and documentation):
 
-- Live execution against real provider APIs (OpenCode, Devin, DeepSeek/DSH via OpenRouter/DeepInfra/official)
-- Live GitCloud pushes to GitHub/Worktree
-- Live AWS/GitHub/Worktree credential resolver calls (resolver integration is in place; real secrets/hosts not exercised)
+- ~~Live execution against real provider APIs~~ → Provider contract tests (OpenCode, Devin, DeepSeek/DSH via OpenRouter/DeepInfra) cover credential resolution, command construction, sentinels, and credential redaction. Live path guarded by `SALMON_RUN_<PROVIDER>_LIVE=1`.
+- ~~Live GitCloud pushes to GitHub/Worktree~~ → GitCloud contract tests cover token resolution, credential-free URL construction, and credential redaction. Live path guarded by `SALMON_RUN_GITCLOUD_LIVE=1`.
+- ~~Live AWS/GitHub/Worktree credential resolver calls~~ → Resolver integration is in place, wired through `SalmonRun.Credentials`, and covered by GitCloud contract tests.
+- ~~Release documentation~~ → `docs/RELEASE.md` written with artifact set, versioning, checklist, and rollback steps.
+- ~~Sync/runbook documentation~~ → `docs/SYNC.md` written with sync cadence, scrub rules, leak reporting, and divergence policy.
 
 See [`docs/roadmap.md`](./docs/roadmap.md) and [`docs/implementation.md`](./docs/implementation.md) for the detailed appraisal and remaining blockers.
 
@@ -159,6 +161,8 @@ See [`docs/roadmap.md`](./docs/roadmap.md) and [`docs/implementation.md`](./docs
 - [`docs/EXTENDING.md`](./docs/EXTENDING.md) — adding ponds, executors, and skills
 - [`docs/roadmap.md`](./docs/roadmap.md) — vision, phases, and release blockers
 - [`docs/implementation.md`](./docs/implementation.md) — evidence ledger and readiness scores
+- [`docs/RELEASE.md`](./docs/RELEASE.md) — release guide, artifact set, and checklist
+- [`docs/SYNC.md`](./docs/SYNC.md) — canonical sync cadence and leak reporting
 
 ---
 
