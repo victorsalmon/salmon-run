@@ -262,6 +262,7 @@ function Start-PondEngine {
                 $context.CurrentGroup = $group
                 $context.Continue = $true
                 $context.Success = $false
+                $usesLocalExecutor = $isAgentic -and (Test-PondGroupUsesLocalExecutor -Group $group)
 
                 Resolve-PondGroupRepo -Group $group -Context $context
 
@@ -271,7 +272,7 @@ function Start-PondEngine {
                     continue
                 }
 
-                if ($isAgentic) {
+                if ($isAgentic -and -not $usesLocalExecutor) {
                     $stream = Get-StreamForGroup -Group $group -Ctx $context
                     if (-not $stream) {
                         Add-WorktreeStreams -Ctx $context -Workdir $TaskRoot -Repo $RepoDir -Cfg $ConfigPath

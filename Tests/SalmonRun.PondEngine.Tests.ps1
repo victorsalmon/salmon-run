@@ -51,12 +51,30 @@ Describe 'SalmonRun.PondEngine Module Manifest' -Tag 'PondEngine', 'Regression-O
 
     It 'resolves every configured task through the child-lane module boundary' {
         $seed = 20260828
-        $ponds = @(Get-SalmonRunPonds | Sort-Object { Get-Random -SetSeed $seed })
+        $rng = [System.Random]::new($seed)
+        $ponds = @(Get-SalmonRunPonds | Sort-Object { $rng.Next() })
 
         foreach ($pond in $ponds) {
             { Invoke-PondLanePipeline -Pond $pond -ValidateOnly } |
                 Should -Not -Throw -Because "every $($pond.Name) task must resolve inside the PondEngine module"
         }
+    }
+
+    It 'rejects an unknown task before a lane can claim work' {
+        $pond = [Pond]::new()
+        $pond.Name = 'Broken'
+        $pond.Tasks = @([PondTask]@{ Name = 'Missing'; Function = 'Invoke-DefinitelyMissingPondTask' })
+
+        { Invoke-PondLanePipeline -Pond $pond -ValidateOnly } |
+            Should -Throw '*POND_TASK_NOT_FOUND*'
+    }
+
+    It 'accepts an empty local pipeline during validation' {
+        $pond = [Pond]::new()
+        $pond.Name = 'Empty'
+        $pond.Tasks = @()
+
+        { Invoke-PondLanePipeline -Pond $pond -ValidateOnly } | Should -Not -Throw
     }
 }
 
@@ -176,7 +194,7 @@ Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
     It 'can construct a PondStream with default lanes' {
         $stream = New-PondStream -Id 'stream-1' -Branch 'main' -Path 'C:\temp\repo'
         $stream | Should -Not -BeNullOrEmpty
-        $stream.Lanes.Count | Should -Be 10
+        $stream.Lanes.Count | Should -Be 12
     }
 
     It 'has the expected role lane counts' {
@@ -186,6 +204,7 @@ Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
         $reviewer = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'reviewer' }).Count
         $auditor = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'auditor' }).Count
         $qa = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'qa' }).Count
+        $planner = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'planner' }).Count
         $projectPlanner = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'project-planner' }).Count
         $projectReviewer = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'project-reviewer' }).Count
         $archiver = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'archiver' }).Count
@@ -193,6 +212,7 @@ Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
         $reviewer | Should -Be 1
         $auditor | Should -Be 1
         $qa | Should -Be 1
+        $planner | Should -Be 2
         $projectPlanner | Should -Be 2
         $projectReviewer | Should -Be 1
         $archiver | Should -Be 1
