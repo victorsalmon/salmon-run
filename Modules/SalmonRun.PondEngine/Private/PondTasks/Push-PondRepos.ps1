@@ -80,9 +80,21 @@ function Push-PondRepos {
             return
         }
 
-        $null = & git -C $RepoPath pull --rebase --autostash 2>&1
+        $branch = & git -C $RepoPath rev-parse --abbrev-ref HEAD 2>&1
+        if ([string]::IsNullOrWhiteSpace($branch) -or $LASTEXITCODE -ne 0) {
+            Write-Warning "POND_BRANCH_RESOLVE_FAILED repo=$RepoLabel"
+            return
+        }
+
+        $null = & git -C $RepoPath fetch origin $branch 2>&1
         if ($LASTEXITCODE -ne 0) {
-            Write-Warning "POND_PULL_REBASE_FAILED repo=$RepoLabel sha=$sha"
+            Write-Warning "POND_FETCH_FAILED repo=$RepoLabel"
+            return
+        }
+
+        $null = & git -C $RepoPath rebase --autostash "origin/$branch" 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "POND_REBASE_FAILED repo=$RepoLabel sha=$sha"
             return
         }
 
