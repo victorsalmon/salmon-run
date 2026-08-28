@@ -155,6 +155,10 @@ try {
             }
         }
 
+        if ($Role -eq 'project-reviewer') {
+            $content = $content + "`n**ProjectReviewDecision**: pass`n**ProjectReview**: passed by public local project reviewer`n"
+        }
+
         $content | Set-Content -LiteralPath $planPath -Encoding utf8 -NoNewline
 
         # Append the canonical timestamped PondLog event for this role.
@@ -163,6 +167,7 @@ try {
             'reviewer' = 'review'
             'auditor'  = 'audit'
             'qa'       = 'qa'
+            'project-reviewer' = 'review'
         }
         if ($actionMap.ContainsKey($Role)) {
             $null = Add-PlanPondLog -PlanPath $planPath -Entry @{

@@ -298,7 +298,8 @@ Describe 'Start-PondEngine end-to-end with local executor' -Tag 'PondEngine', 'R
         try {
             $env:SALMON_RUN_HOME = $tempDir
             Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
-            Join-Path $tempDir "Tasks/Complete/$planName" | Should -Exist
+            Join-Path $tempDir "Tasks/Complete/e2e-project/project.md" | Should -Exist
+            Join-Path $tempDir "Tasks/Complete/e2e-project/manifest.json" | Should -Exist
             Join-Path $tempDir "Tasks/Code/$planName" | Should -Not -Exist
             Join-Path $tempDir "Tasks/Failed/$planName" | Should -Not -Exist
         } finally {
@@ -425,7 +426,7 @@ Describe 'Project and ProjectReview pipeline' -Tag 'PondEngine', 'Regression-Onl
         try {
             $env:SALMON_RUN_HOME = $tempDir
             Start-PondEngine -RepoDir $tempDir -MaxIterations 8 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
-            Join-Path $tempDir "Tasks/Complete/$planName" | Should -Exist
+            Join-Path $tempDir "Tasks/Complete/e2e-project/project.md" | Should -Exist
             Join-Path $tempDir "Tasks/Project/$planName" | Should -Not -Exist
             Join-Path $tempDir "Tasks/Failed/$planName" | Should -Not -Exist
         } finally {
@@ -453,10 +454,10 @@ Describe 'Project and ProjectReview pipeline' -Tag 'PondEngine', 'Regression-Onl
         try {
             $env:SALMON_RUN_HOME = $tempDir
             Start-PondEngine -RepoDir $tempDir -MaxIterations 8 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
-            Join-Path $tempDir "Tasks/Complete/$planName" | Should -Exist
+            Join-Path $tempDir "Tasks/Complete/e2e-project/project.md" | Should -Exist
             Join-Path $tempDir "Tasks/Project/$planName" | Should -Not -Exist
             Join-Path $tempDir "Tasks/Failed/$planName" | Should -Not -Exist
-            $children = Get-ChildItem -Path (Join-Path $tempDir 'Tasks/Complete') -Filter '*-child-*.md'
+            $children = Get-ChildItem -Path (Join-Path $tempDir 'Tasks/Complete/e2e-project/plans') -Filter '*-child-*.md'
             $children.Count | Should -Be 2
         } finally {
             $env:SALMON_RUN_HOME = $saved

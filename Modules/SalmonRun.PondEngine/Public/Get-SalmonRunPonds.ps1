@@ -107,7 +107,7 @@ function Get-SalmonRunPonds {
         [PondTask]@{ Name = 'Transition'; Type = 'Group'; Function = 'Invoke-PondTaskTransition' }
     ) -OnSuccess 'QA'
 
-    $ponds += New-Pond -Name 'QA' -Folder 'Tasks/QA' -Role 'qa' -Description 'Property and mutation test maturation' -ParallelCount 1 -MaxNewPerIteration 1 -MaxFilesPerGroup 1 -EvidenceGate 'qa-ready' -RequiredHeaders @('Status','Scope') -GroupBy 'Namespace' -OnFailure 'Code' -Tasks @(
+    $ponds += New-Pond -Name 'QA' -Folder 'Tasks/QA' -Role 'qa' -Description 'Batched project property and mutation test maturation' -ParallelCount 1 -MaxNewPerIteration 1 -MaxFilesPerGroup 100 -EvidenceGate 'project-qa-ready' -RequiredHeaders @('Status','Scope') -OnInvalid '' -GroupBy 'ProjectId' -OnFailure 'Code' -Tasks @(
         [PondTask]@{ Name = 'Claim'; Type = 'Group'; Function = 'Invoke-PondTaskClaim' }
         [PondTask]@{ Name = 'Prepare'; Type = 'PerFile'; Function = 'Invoke-PondTaskPrepare' }
         [PondTask]@{ Name = 'ModelRoute'; Type = 'Group'; Function = 'Invoke-PondTaskModelRoute' }

@@ -115,6 +115,11 @@ $concept
         } else {
             $content = $content + "`n**Status**: ready`n"
         }
+        if ($content -match '(?im)^\*\*ProjectId\*\*:\s*[^\r\n]+') {
+            $content = $content -replace '(?im)^\*\*ProjectId\*\*:\s*[^\r\n]+', "**ProjectId**: $projectId"
+        } else {
+            $content = $content + "`n**ProjectId**: $projectId`n"
+        }
 
         $content | Set-Content -LiteralPath $file.FullName -Encoding utf8 -NoNewline
     }

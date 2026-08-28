@@ -197,6 +197,7 @@ stop without writing `.complete`.
         'reviewer' = @('Reviewed', 'review', 'Review')
         'auditor'  = @('Audit', 'audit', 'Audit')
         'qa'       = @('QA', 'qa', 'QA')
+        'project-reviewer' = @('ProjectReview', 'review', 'ProjectReview')
         'planner'  = @($null, 'plan', 'Project')
         default    = @('Implementation', 'implement', 'Code')
     }

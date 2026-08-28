@@ -82,6 +82,17 @@ $reason
         }
     }
 
+    if ($Context.Success -and $Pond.Name -eq 'QA') {
+        $projectGroups = $files | Group-Object {
+            $qaContent = Get-Content -LiteralPath $_.FullName -Raw
+            $projectMatch = [regex]::Match($qaContent, '(?im)^\*\*ProjectId\*\*:\s*(?<value>[^\r\n]+)')
+            if ($projectMatch.Success) { $projectMatch.Groups['value'].Value.Trim() } else { $_.BaseName }
+        }
+        foreach ($projectGroup in $projectGroups) {
+            $null = Write-PondProjectQaEvidence -TaskRoot $Context.TaskRoot -ProjectId $projectGroup.Name -PlanFiles @($projectGroup.Group)
+        }
+    }
+
     $destPondName = if ($Context.Success) { $Pond.OnSuccess.MoveTo } else { $Pond.OnFailure.MoveTo }
     if ([string]::IsNullOrWhiteSpace($destPondName)) {
         Write-Verbose "Invoke-PondTaskTransition: no transition for pond '$($Pond.Name)'"
@@ -197,6 +208,33 @@ $reason
             $c = $c -replace '(?im)^\*\*Override\*\*:\s*[^\r\n]+\r?\n?', ''
             $c | Set-Content -LiteralPath $dest -Encoding utf8 -NoNewline
         }
+    }
+
+    # A successful final project review becomes one self-contained evidence
+    # bundle. Include every old/new path so task-repo commits preserve moves.
+    if ($Context.Success -and $Pond.Name -eq 'ProjectReview' -and $destFiles.Count -eq 1) {
+        $parentDest = $destFiles[0].FullName
+        $parentContent = Get-Content -LiteralPath $parentDest -Raw
+        $depMatch = [regex]::Match($parentContent, '(?im)^\*\*DependsOn\*\*:\s*(?<value>[^\r\n]+)')
+        $projectIdMatch = [regex]::Match($parentContent, '(?im)^\*\*ProjectId\*\*:\s*(?<value>[^\r\n]+)')
+        $projectId = if ($projectIdMatch.Success) { $projectIdMatch.Groups['value'].Value.Trim() } else { $destFiles[0].BaseName }
+        $children = if ($depMatch.Success) { @($depMatch.Groups['value'].Value -split ',\s*' | ForEach-Object { [IO.Path]::GetFileNameWithoutExtension($_.Trim()) }) } else { @() }
+        foreach ($child in $children) {
+            $oldChild = Join-Path $Context.TaskRoot "Complete/$child.md"
+            if (Test-Path -LiteralPath $oldChild) { $sourcePaths += $oldChild }
+        }
+        $oldQa = Join-Path $Context.TaskRoot "QA/$projectId-qa.json"
+        if (Test-Path -LiteralPath $oldQa) { $sourcePaths += $oldQa }
+        $feedbackRoot = Join-Path $Context.TaskRoot 'Feedback'
+        if (Test-Path -LiteralPath $feedbackRoot) {
+            foreach ($feedback in Get-ChildItem -LiteralPath $feedbackRoot -File -ErrorAction SilentlyContinue) {
+                if ($children | Where-Object { $feedback.BaseName -like "$_-*" }) { $sourcePaths += $feedback.FullName }
+            }
+        }
+        $bundle = Complete-PondProjectBundle -TaskRoot $Context.TaskRoot -ProjectPlanPath $parentDest
+        $destFiles.Clear()
+        foreach ($bundleFile in Get-ChildItem -LiteralPath $bundle -File -Recurse) { $destFiles.Add($bundleFile) }
+        $finalDest = "Complete/$projectId"
     }
 
     # Clean up sentinel files and empty lane directory.

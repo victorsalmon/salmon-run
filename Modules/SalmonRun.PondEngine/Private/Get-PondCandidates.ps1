@@ -165,6 +165,24 @@ function Get-PondCandidates {
                     }
                 }
             }
+            'project-qa-ready' {
+                foreach ($requiredAction in @('implement','review','audit')) {
+                    if (-not (Test-PlanHasEvidence -PlanPath $f.FullName -Content $content -Action $requiredAction)) {
+                        $failedGate = $true
+                        break
+                    }
+                }
+                if (-not $failedGate) {
+                    $projectMatch = [regex]::Match($content, '(?im)^\*\*ProjectId\*\*:\s*(?<value>[^\r\n]+)')
+                    if ($projectMatch.Success) {
+                        $projectId = $projectMatch.Groups['value'].Value.Trim()
+                        $projectState = Get-PondProjectState -TaskRoot $Context.TaskRoot -ProjectId $projectId
+                        # Legacy standalone plans with no parent remain eligible.
+                        # Project children wait until the exact declared batch is in QA.
+                        if ($projectState.Parent -and -not $projectState.AllInQA) { $failedGate = $true }
+                    }
+                }
+            }
             'children-complete' {
                 $dependsRe = '(?im)^\*\*DependsOn\*\*:\s*(?<value>[^\r\n]+)'
                 $depMatches = [regex]::Matches($content, $dependsRe)

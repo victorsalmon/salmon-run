@@ -117,7 +117,7 @@ function Get-DshRolePrompt {
         'planner'         { return 'Plan the following salmon-run request. Break it into clear, actionable steps.' }
         'project'         { return 'Manage the following salmon-run project plan and report progress.' }
         'project-planner' { return 'Plan the following salmon-run project. Break it into child work items.' }
-        'project-reviewer'{ return 'Review the following salmon-run project plan and child work items.' }
+        'project-reviewer'{ return 'Review the integrated project and all child evidence. Append **ProjectReviewDecision**: pass and **ProjectReview**: passed by dsh only when the project works as a whole; otherwise append **ProjectReviewDecision**: rework and the reason.' }
         default           { return 'Implement the following salmon-run plan.' }
     }
 }

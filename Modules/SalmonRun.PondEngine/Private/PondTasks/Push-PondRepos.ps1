@@ -94,7 +94,7 @@ function Push-PondRepos {
 
             # Record the commit immediately so a later pull/push failure does not lose it.
             foreach ($dst in $DestFiles) {
-                if (-not (Test-Path -LiteralPath $dst.FullName)) { continue }
+                if (-not (Test-Path -LiteralPath $dst.FullName) -or $dst.Extension -ne '.md') { continue }
                 $now = Get-Date -Format 'o'
                 $null = Add-PlanPondLog -PlanPath $dst.FullName -Entry @{
                     ts     = $now
@@ -135,7 +135,7 @@ function Push-PondRepos {
 
             if ($pushed) {
                 foreach ($dst in $DestFiles) {
-                    if (-not (Test-Path -LiteralPath $dst.FullName)) { continue }
+                    if (-not (Test-Path -LiteralPath $dst.FullName) -or $dst.Extension -ne '.md') { continue }
                     $now = Get-Date -Format 'o'
                     $null = Add-PlanPondLog -PlanPath $dst.FullName -Entry @{
                         ts     = $now

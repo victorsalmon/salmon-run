@@ -16,6 +16,19 @@ Describe 'Project QA batching and completion' -Tag 'PondEngine','Regression-Only
         $qa.Operators.MaxFilesPerGroup | Should -BeGreaterOrEqual 100
     }
 
+    It 'holds an incomplete project batch until every declared child reaches QA' {
+        $taskRoot = Join-Path $TestDrive 'batch/Tasks'
+        foreach ($dir in 'QA','ProjectReview') { New-Item -ItemType Directory -Path (Join-Path $taskRoot $dir) -Force | Out-Null }
+        "# Project`n**ProjectId**: batch-one`n**DependsOn**: child-a, child-b" | Set-Content (Join-Path $taskRoot 'ProjectReview/parent.md') -NoNewline
+        $ready = "# Child`n**Status**: ready`n**Scope**: test`n**ProjectId**: batch-one`n**Implementation**: completed`n**Reviewed**: passed`n**Audit**: passed"
+        $ready | Set-Content (Join-Path $taskRoot 'QA/child-a.md') -NoNewline
+        $qa = Get-SalmonRunPonds | Where-Object Name -eq QA
+        $context = [PondContext]::new(); $context.TaskRoot=$taskRoot
+        @(& (Get-Module SalmonRun.PondEngine) { param($p,$c) Get-PondCandidates -Pond $p -Context $c } $qa $context) | Should -HaveCount 0
+        $ready | Set-Content (Join-Path $taskRoot 'QA/child-b.md') -NoNewline
+        @(& (Get-Module SalmonRun.PondEngine) { param($p,$c) Get-PondCandidates -Pond $p -Context $c } $qa $context) | Should -HaveCount 2
+    }
+
     It 'bundles final project evidence beneath Complete project id' {
         $taskRoot = Join-Path $TestDrive 'Tasks'
         foreach ($dir in 'Complete','ProjectReview','Feedback','QA') {
@@ -36,4 +49,3 @@ Describe 'Project QA batching and completion' -Tag 'PondEngine','Regression-Only
         Join-Path $bundle 'manifest.json' | Should -Exist
     }
 }
-
