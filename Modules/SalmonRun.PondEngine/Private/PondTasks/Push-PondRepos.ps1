@@ -45,8 +45,8 @@ function Push-PondRepos {
             }
         }
 
-        $status = & git -C $RepoPath status --porcelain 2>&1
-        if (-not $status) { return }
+        $staged = & git -C $RepoPath diff --cached --name-only 2>&1
+        if (-not $staged) { return }
 
         $null = & git -C $RepoPath commit -m "$CommitMessage" 2>&1
         if ($LASTEXITCODE -ne 0) {
@@ -121,14 +121,44 @@ function Push-PondRepos {
             $Context.RepoDir
         }
 
-        # For the target repo, stage all uncommitted changes from the agent.
         if (Test-Path -LiteralPath (Join-Path $codeRepo '.git')) {
-            $null = & git -C $codeRepo add -u 2>&1
-            $untracked = & git -C $codeRepo ls-files --others --exclude-standard 2>&1
-            if ($untracked) {
-                $untrackedPaths = $untracked -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-                if ($untrackedPaths) {
-                    $null = & git -C $codeRepo add -- $untrackedPaths 2>&1
+            # Scope commits to the files the plan claims it changed.
+            $planContent = ''
+            if ($DestFiles.Count -gt 0 -and (Test-Path -LiteralPath $DestFiles[0].FullName)) {
+                $planContent = Get-Content -LiteralPath $DestFiles[0].FullName -Raw -ErrorAction SilentlyContinue
+            }
+            $scopeMatches = [regex]::Matches($planContent, '(?im)^\*\*(ConnascenceScope|Files|Target)\*\*:\s*(?<value>[^\r\n]+)')
+            $scopeFiles = [System.Collections.Generic.List[string]]::new()
+            foreach ($m in $scopeMatches) {
+                $raw = $m.Groups['value'].Value
+                $parts = $raw -split ',\s*' | ForEach-Object { $_.Trim() }
+                foreach ($part in $parts) {
+                    if ([string]::IsNullOrWhiteSpace($part) -or $part -in @('n/a','none')) { continue }
+                    # Strip trailing annotations like `(new)` or `(existing)`.
+                    $path = $part -replace '\s*\([^)]*\)\s*$', ''
+                    if ($path -and -not $path.StartsWith('n/a', [System.StringComparison]::OrdinalIgnoreCase)) {
+                        $scopeFiles.Add($path)
+                    }
+                }
+            }
+
+            if ($scopeFiles.Count -gt 0) {
+                # Stage the scoped files (and their deletions) so cross-plan changes are not bundled.
+                foreach ($rel in $scopeFiles) {
+                    $full = Join-Path $codeRepo $rel
+                    # Resolve any wildcard in the path.
+                    $resolved = @(Get-ChildItem -Path $full -File -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+                    if ($resolved.Count -eq 0) {
+                        # The file may have been deleted; stage the path literally.
+                        $resolved = @($full)
+                    }
+                    foreach ($f in $resolved) {
+                        if (Test-Path -LiteralPath $f) {
+                            $null = & git -C $codeRepo add -- $f 2>&1
+                        } else {
+                            $null = & git -C $codeRepo add -u -- $f 2>&1
+                        }
+                    }
                 }
             }
 
