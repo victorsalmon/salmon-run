@@ -351,7 +351,7 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 
 - **Intent / user outcome:** Build, test, and package the public `salmon-run` release automatically.
 - **Current score:** 95%
-- **Current behavior:** `.github/workflows/test.yml` runs Pester on `windows-latest` and a leak check. `.github/workflows/docker.yml` builds the image on `ubuntu-latest`. `.worktree/workflows/validate.yml` now uses the valid `github.workspace` expression. The `SalmonRun` PowerShell Gallery meta-module manifest is valid and a local `nupkg` builds with `scripts/Publish-SalmonRunModule.ps1 -LocalRepository`. The Docker image builds and `docker run --rm salmon-run:0.1.3` lists queues.
+- **Current behavior:** `.github/workflows/test.yml` runs Pester on `windows-latest` and a leak check. `.github/workflows/docker.yml` builds the image on `ubuntu-latest`. `.worktree/workflows/validate.yml` now uses the valid `github.workspace` expression. The `SalmonRun` PowerShell Gallery meta-module manifest is valid and a local `nupkg` builds with `scripts/Publish-SalmonRunModule.ps1 -LocalRepository`. The Docker image builds and `docker run --rm salmon-run:0.1.4` lists queues.
 - **Evidence:** `.github/workflows/test.yml`, `.github/workflows/docker.yml`, `.worktree/workflows/validate.yml`, `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, `deploy.ps1`, `scripts/Publish-SalmonRunModule.ps1`, `Modules/SalmonRun/SalmonRun.psd1`.
 - **Tests and test gaps:** Workflows have not been run in this appraisal (no CI runner available locally). The `.worktree` expression is now valid. Docker and PowerShell Gallery packaging are verified locally.
 - **Deployment/runtime status:** Docker build and dry-run succeed locally; `SalmonRun` nupkg builds locally.
