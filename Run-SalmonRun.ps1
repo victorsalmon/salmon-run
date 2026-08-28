@@ -123,7 +123,10 @@ while ($true) {
     try {
         $process = Start-Process @startArgs
 
-        # Poll for stop sentinel while the engine is running.
+        # Poll for stop sentinel while the engine is running. Also emit a
+        # health/churn report every 5 minutes so an unattended engine with
+        # MaxIterations 0 still produces status output.
+        $nextHealthCheck = (Get-Date).AddMinutes(5)
         while (-not $process.HasExited) {
             if (Test-Path -LiteralPath $stopFile) {
                 Write-OrchestratorLog -Message 'stop sentinel found; terminating pond engine' -Level 'INFO'
@@ -131,6 +134,18 @@ while ($true) {
                 Start-Sleep -Seconds 1
                 break
             }
+
+            if ((Get-Date) -ge $nextHealthCheck) {
+                $nextHealthCheck = (Get-Date).AddMinutes(5)
+                $healthScript = Join-Path $PSScriptRoot 'Tools' 'Get-SalmonRunHealthReport.ps1'
+                if (Test-Path -LiteralPath $healthScript) {
+                    $health = & $healthScript -TaskRoot $salmonHome -LogDir $LogDir -HistoryHours 24
+                    if ($health) {
+                        Write-OrchestratorLog -Message "health: $($health.summary)" -Level 'INFO'
+                    }
+                }
+            }
+
             Start-Sleep -Seconds 5
         }
 
@@ -170,7 +185,7 @@ while ($true) {
     # Health / churn watchdog: produce a report after every engine cycle.
     $healthScript = Join-Path $PSScriptRoot 'Tools' 'Get-SalmonRunHealthReport.ps1'
     if (Test-Path -LiteralPath $healthScript) {
-        $health = & $healthScript -TaskRoot $taskRoot -LogDir $LogDir -HistoryHours 24
+        $health = & $healthScript -TaskRoot $salmonHome -LogDir $LogDir -HistoryHours 24
         if ($health) {
             Write-OrchestratorLog -Message "health: $($health.summary)" -Level 'INFO'
         }
