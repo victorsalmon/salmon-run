@@ -52,6 +52,10 @@ Describe "Devin provider contract" -Tag "Contract", "Regression" {
             Remove-Item Env:\DEVIN_API_KEY -ErrorAction SilentlyContinue
         }
 
+        AfterEach {
+            Remove-Item Env:\DEVIN_API_KEY -ErrorAction SilentlyContinue
+        }
+
         It "Resolve-DevinCredential throws when no key is configured" {
             # When neither SalmonRun.Credentials nor the environment provides a
             # key, the executor must surface a clear error rather than run blind.
@@ -67,6 +71,8 @@ Describe "Devin provider contract" -Tag "Contract", "Regression" {
 
     Context "Command-line argument construction" {
         BeforeEach {
+            $env:DEVIN_API_KEY = 'fake-devin-api-key-12345'
+
             $lane = New-Item -ItemType Directory -Path (Join-Path $TestDrive "lane-$(New-Guid)") -Force
             $repo = New-Item -ItemType Directory -Path (Join-Path $TestDrive "repo-$(New-Guid)") -Force
             $plan = Join-Path $TestDrive "plan-$(New-Guid).md"
@@ -132,6 +138,8 @@ Describe "Devin provider contract" -Tag "Contract", "Regression" {
 
     Context "Exit-code handling and sentinels" {
         BeforeEach {
+            $env:DEVIN_API_KEY = 'fake-devin-api-key-12345'
+
             $lane = New-Item -ItemType Directory -Path (Join-Path $TestDrive "lane-$(New-Guid)") -Force
             $repo = New-Item -ItemType Directory -Path (Join-Path $TestDrive "repo-$(New-Guid)") -Force
             $plan = Join-Path $TestDrive "plan-$(New-Guid).md"
@@ -217,8 +225,8 @@ Describe "Devin provider contract" -Tag "Contract", "Regression" {
             # in CI or unattended. Enable only by setting SALMON_RUN_DEVIN_LIVE=1
             # with real credentials configured.
             if ($env:SALMON_RUN_DEVIN_LIVE -eq '1') {
-                # Restore the real SALMON_RUN_HOME for credential resolution.
-                $env:SALMON_RUN_HOME = $script:SavedSalmonHome ?? (Join-Path $HOME '.salmon')
+                # Use the real runtime home for credential resolution.
+                $env:SALMON_RUN_HOME = Join-Path $HOME '.salmon'
             }
         }
 
@@ -233,7 +241,22 @@ Describe "Devin provider contract" -Tag "Contract", "Regression" {
 Do not use any tools. Just say exactly "hello from devin" and exit.
 "@ | Set-Content -LiteralPath $plan -Encoding utf8
 
-            $exit = & $script:DevinExecutor -Role coder -LanePath $lane.FullName -RepoDir $repoRoot -Provider devin -Model swe-1-7 -TimeoutMinutes 5 -PlanFiles $plan
+            $LanePath = $lane.FullName
+            $RepoDir = $repoRoot
+            $Role = 'coder'
+            $Provider = 'devin'
+            $Model = 'swe-1-7'
+            $Effort = 'medium'
+            $TimeoutMinutes = 5
+            $PlanFiles = @($plan)
+
+            $liveKey = Get-SalmonRunCredential -Name DEVIN_API_KEY
+            if (-not $liveKey) {
+                throw "Could not resolve DEVIN_API_KEY from SALMON_RUN_HOME=$env:SALMON_RUN_HOME"
+            }
+            $env:DEVIN_API_KEY = $liveKey
+
+            $exit = Invoke-DevinProvider
             $exit | Should -Be 0
             Test-Path -LiteralPath (Join-Path $lane.FullName '.complete') | Should -Be $true
         }

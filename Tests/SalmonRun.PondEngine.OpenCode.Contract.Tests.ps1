@@ -230,8 +230,9 @@ Describe "OpenCode provider contract" -Tag "Contract", "Regression" {
             # in CI or unattended. Enable only by setting SALMON_RUN_OPENCODE_LIVE=1
             # with real credentials configured.
             if ($env:SALMON_RUN_OPENCODE_LIVE -eq '1') {
-                # Restore the real SALMON_RUN_HOME for credential resolution.
-                $env:SALMON_RUN_HOME = $script:SavedSalmonHome ?? (Join-Path $HOME '.salmon')
+                # Use the real runtime home for credential resolution.
+                # Do not trust the saved value; it may be a stale Pester temp path.
+                $env:SALMON_RUN_HOME = Join-Path $HOME '.salmon'
             }
         }
 
@@ -254,6 +255,16 @@ Do not use any tools. Just say exactly "hello from opencode" and exit.
             $Effort = 'default'
             $TimeoutMinutes = 5
             $PlanFiles = @($plan)
+
+            # Resolve the live credential from the real SALMON_RUN_HOME and set
+            # it explicitly. The executor also resolves, but this guarantees the
+            # child process has the key even if the resolver path behaves
+            # differently under Pester scoping.
+            $liveKey = Get-SalmonRunCredential -Name OPENCODE_GO_KEY
+            if (-not $liveKey) {
+                throw "Could not resolve OPENCODE_GO_KEY from SALMON_RUN_HOME=$env:SALMON_RUN_HOME"
+            }
+            $env:OPENCODE_GO_KEY = $liveKey
 
             $exit = Invoke-OpencodeProvider
             $exit | Should -Be 0

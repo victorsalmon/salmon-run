@@ -63,6 +63,12 @@ Describe "DSH provider contract" -Tag "Contract", "Regression" {
             Remove-Item Env:\DEEPINFRA_API_KEY -ErrorAction SilentlyContinue
         }
 
+        AfterEach {
+            Remove-Item Env:\DEEPSEEK_API_KEY -ErrorAction SilentlyContinue
+            Remove-Item Env:\OPENROUTER_API_KEY -ErrorAction SilentlyContinue
+            Remove-Item Env:\DEEPINFRA_API_KEY -ErrorAction SilentlyContinue
+        }
+
         It "Resolve-DshCredential resolves DEEPSEEK_API_KEY from the environment for provider 'dsh'" {
             $env:DEEPSEEK_API_KEY = 'fake-deepseek-key-12345'
             $key = Resolve-DshCredential -Provider 'dsh'
@@ -233,8 +239,8 @@ Describe "DSH provider contract" -Tag "Contract", "Regression" {
             # must never run in CI or unattended. Enable only by setting
             # SALMON_RUN_DSH_LIVE=1 with real credentials configured.
             if ($env:SALMON_RUN_DSH_LIVE -eq '1') {
-                # Restore the real SALMON_RUN_HOME for credential resolution.
-                $env:SALMON_RUN_HOME = $script:SavedSalmonHome ?? (Join-Path $HOME '.salmon')
+                # Use the real runtime home for credential resolution.
+                $env:SALMON_RUN_HOME = Join-Path $HOME '.salmon'
             }
         }
 
@@ -249,7 +255,22 @@ Describe "DSH provider contract" -Tag "Contract", "Regression" {
 Do not use any tools. Just say exactly "hello from dsh" and exit.
 "@ | Set-Content -LiteralPath $plan -Encoding utf8
 
-            $exit = & $script:DshExecutor -Role coder -LanePath $lane.FullName -RepoDir $repoRoot -Provider openrouter -Model deepseek-v4-flash -TimeoutMinutes 5 -PlanFiles $plan
+            $LanePath = $lane.FullName
+            $RepoDir = $repoRoot
+            $Role = 'coder'
+            $Provider = 'openrouter'
+            $Model = 'deepseek-v4-flash'
+            $Effort = 'max'
+            $TimeoutMinutes = 5
+            $PlanFiles = @($plan)
+
+            $liveKey = Get-SalmonRunCredential -Name OPENROUTER_API_KEY
+            if (-not $liveKey) {
+                throw "Could not resolve OPENROUTER_API_KEY from SALMON_RUN_HOME=$env:SALMON_RUN_HOME"
+            }
+            $env:OPENROUTER_API_KEY = $liveKey
+
+            $exit = Invoke-DshProvider
             $exit | Should -Be 0
             Test-Path -LiteralPath (Join-Path $lane.FullName '.complete') | Should -Be $true
         }
