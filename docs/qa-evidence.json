@@ -148,30 +148,30 @@
     "tasks": {
       "Task1_release_docs": "docs/RELEASE.md updated with current test counts and live evidence",
       "Task2_psgallery_module": "verified: Modules/SalmonRun/SalmonRun.psd1 meta-manifest valid; local nupkg built with scripts/Publish-SalmonRunModule.ps1 -LocalRepository salmon-run-local; fixed missing else in ApiKey fallback",
-      "Task3_docker_image": "verified: docker build -t salmon-run:0.1.5 succeeded and docker run --rm salmon-run:0.1.5 produced the dry-run queue listing",
-      "Task4_github_release": "verified: GitHub release v0.1.5 created automatically by .github/workflows/test.yml; .tar.gz and .zip archives attached and Docker image pushed to ghcr.io/victorsalmon/salmon-run:0.1.5 and :latest by .github/workflows/docker.yml",
+      "Task3_docker_image": "verified: docker build -t salmon-run:0.1.6 succeeded and docker run --rm salmon-run:0.1.6 produced the dry-run queue listing",
+      "Task4_github_release": "verified: GitHub release v0.1.6 created automatically by .github/workflows/test.yml; .tar.gz and .zip archives attached and Docker image pushed to ghcr.io/victorsalmon/salmon-run:0.1.6 and :latest by .github/workflows/docker.yml",
       "Task5_clean_install": "verified: install.ps1 runs in Dockerfile and imports SalmonRun.PondEngine; local install also validated",
       "Task6_qa_evidence": "recorded"
     },
     "release": {
-      "artifact": "salmon-run v0.1.5 (PowerShell Gallery meta-module + Docker image + prepared GitHub release)",
-      "version": "0.1.5",
+      "artifact": "salmon-run v0.1.6 (PowerShell Gallery meta-module + Docker image + prepared GitHub release)",
+      "version": "0.1.6",
       "urls": {
-        "github": "https://github.com/victorsalmon/salmon-run/releases/tag/v0.1.5",
+        "github": "https://github.com/victorsalmon/salmon-run/releases/tag/v0.1.6",
         "worktree": "https://worktree.ca/clocklobster/salmon-run.git",
-        "docker": "ghcr.io/victorsalmon/salmon-run:0.1.5 (pushed by CI)",
-        "psgallery": "SalmonRun.0.1.5.nupkg (local artifact built; PSGallery push requires POWERSHELL_GALLERY_KEY)"
+        "docker": "ghcr.io/victorsalmon/salmon-run:0.1.6 (pushed by CI)",
+        "psgallery": "SalmonRun.0.1.6.nupkg (local artifact built; PSGallery push requires POWERSHELL_GALLERY_KEY)"
       },
-      "installCommand": "Install-Module -Name SalmonRun  (or: git clone --branch v0.1.5 https://github.com/victorsalmon/salmon-run.git && .\\install.ps1)",
-      "smokeResult": "PASS: docker run --rm salmon-run:0.1.5 -DryRun exited 0 and listed 9 ponds / 1 stream; Test-ModuleManifest + Import-Module SalmonRun validated with PSModulePath; local nupkg SalmonRun.0.1.5.nupkg built"
+      "installCommand": "Install-Module -Name SalmonRun  (or: git clone --branch v0.1.6 https://github.com/victorsalmon/salmon-run.git && .\\install.ps1)",
+      "smokeResult": "PASS: docker run --rm salmon-run:0.1.6 -DryRun exited 0 and listed 9 ponds / 1 stream; Test-ModuleManifest + Import-Module SalmonRun validated with PSModulePath; local nupkg SalmonRun.0.1.6.nupkg built"
     },
     "acceptance": {
       "artifact_set_documented": "verified: docs/RELEASE.md",
-      "at_least_one_published_installable": "verified: Docker image built, pushed to GHCR, and runs -DryRun from clean container; GitHub release v0.1.5 published with installable .tar.gz/.zip archives; PowerShell Gallery meta-module manifest valid and nupkg built locally",
-      "ci_builds_on_tag": "verified: docker.yml and test.yml run Pester, leak-check, archive, GHCR push, and GitHub release creation on v* tags (v0.1.5 green)",
+      "at_least_one_published_installable": "verified: Docker image built, pushed to GHCR, and runs -DryRun from clean container; GitHub release v0.1.6 published with installable .tar.gz/.zip archives; PowerShell Gallery meta-module manifest valid and nupkg built locally",
+      "ci_builds_on_tag": "verified: docker.yml and test.yml run Pester, leak-check, archive, GHCR push, and GitHub release creation on v* tags (v0.1.6 green)",
       "qa_evidence_recorded": "verified: this entry"
     },
-    "notes": "GitHub Release v0.1.5 and GHCR image were published automatically by CI on the v0.1.5 tag. PowerShell Gallery nupkg builds locally but PSGallery push remains unexercised because POWERSHELL_GALLERY_KEY is not configured; the Publish-SalmonRunModule.ps1 helper is ready to publish when the key is provided."
+    "notes": "GitHub Release v0.1.6 and GHCR image were published automatically by CI on the v0.1.6 tag. The GHCR package is initially pushed as private; the package owner must set it to Public in the package settings for unauthenticated `docker pull`. PowerShell Gallery nupkg builds locally but PSGallery push remains unexercised because POWERSHELL_GALLERY_KEY is not configured; the Publish-SalmonRunModule.ps1 helper is ready to publish when the key is provided."
   },
   {
     "id": "2026.08.27-sr-docs-1-release-and-sync-documentation",

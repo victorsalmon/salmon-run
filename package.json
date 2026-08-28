@@ -1,6 +1,6 @@
 {
   "name": "salmon-run",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Public, generalized salmon-run Kanban control plane and installer",
   "private": false,
   "license": "MIT",

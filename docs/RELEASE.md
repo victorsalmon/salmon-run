@@ -24,15 +24,15 @@ Each artifact is built from the same Git tag and carries the same version.
 
 ## Versioning policy
 
-- **Format**: `v<major>.<minor>.<patch>` (e.g. `v0.1.5`)
+- **Format**: `v<major>.<minor>.<patch>` (e.g. `v0.1.6`)
 - Compatibility, breaking changes, and patches follow [Semantic Versioning 2.0](https://semver.org/).
 - A release **MUST** have a signed, annotated Git tag.
 
 ## Live validation notes
 
-The public `salmon-run` package was validated at `v0.1.5` on 2026-08-27:
+The public `salmon-run` package was validated at `v0.1.6` on 2026-08-27:
 
-- Docker image built locally as `salmon-run:0.1.5` and `docker run --rm salmon-run:0.1.5 -DryRun` produced the expected queue listing.
+- Docker image built locally as `salmon-run:0.1.6` and `docker run --rm salmon-run:0.1.6 -DryRun` produced the expected queue listing.
 - The `SalmonRun` PowerShell Gallery meta-module manifest was validated with `Test-ModuleManifest` and a local `nupkg` was produced via `scripts/Publish-SalmonRunModule.ps1 -LocalRepository`.
 - Live provider contract tests passed for OpenCode, Devin, and DSH (via OpenRouter) with real API keys resolved through `SalmonRun.Credentials`.
 - Live GitCloud contract tests pushed a disposable branch to `https://github.com/victorsalmon/salmon-run.git` (using the authenticated GitHub token) and `https://worktree.ca/clocklobster/salmon-run.git`.
@@ -159,6 +159,8 @@ docker push ghcr.io/victorsalmon/salmon-run:<version>
 docker tag ghcr.io/victorsalmon/salmon-run:<version> ghcr.io/victorsalmon/salmon-run:latest
 docker push ghcr.io/victorsalmon/salmon-run:latest
 ```
+
+> **Note:** New GHCR packages default to **private**. After the first successful push, the package owner must visit the package settings page and change visibility to **Public** before unauthenticated users can `docker pull`.
 
 ### 4. Verify a clean install
 

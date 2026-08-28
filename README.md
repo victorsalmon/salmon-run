@@ -146,7 +146,7 @@ What remains hardening (all resolved with contract tests and documentation):
 - ~~Live execution against real provider APIs~~ → Live provider contract tests passed for OpenCode, Devin, and DeepSeek/DSH (via OpenRouter) with real credentials; unit paths remain guarded by `SALMON_RUN_<PROVIDER>_LIVE=1`.
 - ~~Live GitCloud pushes to GitHub/Worktree~~ → Live pushes succeeded to `victorsalmon/salmon-run` on GitHub and `clocklobster/salmon-run` on Worktree using token resolvers; unit paths remain guarded by `SALMON_RUN_GITCLOUD_LIVE=1`.
 - ~~Live AWS/GitHub/Worktree credential resolver calls~~ → AWS, GitHub, and Worktree resolvers resolved live tokens through `SalmonRun.Credentials` during the provider and GitCloud tests.
-- ~~Release artifact evidence~~ → Docker image built and `docker run --rm salmon-run:0.1.5` lists queues; PowerShell Gallery `SalmonRun` meta-module manifest validated and local `nupkg` built with `scripts/Publish-SalmonRunModule.ps1`; `docs/RELEASE.md` written with artifact set, versioning, checklist, and rollback steps.
+- ~~Release artifact evidence~~ → Docker image built and `docker run --rm salmon-run:0.1.6` lists queues; PowerShell Gallery `SalmonRun` meta-module manifest validated and local `nupkg` built with `scripts/Publish-SalmonRunModule.ps1`; `docs/RELEASE.md` written with artifact set, versioning, checklist, and rollback steps.
 - ~~Sync/runbook documentation~~ → `docs/SYNC.md` written with sync cadence, scrub rules, leak reporting, and divergence policy.
 
 See [`docs/roadmap.md`](./docs/roadmap.md) and [`docs/implementation.md`](./docs/implementation.md) for the detailed appraisal.
