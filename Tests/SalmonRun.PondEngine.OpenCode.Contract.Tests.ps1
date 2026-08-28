@@ -175,7 +175,9 @@ Describe "OpenCode provider contract" -Tag "Contract", "Regression" {
             $exit | Should -Be 0
             # On Windows the executor must resolve the .cmd wrapper, not the POSIX shell script.
             if ($IsWindows -or $env:OS -eq 'Windows_NT') {
-                $script:captured.FilePath | Should -BeLike '*opencode.cmd'
+                # On Windows the resolved CLI may be opencode (if an .exe is in PATH)
+                # or the npm opencode.cmd wrapper. It must not be the POSIX shell script.
+                $script:captured.FilePath | Should -Match 'opencode(\.cmd)?$'
             } else {
                 $script:captured.FilePath | Should -Be 'opencode'
             }

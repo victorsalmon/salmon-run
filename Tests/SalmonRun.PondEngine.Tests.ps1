@@ -439,7 +439,7 @@ Describe 'Pond archive task' -Tag 'PondEngine', 'Regression-Only' {
             Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
             Join-Path $tempDir "Tasks/Complete/$oldPlan" | Should -Not -Exist
             Join-Path $tempDir "Tasks/Complete/$newPlan" | Should -Exist
-            $archives = Get-ChildItem -Path (Join-Path $tempDir 'Tasks/Archive') -Filter '*.zip'
+            $archives = Get-ChildItem -Path (Join-Path $tempDir 'Tasks/Archive') -File | Where-Object { $_.Extension -in '.zip', '.7z' }
             $archives.Count | Should -BeGreaterThan 0
         } finally {
             $env:SALMON_RUN_HOME = $saved
