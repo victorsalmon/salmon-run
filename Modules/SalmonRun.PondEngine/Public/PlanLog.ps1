@@ -6,6 +6,11 @@
     Get-PlanPondLog returns those events; Add-PlanPondLog appends one.
     Add-PlanPondLog uses a per-plan file lock under ~/.salmon/Tasks/Locks to avoid
     cross-agent races without taking a dependency on SalmonRun.Locking module load order.
+
+    The functions are resilient to malformed `PondLog` blocks (e.g. legacy evidence
+    lines inserted inside the JSON fence or a corrupted closing fence). When a block
+    cannot be parsed as a whole, a valid leading JSON array is extracted and any
+    remaining text is moved after the closing fence.
 #>
 
 $script:SchemaPath = Join-Path (Join-Path $script:ModuleRoot 'Config') 'plan-header-schema.json'
@@ -30,6 +35,53 @@ function Get-SalmonRunPlanSchema {
 
 <#
 .SYNOPSIS
+    Attempts to parse a JSON array that may have trailing non-JSON text.
+.DESCRIPTION
+    The opencode models sometimes insert a legacy evidence line such as
+    `**Reviewed**: completed by ...` inside the ```json fence, after the closing
+    `]` of the array.  This helper extracts the leading valid JSON array and
+    returns any text that follows it.
+#>
+function Read-PondLogJsonArray {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Text
+    )
+
+    $result = @()
+    $extra = ''
+
+    if ([string]::IsNullOrWhiteSpace($Text) -or $Text.Trim() -eq '[]') {
+        return @($result, $extra)
+    }
+
+    try {
+        $result = $Text | ConvertFrom-Json -ErrorAction Stop
+        return @($result, $extra)
+    } catch {
+        # Try to find a valid leading JSON array by trimming after the last ']'.
+        # We walk backwards through each ']' because the legacy text appears after
+        # the array's closing bracket.
+        $idx = $Text.LastIndexOf(']')
+        while ($idx -gt 0) {
+            $candidate = $Text.Substring(0, $idx + 1)
+            $trailing = $Text.Substring($idx + 1).Trim()
+            try {
+                $result = $candidate | ConvertFrom-Json -ErrorAction Stop
+                $extra = $trailing
+                return @($result, $extra)
+            } catch {
+                $idx = $Text.LastIndexOf(']', $idx - 1)
+            }
+        }
+    }
+
+    return @($result, $extra)
+}
+
+<#
+.SYNOPSIS
     Returns the PondLog history from a plan file.
 #>
 function Get-PlanPondLog {
@@ -50,29 +102,26 @@ function Get-PlanPondLog {
             return @()
         }
 
-        $match = [regex]::Match(
-            $content,
-            '(?im)^\*\*PondLog\*\*\s*(?:\r?\n)+\s*```json\s*(?:\r?\n)+(.*?)\s*```',
+        $re = [regex]::new(
+            '(?im)^\*\*PondLog\*\*\s*(?:\r?\n)+\s*```json\s*(?:\r?\n)+(.*?)\r?\n\s*```[^\n]*',
             [System.Text.RegularExpressions.RegexOptions]::Singleline
         )
 
-        if (-not $match.Success) {
+        $matches = $re.Matches($content)
+        if ($matches.Count -eq 0) {
             return @()
         }
 
-        $json = $match.Groups[1].Value.Trim()
-        if ([string]::IsNullOrWhiteSpace($json) -or $json -eq '[]') {
-            return @()
+        $allEntries = [System.Collections.Generic.List[object]]::new()
+        foreach ($m in $matches) {
+            $json = $m.Groups[1].Value.Trim()
+            $parsed, $extra = Read-PondLogJsonArray -Text $json
+            if ($parsed) {
+                $allEntries.AddRange(@($parsed | Where-Object { $null -ne $_ }))
+            }
         }
 
-        try {
-            $entries = $json | ConvertFrom-Json -ErrorAction Stop
-        } catch {
-            Write-Error "PondLog section in $PlanPath is not valid JSON: $_"
-            return @()
-        }
-
-        $result = @($entries | Where-Object { $null -ne $_ } | ForEach-Object {
+        $result = @($allEntries | ForEach-Object {
             if ($_ -is [hashtable]) { [PSCustomObject]$_ } else { $_ }
         })
 
@@ -158,29 +207,36 @@ function Add-PlanPondLog {
             ''
         }
 
+        # Match all PondLog blocks.  We remove them, collect the entries, and write a
+        # single clean block at the end of the file.  Any non-JSON text (e.g. legacy
+        # evidence lines) found inside the old block is moved after the closing fence.
         $re = [regex]::new(
-            '(?im)^(\*\*PondLog\*\*\s*(?:\r?\n)+\s*```json\s*(?:\r?\n)+)(.*?)(\r?\n\s*```)',
+            '(?im)^\*\*PondLog\*\*\s*(?:\r?\n)+\s*```json\s*(?:\r?\n)+(.*?)\r?\n\s*```[^\n]*',
             [System.Text.RegularExpressions.RegexOptions]::Singleline
         )
 
-        $entries = @()
-        $match = $re.Match($content)
-        if ($match.Success) {
-            $json = $match.Groups[2].Value.Trim()
-            if (-not [string]::IsNullOrWhiteSpace($json) -and $json -ne '[]') {
-                $entries = $json | ConvertFrom-Json -ErrorAction Stop
+        $matches = $re.Matches($content)
+        $allEntries = [System.Collections.Generic.List[object]]::new()
+        $extraText = [System.Collections.Generic.List[string]]::new()
+        if ($matches.Count -gt 0) {
+            foreach ($m in $matches) {
+                $json = $m.Groups[1].Value
+                $parsed, $extra = Read-PondLogJsonArray -Text $json
+                if ($parsed) {
+                    $allEntries.AddRange(@($parsed | Where-Object { $null -ne $_ }))
+                }
+                if (-not [string]::IsNullOrWhiteSpace($extra)) {
+                    [void]$extraText.Add($extra)
+                }
             }
-            $pre = $content.Substring(0, $match.Groups[1].Index + $match.Groups[1].Length)
-            $post = $content.Substring($match.Groups[3].Index)
-        } else {
-            $pre = $content.TrimEnd() + "`n`n**PondLog**`n``````json`n"
-            $post = "`n``````n"
+            $content = $re.Replace($content, '').TrimEnd()
         }
 
-        $entries = @($entries) + $newEntry
-        $jsonBlock = $entries | ConvertTo-Json -Depth 3 -Compress:$false
+        $allEntries.Add($newEntry)
+        $jsonBlock = $allEntries | ConvertTo-Json -Depth 3 -Compress:$false
 
-        $newContent = $pre + $jsonBlock + "`n" + $post
+        $extraSection = if ($extraText.Count -gt 0) { "`n`n" + ($extraText -join "`n`n").Trim() } else { '' }
+        $newContent = $content + "`n`n**PondLog**`n``````json`n" + $jsonBlock + "`n``````n" + $extraSection
         Set-Content -LiteralPath $PlanPath -Value $newContent -Encoding UTF8 -NoNewline
     } finally {
         if ($null -ne $mutex) {
