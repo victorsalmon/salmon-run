@@ -94,7 +94,12 @@ function Push-PondRepos {
     }
 
     # 1. Commit and push the .salmon task repo.
-    Push-RepoWithLog -RepoPath $Context.TaskRoot -CommitMessage $CommitMessage -RepoLabel 'salmon-run-tasks'
+    # The queue root (TaskRoot) is Tasks/ under the .salmon home; the git repo is the parent.
+    $taskRepo = Split-Path -Path $Context.TaskRoot -Parent
+    if (-not (Test-Path -LiteralPath (Join-Path $taskRepo '.git'))) {
+        $taskRepo = $Context.TaskRoot
+    }
+    Push-RepoWithLog -RepoPath $taskRepo -CommitMessage $CommitMessage -RepoLabel 'salmon-run-tasks'
 
     # 2. Commit and push the target code repo (unless this is a claim-only task repo commit).
     if (-not $TaskRepoOnly) {
