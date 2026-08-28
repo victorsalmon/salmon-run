@@ -152,11 +152,12 @@ Describe "SalmonRun.Diagnostics Module" -Tag "Diagnostics" {
 
         It "handles concurrent writes without corruption" {
             $logPath = $env:INTERCLAW_SETUP_LOG
-            $modulePath = Join-Path $PSScriptRoot '..\Modules\SalmonRun.Diagnostics\SalmonRun.Diagnostics.psm1'
+            $modulesDir = (Resolve-Path (Join-Path $PSScriptRoot '..\Modules')).Path
 
             1..4 | ForEach-Object -Parallel {
-                . $using:modulePath
+                $env:PSModulePath = "$using:modulesDir;$($env:PSModulePath)"
                 $env:INTERCLAW_SETUP_LOG = $using:logPath
+                Import-Module SalmonRun.Diagnostics -Force -DisableNameChecking
                 Write-SetupLog -Message "Concurrent message $_"
             }
 
