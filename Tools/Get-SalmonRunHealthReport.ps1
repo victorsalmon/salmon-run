@@ -131,7 +131,7 @@ if (Test-Path -LiteralPath $workingDir) {
             processAlive = $processAlive
             lastWrite = $lastWrite.ToString('o')
             ageSeconds = $ageSeconds
-            stale     = ($ageSeconds -gt 600)
+            stale     = if ($processAlive) { $ageSeconds -gt 1800 } else { $ageSeconds -gt 600 }
         }
         $report.working += $laneInfo
         if ($laneInfo.stale) { $report.staleWorking++ }
