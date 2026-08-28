@@ -90,15 +90,19 @@ You are a Salmon Run pond agent. You are running in the target code repository:
   $RepoDir
 
 The attached plan file(s) live in the Salmon Run task queue (`.salmon/Tasks/*`).
-Treat the target repository as your working directory. Do not modify files in the
-`.salmon` task queue except to append evidence to the plan file(s) you were given.
+Read the attached plan file(s), perform your role in the target repository, then
+edit the same attached plan file(s) to append the required evidence. Treat the
+target repository as your working directory. Do not modify any other files under
+`.salmon` except to append evidence to the attached plan file(s).
 
-You are expected to perform your role, update the plan file(s) with the correct
-evidence header(s), append a canonical **PondLog** action, and then finish.
-Do not claim success unless you actually performed the work. Do not write
-`**.complete**` sentinels yourself; the Salmon Run executor creates those from
-your exit code. The orchestrator will commit and push both the `.salmon` task
-repo and the target code repo after you finish.
+You must proceed autonomously and not ask clarifying questions. Do not claim
+success unless you actually performed the work. Do not write `**.complete**`
+sentinels; the Salmon Run executor creates those from your exit code. The
+orchestrator will commit and push the `.salmon` task repo and the target repo
+after you finish.
+
+After completing the work, the very last thing you do is append the correct
+legacy evidence header and a `**PondLog**` JSON entry to each attached plan file.
 "@
 
     $taskInstructions = switch ($Role) {
@@ -177,26 +181,46 @@ stop without writing `.complete`.
         }
     }
 
+    $evidenceMap = @{
+        'reviewer' = @('Reviewed', 'review', 'Review')
+        'auditor'  = @('Audit', 'audit', 'Audit')
+        'qa'       = @('QA', 'qa', 'QA')
+        'planner'  = @($null, 'plan', 'Project')
+        default    = @('Implementation', 'implement', 'Code')
+    }
+    $evidenceInfo = if ($evidenceMap.ContainsKey($Role)) { $evidenceMap[$Role] } else { $evidenceMap['default'] }
+    $evidenceHeader = $evidenceInfo[0]
+    $evidenceAction = $evidenceInfo[1]
+    $evidencePond   = $evidenceInfo[2]
+
     $evidence = @"
 
 EVIDENCE FORMAT
-Append exactly one evidence line and one **PondLog** action per plan file. The
-legacy evidence line must look like:
+For this $Role gate, append exactly one legacy evidence line and one **PondLog**
+JSON entry at the end of each attached plan file.
+"@
 
-**<RoleEvidence>**: <state> by opencode-go/hy3
+    if ($evidenceHeader) {
+        $evidence += @"
 
-For coder: **Implementation**: completed by opencode-go/hy3
-For reviewer: **Reviewed**: passed by opencode-go/hy3
-For auditor: **Audit**: passed by opencode-go/hy3
-For qa: **QA**: passed by opencode-go/hy3
+The legacy evidence line must be:
 
-Also append a **PondLog** JSON action to the plan, for example:
+**$evidenceHeader**: completed by opencode-go/hy3
+
+If you cannot complete, use:
+
+**$evidenceHeader**: failed by opencode-go/hy3 - <reason>
+"@
+    }
+
+    $evidence += @"
+
+The **PondLog** entry must be a JSON object on its own line inside the existing
+`PondLog` JSON array (create a `**PondLog**` fenced json block if none exists):
 
 ```json
-{ "ts": "<ISO-8601>", "pond": "<PondName>", "role": "$Role", "action": "<action>", "detail": "completed by opencode-go/hy3", "agent": "opencode-go/hy3" }
+{ "ts": "<ISO-8601>", "pond": "$evidencePond", "role": "$Role", "action": "$evidenceAction", "detail": "completed by opencode-go/hy3", "agent": "opencode-go/hy3" }
 ```
-
-Use the correct pond name (Code, Review, Audit, QA, etc.) for the current gate.
 "@
 
     return "$common`n$taskInstructions`n$evidence"
@@ -291,6 +315,12 @@ function Invoke-OpencodeProvider {
         [Environment]::SetEnvironmentVariable('OPENCODE_GO_KEY', $credential, 'Process')
     }
 
+    # Prevent OpenCode from loading local skills (e.g. Devin-SalmonRun-Code)
+    # so that the Salmon Run orchestrator's own prompt and role contract
+    # control the run. These only affect this child process.
+    [Environment]::SetEnvironmentVariable('OPENCODE_DISABLE_CLAUDE_CODE_SKILLS', 'true', 'Process')
+    [Environment]::SetEnvironmentVariable('OPENCODE_DISABLE_EXTERNAL_SKILLS', '1', 'Process')
+
     $prompt = Get-OpencodeRolePrompt -Role $Role -RepoDir $RepoDir
 
     $outLog = Join-Path $LanePath 'opencode.log'
@@ -302,27 +332,33 @@ function Invoke-OpencodeProvider {
         '--model', $Model
         '--variant', $Effort
         '--auto'
+        '--pure'
     )
     foreach ($pf in $PlanFiles) {
         $argumentList += '-f'
         $argumentList += $pf
     }
 
-    # On Windows, the `opencode` npm wrapper is installed as `opencode.cmd`;
-    # the extension-less `opencode` file is a POSIX shell script that Windows
-    # cannot execute directly. Resolve the correct executable.
+    # Resolve the real OpenCode executable. `Start-Process -ArgumentList` does
+    # not pass arguments correctly through `opencode.cmd`, and the extension-less
+    # `opencode` shim is a POSIX shell script. Prefer the native `.exe` next to
+    # the `opencode-ai` package, then use `opencode.ps1` via `pwsh`, and fall back
+    # to the bare binary name if nothing else is available.
     $onWindows = $IsWindows -or $env:OS -eq 'Windows_NT'
     $cliPath = 'opencode'
     if ($onWindows) {
-        $cmdPath = (Get-Command 'opencode.cmd' -ErrorAction SilentlyContinue)?.Source
-        if ($cmdPath) {
-            $cliPath = $cmdPath
-        } else {
-            $ps1Path = (Get-Command 'opencode.ps1' -ErrorAction SilentlyContinue)?.Source
-            if ($ps1Path) {
+        $ps1Path = (Get-Command 'opencode.ps1' -ErrorAction SilentlyContinue)?.Source
+        if ($ps1Path) {
+            $exePath = Join-Path (Split-Path (Split-Path $ps1Path -Parent) -Parent) 'opencode-ai\bin\opencode.exe'
+            if (Test-Path -LiteralPath $exePath) {
+                $cliPath = $exePath
+            } else {
                 $cliPath = 'pwsh'
                 $argumentList = @('-NoProfile','-NonInteractive','-File', $ps1Path) + $argumentList
             }
+        } else {
+            $cmdPath = (Get-Command 'opencode.cmd' -ErrorAction SilentlyContinue)?.Source
+            if ($cmdPath) { $cliPath = $cmdPath }
         }
     }
 
