@@ -37,7 +37,7 @@ function Group-PondFiles {
             [string]$Role,
             [System.IO.FileInfo[]]$Items
         )
-        $sorted = $Items | Sort-Object Name
+        $sorted = @($Items | Sort-Object Name)
         $chunkSize = if ($max -gt 0) { $max } else { $sorted.Count }
         $groups = @()
         for ($i = 0; $i -lt $sorted.Count; $i += $chunkSize) {
