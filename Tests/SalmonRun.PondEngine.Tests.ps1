@@ -48,6 +48,16 @@ Describe 'SalmonRun.PondEngine Module Manifest' -Tag 'PondEngine', 'Regression-O
         Get-Command Invoke-PondLanePipeline -Module SalmonRun.PondEngine -ErrorAction SilentlyContinue |
             Should -Not -BeNullOrEmpty
     }
+
+    It 'resolves every configured task through the child-lane module boundary' {
+        $seed = 20260828
+        $ponds = @(Get-SalmonRunPonds | Sort-Object { Get-Random -SetSeed $seed })
+
+        foreach ($pond in $ponds) {
+            { Invoke-PondLanePipeline -Pond $pond -ValidateOnly } |
+                Should -Not -Throw -Because "every $($pond.Name) task must resolve inside the PondEngine module"
+        }
+    }
 }
 
 Describe 'Get-SalmonRunPonds' -Tag 'PondEngine', 'Regression-Only' {
