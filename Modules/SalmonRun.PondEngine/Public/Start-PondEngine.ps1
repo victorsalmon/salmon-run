@@ -13,7 +13,7 @@
 .PARAMETER RepoDir
     Optional. Repository root. Defaults to the salmon-run repo root.
 .PARAMETER MaxIterations
-    Maximum main-loop iterations. Default 20.
+    Maximum main-loop iterations. Default 20. Use 0 to run until stopped.
 .PARAMETER SubprocessTimeoutMinutes
     Maximum minutes a single agent subprocess may run. Default 30.
 .PARAMETER PollIntervalSeconds
@@ -21,6 +21,9 @@
 .PARAMETER Streams
     Optional. An array of PondStream objects. Defaults to a single main-branch
     stream with the default operator layout.
+.PARAMETER NamespaceRepoMap
+    Optional hashtable mapping plan namespace to the target repository path
+    the agent should work in.
 #>
 function Start-PondEngine {
     [CmdletBinding()]
@@ -60,7 +63,8 @@ function Start-PondEngine {
 
     Write-Host "Starting PondEngine for $RepoDir" -ForegroundColor Cyan
 
-    for ($context.Iteration = 1; $context.Iteration -le $MaxIterations; $context.Iteration++) {
+    $iterationLimit = if ($MaxIterations -le 0) { [int]::MaxValue } else { $MaxIterations }
+    for ($context.Iteration = 1; $context.Iteration -le $iterationLimit; $context.Iteration++) {
         $didWork = $false
 
         # Rescue stale in-progress files before scanning ponds
@@ -144,5 +148,9 @@ function Start-PondEngine {
         }
     }
 
-    Write-Host "PondEngine finished after $($context.Iteration) iterations" -ForegroundColor Cyan
+    if ($MaxIterations -le 0) {
+        Write-Host "PondEngine stopped after $($context.Iteration) unlimited iterations" -ForegroundColor Cyan
+    } else {
+        Write-Host "PondEngine finished after $($context.Iteration) iterations" -ForegroundColor Cyan
+    }
 }

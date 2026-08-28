@@ -1,0 +1,171 @@
+#Requires -Version 7.0
+
+<#
+.SYNOPSIS
+    Unattended supervisor for the Salmon Run pond engine.
+.DESCRIPTION
+    Runs Start-SalmonRun -Run -MaxIterations 0 in a resilient loop, restarts the
+    engine on crash, writes heartbeat files, and supports graceful shutdown when
+    a stop sentinel file is placed at ~/.salmon/orchestrator.stop.
+.PARAMETER PollIntervalSeconds
+    Seconds the inner engine sleeps when no work is found. Default 300.
+.PARAMETER SubprocessTimeoutMinutes
+    Maximum minutes an agent subprocess may run. Default 30.
+.PARAMETER NamespaceRepoMap
+    Optional hashtable mapping plan namespace to target repo path. Overrides the
+    ~/.salmon/orchestrator.config.json file but not the file if the file wins? No.
+.PARAMETER ConfigPath
+    Path to an orchestrator config JSON with a namespaceRepoMap object.
+.PARAMETER LogDir
+    Directory for the supervisor log and heartbeat. Default ~/.salmon/Logs.
+.EXAMPLE
+    .\Run-SalmonRun.ps1
+    Start the unattended runner in the foreground.
+#>
+[CmdletBinding()]
+param(
+    [int]$PollIntervalSeconds = 300,
+    [int]$SubprocessTimeoutMinutes = 30,
+    [string]$ConfigPath = '',
+    [string]$LogDir = ''
+)
+
+$ErrorActionPreference = 'Continue'
+
+$moduleLoader = Join-Path $PSScriptRoot 'Modules' 'SalmonRun.ModuleLoader' 'Public' 'Initialize-InterclawEnvironment.ps1'
+if (-not (Test-Path $moduleLoader -PathType Leaf)) {
+    throw "Run-SalmonRun: module loader not found at $moduleLoader"
+}
+. $moduleLoader
+
+$null = Initialize-InterclawEnvironment -RepoRoot $PSScriptRoot
+$taskRoot = Get-SalmonTaskRoot
+if (-not (Test-Path $taskRoot -PathType Container)) {
+    $null = New-Item -ItemType Directory -Path $taskRoot -Force
+}
+
+if ([string]::IsNullOrWhiteSpace($LogDir)) {
+    $LogDir = Join-Path $taskRoot 'Logs'
+}
+if (-not (Test-Path $LogDir -PathType Container)) {
+    $null = New-Item -ItemType Directory -Path $LogDir -Force
+}
+
+$logPath = Join-Path $LogDir 'orchestrator.log'
+$heartbeatPath = Join-Path $LogDir 'orchestrator.heartbeat.json'
+$stopFile = Join-Path $taskRoot 'orchestrator.stop'
+
+function Write-OrchestratorLog {
+    param([string]$Message, [string]$Level = 'INFO')
+    $line = "$(Get-Date -Format 'o') [$Level] $Message"
+    $line | Add-Content -LiteralPath $logPath -Encoding utf8 -ErrorAction SilentlyContinue
+    Write-Host $line
+}
+
+function Write-Heartbeat {
+    param([string]$State, [string]$Detail)
+    $hb = [PSCustomObject]@{
+        ts        = (Get-Date -Format 'o')
+        state     = $State
+        detail    = $Detail
+        pid       = $PID
+        logPath   = $logPath
+        stopFile  = $stopFile
+    } | ConvertTo-Json -Depth 2
+    $hb | Set-Content -LiteralPath $heartbeatPath -Encoding utf8 -NoNewline -ErrorAction SilentlyContinue
+}
+
+# Remove a stale stop file at startup so the user can stop gracefully later.
+if (Test-Path -LiteralPath $stopFile) {
+    Remove-Item -LiteralPath $stopFile -Force
+    Write-OrchestratorLog -Message 'removed stale stop sentinel' -Level 'INFO'
+}
+
+Write-OrchestratorLog -Message 'Salmon Run unattended supervisor starting' -Level 'INFO'
+Write-Heartbeat -State 'starting' -Detail 'pid init'
+
+$consecutiveCrashes = 0
+$maxConsecutiveCrashes = 10
+
+while ($true) {
+    if (Test-Path -LiteralPath $stopFile) {
+        Write-OrchestratorLog -Message 'stop sentinel found; shutting down' -Level 'INFO'
+        Write-Heartbeat -State 'stopped' -Detail 'stop sentinel'
+        break
+    }
+
+    Write-Heartbeat -State 'running' -Detail "cycle start (crashes=$consecutiveCrashes)"
+
+    $startArgs = @{
+        FilePath     = (Get-Command -Name 'pwsh' -CommandType Application -ErrorAction SilentlyContinue).Source
+        ArgumentList = @(
+            '-NoProfile'
+            '-NonInteractive'
+            '-File', (Join-Path $PSScriptRoot 'Start-SalmonRun.ps1')
+            '-Run'
+            '-MaxIterations', 0
+            '-PollIntervalSeconds', $PollIntervalSeconds
+            '-SubprocessTimeoutMinutes', $SubprocessTimeoutMinutes
+        )
+        PassThru     = $true
+        NoNewWindow  = $true
+        WorkingDirectory = $PSScriptRoot
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
+        $startArgs.ArgumentList += '-ConfigPath'
+        $startArgs.ArgumentList += $ConfigPath
+    }
+
+    $exitCode = 0
+    $process = $null
+    try {
+        $process = Start-Process @startArgs
+
+        # Poll for stop sentinel while the engine is running.
+        while (-not $process.HasExited) {
+            if (Test-Path -LiteralPath $stopFile) {
+                Write-OrchestratorLog -Message 'stop sentinel found; terminating pond engine' -Level 'INFO'
+                Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+                Start-Sleep -Seconds 1
+                break
+            }
+            Start-Sleep -Seconds 5
+        }
+
+        if (-not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
+
+        $process.WaitForExit(5000)
+        $exitCode = $process.ExitCode
+    } catch {
+        $exitCode = 1
+        Write-OrchestratorLog -Message "failed to start or monitor pond engine: $_" -Level 'ERROR'
+    }
+
+    if (Test-Path -LiteralPath $stopFile) {
+        Write-OrchestratorLog -Message 'stop sentinel found after engine exit; shutting down' -Level 'INFO'
+        Write-Heartbeat -State 'stopped' -Detail 'stop sentinel after engine exit'
+        break
+    }
+
+    if ($exitCode -ne 0) {
+        $consecutiveCrashes++
+        Write-OrchestratorLog -Message "pond engine exited with code $exitCode (consecutive crashes: $consecutiveCrashes)" -Level 'ERROR'
+        if ($consecutiveCrashes -ge $maxConsecutiveCrashes) {
+            Write-OrchestratorLog -Message 'too many consecutive crashes; giving up' -Level 'FATAL'
+            Write-Heartbeat -State 'failed' -Detail "crashed $consecutiveCrashes times"
+            break
+        }
+    } else {
+        $consecutiveCrashes = 0
+        Write-OrchestratorLog -Message 'pond engine exited cleanly (restarting)' -Level 'INFO'
+    }
+
+    $backoff = [math]::Min($consecutiveCrashes * 10, 300)
+    Write-Heartbeat -State 'recovering' -Detail "sleeping ${backoff}s before restart"
+    Start-Sleep -Seconds $backoff
+}
+
+Write-OrchestratorLog -Message 'Salmon Run unattended supervisor stopped' -Level 'INFO'

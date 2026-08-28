@@ -13,17 +13,25 @@
     List the pond configuration, stream count, and current queue counts without
     spawning agents. This is the default when -Run is not specified.
 .PARAMETER MaxIterations
-    Maximum main-loop iterations. Default 20.
+    Maximum main-loop iterations. Default 20. Use 0 to run until manually stopped.
 .PARAMETER PollIntervalSeconds
     Seconds to sleep when no work is available. Default 300.
 .PARAMETER SubprocessTimeoutMinutes
     Maximum minutes a single agent subprocess may run. Default 30.
+.PARAMETER NamespaceRepoMap
+    Optional hashtable mapping plan namespace to target repo path. Overrides
+    ~/.salmon/orchestrator.config.json for these namespaces.
+.PARAMETER ConfigPath
+    Path to an orchestrator config JSON. Defaults to ~/.salmon/orchestrator.config.json.
 .EXAMPLE
     .\Start-SalmonRun.ps1 -DryRun
     Preview the queues and ponds.
 .EXAMPLE
     .\Start-SalmonRun.ps1 -Run -MaxIterations 1 -PollIntervalSeconds 0
     Run a single pond-engine iteration without sleeping.
+.EXAMPLE
+    .\Start-SalmonRun.ps1 -Run -MaxIterations 0
+    Run the pond engine continuously.
 #>
 [CmdletBinding()]
 param(
