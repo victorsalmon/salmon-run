@@ -1,4 +1,4 @@
-#Requires -Modules @{ ModuleName='Pester'; ModuleVersion='6.0.0' }
+﻿#Requires -Modules @{ ModuleName='Pester'; ModuleVersion='6.0.0' }
 #Requires -Version 7.0
 
 <#
@@ -223,10 +223,10 @@ Describe "Read-InstallJson invalid-input handling" -Tag "Property", "Config" {
                 param($seed)
                 $rng = [System.Random]::new($seed)
                 $badInputs = @("not json", "{broken", "[]]]", "", "null", "undefined")
-                $input = $badInputs[$rng.Next($badInputs.Count)]
+                $inputValue = $badInputs[$rng.Next($badInputs.Count)]
                 $testFile = Join-Path $env:TEMP "prop-badjson-$seed.json"
                 try {
-                    $input | Set-Content $testFile
+                    $inputValue | Set-Content $testFile
                     Read-InstallJson -Path $testFile | Should -Be $null
                 } finally {
                     if (Test-Path $testFile) { Remove-Item $testFile }
@@ -304,3 +304,4 @@ Describe "Get-DefaultDomainSuffix invariants" -Tag "Property", "Config" {
         }
     }
 }
+
