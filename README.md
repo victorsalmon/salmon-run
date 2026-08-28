@@ -149,7 +149,7 @@ What remains hardening (all resolved with contract tests and documentation):
 - ~~Release artifact evidence~~ → Docker image built and `docker run --rm salmon-run:0.1.4` lists queues; PowerShell Gallery `SalmonRun` meta-module manifest validated and local `nupkg` built with `scripts/Publish-SalmonRunModule.ps1`; `docs/RELEASE.md` written with artifact set, versioning, checklist, and rollback steps.
 - ~~Sync/runbook documentation~~ → `docs/SYNC.md` written with sync cadence, scrub rules, leak reporting, and divergence policy.
 
-See [`docs/roadmap.md`](./docs/roadmap.md) and [`docs/implementation.md`](./docs/implementation.md) for the detailed appraisal and remaining blockers.
+See [`docs/roadmap.md`](./docs/roadmap.md) and [`docs/implementation.md`](./docs/implementation.md) for the detailed appraisal.
 
 ---
 
