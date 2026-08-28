@@ -47,6 +47,27 @@
       "required": false,
       "mutable": false,
       "maximum": 100000
+    },
+    "ReviewDecision": {
+      "description": "Machine-readable reviewer decision.",
+      "required": false,
+      "mutable": true,
+      "allowedValues": ["pass", "rework", "manual"]
+    },
+    "ReviewSummary": {
+      "description": "Concise explanation of the review result.",
+      "required": false,
+      "mutable": true
+    },
+    "ReviewFeedbackFile": {
+      "description": "Filename of the detailed review feedback artifact.",
+      "required": false,
+      "mutable": true
+    },
+    "ReviewedPlan": {
+      "description": "Plan filename whose implementation was reviewed.",
+      "required": false,
+      "mutable": false
     }
   },
   "pondLogActions": {

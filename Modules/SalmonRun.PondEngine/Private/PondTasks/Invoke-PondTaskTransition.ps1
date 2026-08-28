@@ -21,6 +21,67 @@ function Invoke-PondTaskTransition {
     $files = @(Get-ChildItem "$lanePath/*.md" -ErrorAction SilentlyContinue | Sort-Object Name)
     if ($files.Count -eq 0) { return $Context }
 
+    # A provider process exiting zero only means the agent ran. Quality ponds
+    # must also record an explicit passing verdict. This is repeated here as a
+    # trust-boundary check even though external executors validate before
+    # writing their sentinel.
+    $decisionContract = switch ($Pond.Name) {
+        'Review'       { @{ Decision = 'ReviewDecision'; Evidence = 'Reviewed' } }
+        'Audit'        { @{ Decision = 'AuditDecision'; Evidence = 'Audit' } }
+        'QA'           { @{ Decision = 'QADecision'; Evidence = 'QA' } }
+        'ProjectReview'{ @{ Decision = 'ProjectReviewDecision'; Evidence = 'ProjectReview' } }
+        default        { $null }
+    }
+    if ($Context.Success -and $decisionContract) {
+        foreach ($verdictFile in $files) {
+            $verdictContent = Get-Content -LiteralPath $verdictFile.FullName -Raw
+            $decisionMatch = [regex]::Match($verdictContent, "(?im)^\*\*$($decisionContract.Decision)\*\*:\s*(?<value>[^\r\n]+)")
+            $evidenceMatch = [regex]::Match($verdictContent, "(?im)^\*\*$($decisionContract.Evidence)\*\*:\s*(?<value>[^\r\n]+)")
+            $passed = ($decisionMatch.Success -and $decisionMatch.Groups['value'].Value.Trim() -match '^pass(?:ed)?\b') -or
+                      ($evidenceMatch.Success -and $evidenceMatch.Groups['value'].Value.Trim() -match '^(passed|completed)\b')
+            $failed = ($decisionMatch.Success -and $decisionMatch.Groups['value'].Value.Trim() -match '^(rework|fail(?:ed)?|reject(?:ed)?|blocked)\b') -or
+                      ($evidenceMatch.Success -and $evidenceMatch.Groups['value'].Value.Trim() -match '^(failed|rework|rejected|blocked)\b')
+            if ($failed -or -not $passed) { $Context.Success = $false; break }
+        }
+    }
+
+    if (-not $Context.Success -and $Pond.Name -eq 'Review') {
+        $feedbackDir = Join-Path $Context.TaskRoot 'Feedback'
+        $null = New-Item -ItemType Directory -Path $feedbackDir -Force
+        foreach ($reviewFile in $files) {
+            $reviewContent = Get-Content -LiteralPath $reviewFile.FullName -Raw
+            $reasonMatch = [regex]::Match($reviewContent, '(?im)^\*\*(ReviewSummary|Reviewed)\*\*:\s*(?<value>[^\r\n]+)')
+            $reason = if ($reasonMatch.Success) { $reasonMatch.Groups['value'].Value.Trim() } else { 'Review did not record an explicit passing verdict.' }
+            $feedbackName = "$($reviewFile.BaseName)-review.md"
+            $feedbackPath = Join-Path $feedbackDir $feedbackName
+            @"
+# Review feedback: $($reviewFile.BaseName)
+
+**ReviewDecision**: rework
+**ReviewedPlan**: $($reviewFile.Name)
+**RecordedAt**: $(Get-Date -Format 'o')
+
+## Summary
+
+$reason
+"@ | Set-Content -LiteralPath $feedbackPath -Encoding utf8 -NoNewline
+
+            $headers = [ordered]@{
+                ReviewDecision = 'rework'
+                ReviewSummary = $reason
+                ReviewFeedbackFile = $feedbackName
+                ReviewedPlan = $reviewFile.Name
+            }
+            foreach ($header in $headers.GetEnumerator()) {
+                $pattern = "(?im)^\*\*$([regex]::Escape($header.Key))\*\*:\s*[^\r\n]+"
+                $line = "**$($header.Key)**: $($header.Value)"
+                if ($reviewContent -match $pattern) { $reviewContent = $reviewContent -replace $pattern, $line }
+                else { $reviewContent += "`n$line" }
+            }
+            Set-Content -LiteralPath $reviewFile.FullName -Value $reviewContent -Encoding utf8 -NoNewline
+        }
+    }
+
     $destPondName = if ($Context.Success) { $Pond.OnSuccess.MoveTo } else { $Pond.OnFailure.MoveTo }
     if ([string]::IsNullOrWhiteSpace($destPondName)) {
         Write-Verbose "Invoke-PondTaskTransition: no transition for pond '$($Pond.Name)'"

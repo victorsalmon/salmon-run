@@ -4,6 +4,9 @@
 BeforeAll {
     $script:RepoRoot = (Get-Item $PSCommandPath).Directory.Parent.FullName
     $script:VerdictHelper = Join-Path $script:RepoRoot 'Modules/SalmonRun.PondEngine/Executors/PondVerdict.ps1'
+    $env:PSModulePath = "$(Join-Path $script:RepoRoot 'Modules')$([IO.Path]::PathSeparator)$env:PSModulePath"
+    Remove-Module SalmonRun.PondEngine -Force -ErrorAction SilentlyContinue
+    Import-Module (Join-Path $script:RepoRoot 'Modules/SalmonRun.PondEngine/SalmonRun.PondEngine.psd1') -Force
 }
 
 Describe 'Executor verdict contract' -Tag 'PondEngine','Regression-Only' {
@@ -28,5 +31,24 @@ Describe 'Executor verdict contract' -Tag 'PondEngine','Regression-Only' {
         "# Plan`n**ReviewDecision**: pass`n**Reviewed**: passed by test" | Set-Content $plan -NoNewline
         Test-PondExecutorVerdict -Role reviewer -PlanFiles @($plan) | Should -BeTrue
     }
-}
 
+    It 'writes rejection feedback headers and routes the plan back to Code' {
+        $taskRoot = Join-Path $TestDrive 'Tasks'
+        $lane = Join-Path $taskRoot 'Working/review-lane'
+        foreach ($path in $lane,(Join-Path $taskRoot 'Code')) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
+        $plan = Join-Path $lane '2026-08-28-review-me.md'
+        "# Plan`n**Status**: ready`n**Scope**: test`n**Reviewed**: failed by test - missing behavior" | Set-Content $plan -NoNewline
+        $pond = Get-SalmonRunPonds | Where-Object Name -eq Review
+        $group = [PondGroup]::new(); $group.Namespace='review-me'; $group.StreamPath=$lane; $group.RepoPath=$TestDrive; $group.Files=@(Get-Item $plan)
+        $context = [PondContext]::new(); $context.TaskRoot=$taskRoot; $context.RepoDir=$TestDrive; $context.CurrentGroup=$group; $context.CurrentPond=$pond; $context.Success=$true
+        $task = $pond.Tasks | Where-Object Name -eq Transition
+        & (Get-Module SalmonRun.PondEngine) { param($p,$t,$c) Invoke-PondTaskTransition -Pond $p -Task $t -Context $c } $pond $task $context | Out-Null
+
+        $reworked = Join-Path $taskRoot 'Code/2026-08-28-review-me.md'
+        $reworked | Should -Exist
+        $content = Get-Content $reworked -Raw
+        $content | Should -Match '(?im)^\*\*ReviewDecision\*\*: rework$'
+        $content | Should -Match '(?im)^\*\*ReviewFeedbackFile\*\*: 2026-08-28-review-me-review.md$'
+        Join-Path $taskRoot 'Feedback/2026-08-28-review-me-review.md' | Should -Exist
+    }
+}
