@@ -32,8 +32,20 @@ function Push-PondRepos {
             return
         }
 
-        $fullRepoPath = (Resolve-Path -LiteralPath $RepoPath -ErrorAction SilentlyContinue)?.Path
-        if ([string]::IsNullOrWhiteSpace($fullRepoPath)) { $fullRepoPath = $RepoPath }
+        # Serialize per underlying git repository. Worktrees share the same git
+        # object store, so the mutex is keyed off the common git directory.
+        $commonDir = (& git -C $RepoPath rev-parse --git-common-dir 2>&1) -as [string]
+        $mutexRepoPath = $RepoPath
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($commonDir)) {
+            $commonFull = (Resolve-Path -LiteralPath (Join-Path $RepoPath $commonDir) -ErrorAction SilentlyContinue)?.Path
+            if (-not [string]::IsNullOrWhiteSpace($commonFull)) {
+                $parent = Split-Path -Path $commonFull -Parent
+                if (-not [string]::IsNullOrWhiteSpace($parent)) { $mutexRepoPath = $parent }
+            }
+        }
+
+        $fullRepoPath = (Resolve-Path -LiteralPath $mutexRepoPath -ErrorAction SilentlyContinue)?.Path
+        if ([string]::IsNullOrWhiteSpace($fullRepoPath)) { $fullRepoPath = $mutexRepoPath }
         $repoHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($fullRepoPath))).Replace('-', '')
         $mutexName = "Global\SalmonRun-$repoHash"
 
