@@ -165,6 +165,16 @@ while ($true) {
 
     $backoff = [math]::Min($consecutiveCrashes * 10, 300)
     Write-Heartbeat -State 'recovering' -Detail "sleeping ${backoff}s before restart"
+
+    # Health / churn watchdog: produce a report after every engine cycle.
+    $healthScript = Join-Path $PSScriptRoot 'Tools' 'Get-SalmonRunHealthReport.ps1'
+    if (Test-Path -LiteralPath $healthScript) {
+        $health = & $healthScript -TaskRoot $taskRoot -LogDir $LogDir -HistoryHours 24
+        if ($health) {
+            Write-OrchestratorLog -Message "health: $($health.summary)" -Level 'INFO'
+        }
+    }
+
     Start-Sleep -Seconds $backoff
 }
 
