@@ -345,22 +345,26 @@ See `docs/PUBLIC_PACKAGE.md` for the full path table.
 
 ### Working and tested
 
-- Pond definitions, the core engine loop, and plan transitions.
+- Pond definitions, the core engine loop, and plan transitions (Intake → Code → Review → Audit → QA → Complete → Archive) with the `Local` tier in a clean `~/.salmon` home.
 - `PublicLocal.ps1` end-to-end smoke runs.
-- Model profile resolution and executor command construction for OpenCode Go/Zen, Devin, and DeepSeek/DSH (with OpenRouter and DeepInfra as inference-provider configurations).
+- Model profile resolution and executor command construction for OpenCode Go/Zen, Devin, DeepSeek/DSH (OpenRouter and DeepInfra as inference-provider configurations), and Codex.
+- Live provider contract tests for OpenCode, Devin, and DeepSeek/DSH (OpenRouter) with real credentials.
 - Module loading, config, credentials, audit, locking, agent lifecycle, workflow events, Mermaid chunking, and the Pester suites.
 - `install.ps1` and Docker build/dry-run.
+- GitHub and Worktree live pushes via `SalmonRun.GitCloud` and `SalmonRun.Credentials` resolvers.
 - Sync-from-canonical with runtime scrub and leak check.
+- GitHub Actions CI: Pester suite + leak check + release archive creation, plus Docker build/push to public GHCR.
 
 ### Not yet validated against live systems
 
-- External provider executors have not been run against real OpenCode, Devin, or DeepSeek/DSH (OpenRouter/DeepInfra/official) endpoints.
-- `SalmonRun.GitCloud` has not pushed to real GitHub/Worktree hosts.
-- `SalmonRun.Credentials` AWS/GitHub/Worktree resolvers are unit tested only; GitCloud integration tests exercise Env/File resolvers.
+- A full `Start-SalmonRun.ps1 -Run` with an external-provider plan has not been exercised end-to-end in a clean environment. The `PublicLocal` smoke-test path is validated; external-provider dispatch is unit- and contract-tested but remains a manual live gate.
+- Docker Swarm orchestration has not been deployed live.
+- PowerShell Gallery publish has not been performed (the `SalmonRun` nupkg builds locally and `Publish-SalmonRunModule.ps1` is ready).
 
 ### Known rough edges
 
-- A full `Start-SalmonRun.ps1 -Run` with an external-provider plan has not been exercised end-to-end in a clean environment. The `PublicLocal` smoke-test path is validated.
+- `PublicLocal.ps1` is a smoke-test harness, not a real agent. Real agentic work requires an external-provider executor with a configured credential.
+- Some feature-level readiness scores in `docs/roadmap.md` remain below 100% because long-running stress/integration tests are not yet in CI, even though the main paths are green.
 
 ---
 
