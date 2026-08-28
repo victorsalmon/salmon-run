@@ -79,13 +79,39 @@ if (-not (Test-Path -LiteralPath $workingDir)) {
 $lanes = Get-ChildItem -LiteralPath $workingDir -Directory -ErrorAction SilentlyContinue
 if (-not $lanes) { return }
 
+$cleaned = 0
 $moved = 0
 foreach ($lane in $lanes) {
     $lanePath = $lane.FullName
+    $planFiles = @(Get-ChildItem -Path "$lanePath/*.md" -File -ErrorAction SilentlyContinue)
     $completeFile = Join-Path $lanePath '.complete'
     $failedFile = Join-Path $lanePath '.failed'
     $hasComplete = Test-Path -LiteralPath $completeFile
     $hasFailed = Test-Path -LiteralPath $failedFile
+
+    # If a lane has no plans and no active process, it is leftover from a prior
+    # run and can be cleaned up to keep the health report from flagging it stale.
+    if ($planFiles.Count -eq 0 -and -not $hasComplete -and -not $hasFailed) {
+        $pidFile = Join-Path $lanePath '.pid'
+        $shouldRemove = $true
+        if (Test-Path -LiteralPath $pidFile) {
+            $pidText = Get-Content -LiteralPath $pidFile -Raw -ErrorAction SilentlyContinue
+            $lanePid = $null
+            if ([int]::TryParse($pidText, [ref]$lanePid)) {
+                try { $shouldRemove = (Get-Process -Id $lanePid -ErrorAction SilentlyContinue) -eq $null } catch { $shouldRemove = $true }
+            }
+        }
+        if ($shouldRemove) {
+            try {
+                Remove-Item -LiteralPath $lanePath -Recurse -Force -ErrorAction Stop
+                $cleaned++
+                Write-Verbose "Start-WorkingLaneJanitor: removed empty lane $lanePath"
+            } catch {
+                Write-Verbose "Start-WorkingLaneJanitor: cannot remove $lanePath : $_"
+            }
+        }
+        continue
+    }
 
     if (-not $hasComplete -and -not $hasFailed) { continue }
 
@@ -189,9 +215,17 @@ foreach ($lane in $lanes) {
         $moved++
         $dest = if ($context.Success) { $pond.OnSuccess.MoveTo } else { $pond.OnFailure.MoveTo }
         Write-Verbose "Start-WorkingLaneJanitor: transitioned $($planFiles.Count) plan(s) from $lanePath to $dest"
+        # Transition leaves log files; remove the now-empty lane.
+        if ((Get-ChildItem -LiteralPath $lanePath -Force -ErrorAction SilentlyContinue).Count -eq 0) {
+            Remove-Item -LiteralPath $lanePath -Force -ErrorAction SilentlyContinue
+        }
     } catch {
         Write-Warning "Start-WorkingLaneJanitor: transition failed for $lanePath : $_"
     }
+}
+
+if ($cleaned -gt 0) {
+    Write-Verbose "Start-WorkingLaneJanitor: cleaned $cleaned empty lane(s)"
 }
 
 if ($moved -gt 0) {
