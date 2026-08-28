@@ -13,7 +13,7 @@ public contributors can report a leak.
 | Repo | URL | Visibility | Role |
 |------|-----|------------|------|
 | **`salmon-orchestrator`** | Private | 🔒 Private | Canonical source of truth. All feature development, bug fixes, and iteration happen here. |
-| **`salmon-run`** | `https://worktree.ca/clocklobster/salmon-run.git` / `https://github.com/clocklobster/salmon-run.git` | 🔓 Public | Scrubbed, generalized public mirror. Projected from canonical via `Sync-FromCanonical.ps1` with runtime scrub. |
+| **`salmon-run`** | `https://worktree.ca/clocklobster/salmon-run.git` / `https://github.com/victorsalmon/salmon-run.git` | 🔓 Public | Scrubbed, generalized public mirror. Projected from canonical via `Sync-FromCanonical.ps1` with runtime scrub. |
 
 The canonical `salmon-orchestrator` repo is the active source of truth.
 `salmon-run` is rebuilt from it periodically and retains divergence only for

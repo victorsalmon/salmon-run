@@ -6,7 +6,7 @@ ARG SALMON_RUN_VERSION=0.1.0
 LABEL org.opencontainers.image.title="salmon-run" \
       org.opencontainers.image.description="File-based Kanban control plane with pond dispatch and model routing" \
       org.opencontainers.image.version="${SALMON_RUN_VERSION}" \
-      org.opencontainers.image.source="https://github.com/clocklobster/salmon-run" \
+      org.opencontainers.image.source="https://github.com/victorsalmon/salmon-run" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.vendor="Salmon Run"
 

@@ -34,8 +34,8 @@
     AliasesToExport = @()
     PrivateData = @{ PSData = @{
         Tags = @('salmon-run', 'kanban', 'agent', 'orchestration')
-        LicenseUri = 'https://github.com/clocklobster/salmon-run/blob/main/LICENSE'
-        ProjectUri = 'https://github.com/clocklobster/salmon-run'
+        LicenseUri = 'https://github.com/victorsalmon/salmon-run/blob/main/LICENSE'
+        ProjectUri = 'https://github.com/victorsalmon/salmon-run'
         # The SalmonRun.* submodules ship together in the repository and are
         # installed by install.ps1 rather than published individually to the
         # Gallery, so they are declared external to the package dependency

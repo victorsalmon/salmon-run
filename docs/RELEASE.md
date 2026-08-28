@@ -14,9 +14,9 @@ release.
 
 | Artifact | Distribution | Install command | Audience |
 |----------|-------------|-----------------|----------|
-| **GitHub source archive** | [GitHub releases](https://github.com/clocklobster/salmon-run/releases) | `git clone --branch <tag> https://github.com/clocklobster/salmon-run.git && .\install.ps1` | Developers who want to inspect, fork, or contribute |
+| **GitHub source archive** | [GitHub releases](https://github.com/victorsalmon/salmon-run/releases) | `git clone --branch <tag> https://github.com/victorsalmon/salmon-run.git && .\install.ps1` | Developers who want to inspect, fork, or contribute |
 | **PowerShell Gallery module** | [PowerShell Gallery](https://www.powershellgallery.com/packages/SalmonRun) | `Install-Module -Name SalmonRun` | PowerShell users who want the whole control plane as one meta-module |
-| **Docker image** | GHCR or Docker Hub | `docker pull ghcr.io/clocklobster/salmon-run:<tag>` | Container-first and CI users |
+| **Docker image** | GHCR or Docker Hub | `docker pull ghcr.io/victorsalmon/salmon-run:<tag>` | Container-first and CI users |
 
 Each artifact is built from the same Git tag and carries the same version.
 
@@ -154,10 +154,10 @@ Publish-Module -Path .\Modules\SalmonRun -NuGetApiKey $POWERSHELL_GALLERY_KEY
 #### Docker image
 
 ```bash
-docker build -t ghcr.io/clocklobster/salmon-run:<version> .
-docker push ghcr.io/clocklobster/salmon-run:<version>
-docker tag ghcr.io/clocklobster/salmon-run:<version> ghcr.io/clocklobster/salmon-run:latest
-docker push ghcr.io/clocklobster/salmon-run:latest
+docker build -t ghcr.io/victorsalmon/salmon-run:<version> .
+docker push ghcr.io/victorsalmon/salmon-run:<version>
+docker tag ghcr.io/victorsalmon/salmon-run:<version> ghcr.io/victorsalmon/salmon-run:latest
+docker push ghcr.io/victorsalmon/salmon-run:latest
 ```
 
 ### 4. Verify a clean install
@@ -171,7 +171,7 @@ Start-SalmonRun.ps1 -DryRun
 Or from a fresh clone:
 
 ```powershell
-git clone https://github.com/clocklobster/salmon-run.git --branch v<version>
+git clone https://github.com/victorsalmon/salmon-run.git --branch v<version>
 cd salmon-run
 .\install.ps1
 .\Start-SalmonRun.ps1 -DryRun
