@@ -89,9 +89,9 @@ function Group-PondFiles {
         return $groups
     }
 
-    # Default: Namespace
+    # Default: Namespace derived consistently with Get-PondWorktreeStreams.
     $grouped = $Files | Group-Object {
-        if ($_.Name -match '^(\d{4}[-.]?\d{2}[-.]?\d{2})-([^-]+)-.*$') { $Matches[2] } else { $_.BaseName }
+        Get-PondFileNamespace -FileName $_.Name
     }
     $groups = foreach ($grp in $grouped) {
         New-ChunkedGroups -Namespace $grp.Name -Role $Pond.Role -Items @($grp.Group)

@@ -98,9 +98,7 @@ function Start-PondEngine {
         param([PondGroup]$Group, [PondContext]$Ctx)
         $byId = $Ctx.Streams | Where-Object { $_.Id -eq $Group.Namespace } | Select-Object -First 1
         if ($byId) { return $byId }
-        $byPath = $Ctx.Streams | Where-Object { $_.Path -eq $Group.RepoPath } | Select-Object -First 1
-        if ($byPath) { return $byPath }
-        return $Ctx.Streams | Select-Object -First 1
+        return $null
     }
 
     function Invoke-PondReapLane {
