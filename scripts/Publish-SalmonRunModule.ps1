@@ -31,6 +31,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# Make the bundled SalmonRun.* submodules resolvable during manifest validation
+# and publish, even when the caller has not pre-configured PSModulePath.
+$moduleDir = Split-Path -Path $ModulePath -Parent
+if ($moduleDir -and -not ($env:PSModulePath -split ';' | Where-Object { $_ -and (Resolve-Path $_ -ErrorAction SilentlyContinue).Path -eq (Resolve-Path $moduleDir -ErrorAction SilentlyContinue).Path })) {
+    $env:PSModulePath = "$moduleDir;$env:PSModulePath"
+}
+
 $resolvedModule = Resolve-Path -LiteralPath $ModulePath -ErrorAction Stop
 Write-Host "Validating manifest: $resolvedModule" -ForegroundColor Cyan
 
