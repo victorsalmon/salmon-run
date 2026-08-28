@@ -18,17 +18,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install PowerShell 7
-        uses: bjompen/powershell-action@v2
-        with:
-          run: |
-            $PSVersionTable.PSVersion
-            Install-Module Pester -MinimumVersion 6.0.0 -Force -SkipPublisherCheck
-
       - name: Run Tests
         shell: pwsh
         run: |
           $env:PSModulePath = "${{ github.workspace }}\Modules;" + $env:PSModulePath
+          if (-not (Get-Module -ListAvailable -Name Pester -MinimumVersion 6.0.0)) {
+            Install-Module Pester -MinimumVersion 6.0.0 -Force -SkipPublisherCheck -Scope CurrentUser
+          }
           Invoke-Pester -Path 'Tests' -Output Detailed
 
       - name: Leak check
