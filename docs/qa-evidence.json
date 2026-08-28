@@ -148,22 +148,22 @@
     "tasks": {
       "Task1_release_docs": "docs/RELEASE.md updated with current test counts and live evidence",
       "Task2_psgallery_module": "verified: Modules/SalmonRun/SalmonRun.psd1 meta-manifest valid; local nupkg built with scripts/Publish-SalmonRunModule.ps1 -LocalRepository salmon-run-local; fixed missing else in ApiKey fallback",
-      "Task3_docker_image": "verified: docker build -t salmon-run:0.1.1 succeeded and docker run --rm salmon-run:0.1.1 produced the dry-run queue listing",
+      "Task3_docker_image": "verified: docker build -t salmon-run:0.1.2 succeeded and docker run --rm salmon-run:0.1.2 produced the dry-run queue listing",
       "Task4_github_release": "prepared: .github/workflows/test.yml and .github/workflows/docker.yml exist and trigger on v* tags; no live GitHub release created because GITHUB_TOKEN is for API/git push, not for gh CLI release creation",
       "Task5_clean_install": "verified: install.ps1 runs in Dockerfile and imports SalmonRun.PondEngine; local install also validated",
       "Task6_qa_evidence": "recorded"
     },
     "release": {
-      "artifact": "salmon-run v0.1.1 (PowerShell Gallery meta-module + Docker image + prepared GitHub release)",
-      "version": "0.1.1",
+      "artifact": "salmon-run v0.1.2 (PowerShell Gallery meta-module + Docker image + prepared GitHub release)",
+      "version": "0.1.2",
       "urls": {
         "github": "https://github.com/victorsalmon/salmon-run (release archive prepared)",
         "worktree": "https://worktree.ca/clocklobster/salmon-run.git",
-        "docker": "salmon-run:0.1.1 (local image built and verified)",
-        "psgallery": "SalmonRun.0.1.1.nupkg (local artifact built)"
+        "docker": "salmon-run:0.1.2 (local image built and verified)",
+        "psgallery": "SalmonRun.0.1.2.nupkg (local artifact built)"
       },
-      "installCommand": "Install-Module -Name SalmonRun  (or: git clone --branch v0.1.1 https://github.com/victorsalmon/salmon-run.git && .\\install.ps1)",
-      "smokeResult": "PASS: docker run --rm salmon-run:0.1.1 -DryRun exited 0 and listed 9 ponds / 1 stream; Test-ModuleManifest + Import-Module SalmonRun validated with PSModulePath; local nupkg SalmonRun.0.1.1.nupkg built"
+      "installCommand": "Install-Module -Name SalmonRun  (or: git clone --branch v0.1.2 https://github.com/victorsalmon/salmon-run.git && .\\install.ps1)",
+      "smokeResult": "PASS: docker run --rm salmon-run:0.1.2 -DryRun exited 0 and listed 9 ponds / 1 stream; Test-ModuleManifest + Import-Module SalmonRun validated with PSModulePath; local nupkg SalmonRun.0.1.2.nupkg built"
     },
     "acceptance": {
       "artifact_set_documented": "verified: docs/RELEASE.md",
