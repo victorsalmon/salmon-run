@@ -29,6 +29,7 @@ function Get-SalmonRunPonds {
             [int]$ParallelCount = 1,
             [int]$MinGuarantee = 1,
             [int]$MaxNewPerIteration = 1,
+            [int]$MaxFilesPerGroup = 3,
             [switch]$Enabled,
             [switch]$SkipScheduled,
             [switch]$SkipBlocked,
@@ -52,6 +53,7 @@ function Get-SalmonRunPonds {
         $p.Operators.ParallelCount = $ParallelCount
         $p.Operators.MinGuarantee = $MinGuarantee
         $p.Operators.MaxNewPerIteration = $MaxNewPerIteration
+        $p.Operators.MaxFilesPerGroup = $MaxFilesPerGroup
         $p.Entry = [PondEntryGate]::new()
         $p.Entry.Enabled = if ($PSBoundParameters.ContainsKey('Enabled')) { $Enabled.IsPresent } else { $true }
         $p.Entry.SkipScheduled = if ($PSBoundParameters.ContainsKey('SkipScheduled')) { $SkipScheduled.IsPresent } else { $true }

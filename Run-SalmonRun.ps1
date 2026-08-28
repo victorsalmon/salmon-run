@@ -130,6 +130,7 @@ while ($true) {
         while (-not $process.HasExited) {
             if (Test-Path -LiteralPath $stopFile) {
                 Write-OrchestratorLog -Message 'stop sentinel found; terminating pond engine' -Level 'INFO'
+                $null = taskkill /T /F /PID $process.Id 2>&1 | Out-Null
                 Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
                 Start-Sleep -Seconds 1
                 break
@@ -159,6 +160,7 @@ while ($true) {
         }
 
         if (-not $process.HasExited) {
+            $null = taskkill /T /F /PID $process.Id 2>&1 | Out-Null
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
         }
 

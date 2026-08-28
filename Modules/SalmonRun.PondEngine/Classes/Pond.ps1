@@ -27,6 +27,7 @@ class PondOperators {
     [int]$ParallelCount        # concurrent operators for this pond per stream
     [int]$MinGuarantee         # minimum operators to reserve if work exists
     [int]$MaxNewPerIteration   # throttle new operators per loop pass
+    [int]$MaxFilesPerGroup     # split large namespace groups into smaller chunks
 }
 
 class PondStream {
