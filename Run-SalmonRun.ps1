@@ -39,13 +39,14 @@ if (-not (Test-Path $moduleLoader -PathType Leaf)) {
 . $moduleLoader
 
 $null = Initialize-InterclawEnvironment -RepoRoot $PSScriptRoot
+$salmonHome = Get-SalmonHome
 $taskRoot = Get-SalmonTaskRoot
 if (-not (Test-Path $taskRoot -PathType Container)) {
     $null = New-Item -ItemType Directory -Path $taskRoot -Force
 }
 
 if ([string]::IsNullOrWhiteSpace($LogDir)) {
-    $LogDir = Join-Path $taskRoot 'Logs'
+    $LogDir = Join-Path $salmonHome 'Logs'
 }
 if (-not (Test-Path $LogDir -PathType Container)) {
     $null = New-Item -ItemType Directory -Path $LogDir -Force

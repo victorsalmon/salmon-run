@@ -103,13 +103,13 @@ if (Test-Path -LiteralPath $workingDir) {
     $laneDirs = Get-ChildItem -LiteralPath $workingDir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'lane-*' }
     foreach ($lane in $laneDirs) {
         $pidFile = Join-Path $lane.FullName '.pid'
-        $pid = $null
+        $lanePid = $null
         $processAlive = $false
         $lastWrite = $lane.LastWriteTime
         if (Test-Path -LiteralPath $pidFile) {
             $pidText = Get-Content -LiteralPath $pidFile -Raw -ErrorAction SilentlyContinue
-            $null = [int]::TryParse($pidText, [ref]$pid)
-            $process = if ($pid) { Get-Process -Id $pid -ErrorAction SilentlyContinue }
+            $null = [int]::TryParse($pidText, [ref]$lanePid)
+            $process = if ($lanePid) { Get-Process -Id $lanePid -ErrorAction SilentlyContinue }
             $processAlive = $process -ne $null
         }
         # Find the most recently written file in the lane (logs, sentinels, etc.)
@@ -119,7 +119,7 @@ if (Test-Path -LiteralPath $workingDir) {
 
         $laneInfo = [ordered]@{
             name      = $lane.Name
-            pid       = $pid
+            pid       = $lanePid
             processAlive = $processAlive
             lastWrite = $lastWrite.ToString('o')
             ageSeconds = $ageSeconds
