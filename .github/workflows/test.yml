@@ -22,6 +22,12 @@ jobs:
         shell: pwsh
         run: |
           $env:PSModulePath = "${{ github.workspace }}\Modules;" + $env:PSModulePath
+          # Some windows-2025 runners are provisioned without PSGallery registered,
+          # so ensure the default gallery is available before installing Pester.
+          if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+            Register-PSRepository -Default
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          }
           $pester = Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version -ge [version]'6.0.0' } | Select-Object -First 1
           if (-not $pester) {
             Install-Module Pester -MinimumVersion 6.0.0 -Force -SkipPublisherCheck -Scope CurrentUser
