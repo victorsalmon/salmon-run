@@ -1,6 +1,6 @@
 @{
     RootModule = 'SalmonRun.psm1'
-    ModuleVersion = '0.1.0'
+    ModuleVersion = '0.1.1'
     GUID = 'a1b2c3d4-1111-2222-3333-444455556666'
     Author = 'Salmon Run'
     CompanyName = 'Salmon Run'
