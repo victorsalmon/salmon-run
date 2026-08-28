@@ -128,18 +128,18 @@ Describe "OpenCode provider contract" -Tag "Contract", "Regression" {
             $exit = Invoke-OpencodeProvider
 
             $exit | Should -Be 0
-            $args = $script:captured.ArgumentList
-            $args | Should -Contain 'run'
-            $args | Should -Contain '--model'
-            $idx = [array]::IndexOf($args, '--model')
-            $args[$idx + 1] | Should -Be 'opencode-go/mimo-v2.5'
-            $args | Should -Contain '--variant'
-            $vidx = [array]::IndexOf($args, '--variant')
-            $args[$vidx + 1] | Should -Be 'default'
-            $args | Should -Contain '--auto'
-            $args | Should -Contain '-f'
-            $fidx = [array]::IndexOf($args, '-f')
-            $args[$fidx + 1] | Should -Be $plan
+            $argList = $script:captured.ArgumentList
+            $argList | Should -Contain 'run'
+            $argList | Should -Contain '--model'
+            $idx = [array]::IndexOf($argList, '--model')
+            $argList[$idx + 1] | Should -Be 'opencode-go/mimo-v2.5'
+            $argList | Should -Contain '--variant'
+            $vidx = [array]::IndexOf($argList, '--variant')
+            $argList[$vidx + 1] | Should -Be 'default'
+            $argList | Should -Contain '--auto'
+            $argList | Should -Contain '-f'
+            $fidx = [array]::IndexOf($argList, '-f')
+            $argList[$fidx + 1] | Should -Be $plan
         }
 
         It "defaults the model and effort for opencode-go when omitted" {
@@ -150,11 +150,11 @@ Describe "OpenCode provider contract" -Tag "Contract", "Regression" {
             $exit = Invoke-OpencodeProvider
 
             $exit | Should -Be 0
-            $args = $script:captured.ArgumentList
-            $idx = [array]::IndexOf($args, '--model')
-            $args[$idx + 1] | Should -Be 'opencode-go/mimo-v2.5'
-            $vidx = [array]::IndexOf($args, '--variant')
-            $args[$vidx + 1] | Should -Be 'default'
+            $argList = $script:captured.ArgumentList
+            $idx = [array]::IndexOf($argList, '--model')
+            $argList[$idx + 1] | Should -Be 'opencode-go/hy3'
+            $vidx = [array]::IndexOf($argList, '--variant')
+            $argList[$vidx + 1] | Should -Be 'max'
         }
 
         It "rejects an unsupported model for opencode-go" {
@@ -177,7 +177,7 @@ Describe "OpenCode provider contract" -Tag "Contract", "Regression" {
             if ($IsWindows -or $env:OS -eq 'Windows_NT') {
                 # On Windows the resolved CLI may be opencode (if an .exe is in PATH)
                 # or the npm opencode.cmd wrapper. It must not be the POSIX shell script.
-                $script:captured.FilePath | Should -Match 'opencode(\.cmd)?$'
+                $script:captured.FilePath | Should -Match 'opencode(\.cmd|\.exe)?$'
             } else {
                 $script:captured.FilePath | Should -Be 'opencode'
             }
@@ -274,3 +274,4 @@ Do not use any tools. Just say exactly "hello from opencode" and exit.
         }
     }
 }
+

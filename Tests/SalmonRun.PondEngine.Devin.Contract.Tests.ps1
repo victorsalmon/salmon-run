@@ -100,15 +100,15 @@ Describe "Devin provider contract" -Tag "Contract", "Regression" {
             $exit = Invoke-DevinProvider
 
             $exit | Should -Be 0
-            $args = $script:captured.ArgumentList
-            $args | Should -Contain '--prompt-file'
-            $pIdx = [array]::IndexOf($args, '--prompt-file')
+            $argList = $script:captured.ArgumentList
+            $argList | Should -Contain '--prompt-file'
+            $pIdx = [array]::IndexOf($argList, '--prompt-file')
             # the prompt file argument must be the generated temp file
-            $args[$pIdx + 1] | Should -Not -BeNullOrEmpty
-            $args | Should -Contain '-p'
-            $args | Should -Contain '--model'
-            $mIdx = [array]::IndexOf($args, '--model')
-            $args[$mIdx + 1] | Should -Be 'swe-1-7'
+            $argList[$pIdx + 1] | Should -Not -BeNullOrEmpty
+            $argList | Should -Contain '-p'
+            $argList | Should -Contain '--model'
+            $mIdx = [array]::IndexOf($argList, '--model')
+            $argList[$mIdx + 1] | Should -Be 'swe-1-7'
         }
 
         It "uses the explicit model when provided" {
@@ -118,9 +118,9 @@ Describe "Devin provider contract" -Tag "Contract", "Regression" {
             $exit = Invoke-DevinProvider
 
             $exit | Should -Be 0
-            $args = $script:captured.ArgumentList
-            $mIdx = [array]::IndexOf($args, '--model')
-            $args[$mIdx + 1] | Should -Be 'swe-1-7'
+            $argList = $script:captured.ArgumentList
+            $mIdx = [array]::IndexOf($argList, '--model')
+            $argList[$mIdx + 1] | Should -Be 'swe-1-7'
         }
 
         It "resolves the devin CLI from PATH" {
@@ -262,3 +262,4 @@ Do not use any tools. Just say exactly "hello from devin" and exit.
         }
     }
 }
+

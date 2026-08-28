@@ -27,12 +27,12 @@ AfterAll {
 
 Describe 'Model router cost fields' -Tag 'PondEngine', 'Regression-Only' {
     It 'exposes costRule, apiCost and effectiveCost on the execution profile' {
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' }
+        $srExecProfile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' }
 
-        $profile.CostRule | Should -Not -BeNullOrEmpty
-        $profile.ApiCostPer1KTokens | Should -Not -Be $null
-        $profile.EffectiveCostPer1KTokens | Should -Not -Be $null
-        $profile.EffectiveCostPer1KTokens | Should -BeLessOrEqual $profile.ApiCostPer1KTokens
+        $srExecProfile.CostRule | Should -Not -BeNullOrEmpty
+        $srExecProfile.ApiCostPer1KTokens | Should -Not -Be $null
+        $srExecProfile.EffectiveCostPer1KTokens | Should -Not -Be $null
+        $srExecProfile.EffectiveCostPer1KTokens | Should -BeLessOrEqual $srExecProfile.ApiCostPer1KTokens
     }
 
     It 'carries free cost for Local and non-zero cost for Flash tiers' {
@@ -49,22 +49,22 @@ Describe 'Model router cost fields' -Tag 'PondEngine', 'Regression-Only' {
     }
 
     It 'carries discounted cost for OpenCode Go Daily models' {
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' -Harness 'opencode' }
+        $srExecProfile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' -Harness 'opencode' -Model 'opencode-go/mimo-v2.5' }
 
-        $profile.Provider | Should -Be 'opencode-go'
-        $profile.CostRule | Should -Be 'one-sixth'
-        $profile.ApiCostPer1KTokens | Should -BeGreaterThan 0
-        $profile.EffectiveCostPer1KTokens | Should -BeGreaterThan 0
-        $profile.EffectiveCostPer1KTokens * 6 | Should -BeLessOrEqual ($profile.ApiCostPer1KTokens + 0.01)
+        $srExecProfile.Provider | Should -Be 'opencode-go'
+        $srExecProfile.CostRule | Should -Be 'one-sixth'
+        $srExecProfile.ApiCostPer1KTokens | Should -BeGreaterThan 0
+        $srExecProfile.EffectiveCostPer1KTokens | Should -BeGreaterThan 0
+        $srExecProfile.EffectiveCostPer1KTokens * 6 | Should -BeLessOrEqual ($srExecProfile.ApiCostPer1KTokens + 0.01)
     }
 
     It 'carries normal cost for OpenCode Go Frontier models' {
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }
+        $srExecProfile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }
 
-        $profile.Provider | Should -Be 'opencode-go'
-        $profile.CostRule | Should -Be 'normal'
-        $profile.ApiCostPer1KTokens | Should -BeGreaterThan 0
-        $profile.EffectiveCostPer1KTokens | Should -Be ($profile.ApiCostPer1KTokens)
+        $srExecProfile.Provider | Should -Be 'opencode-go'
+        $srExecProfile.CostRule | Should -Be 'normal'
+        $srExecProfile.ApiCostPer1KTokens | Should -BeGreaterThan 0
+        $srExecProfile.EffectiveCostPer1KTokens | Should -Be ($srExecProfile.ApiCostPer1KTokens)
     }
 }
 
@@ -181,20 +181,20 @@ Describe 'Benchmark data from ~/.salmon/benchmarks' -Tag 'PondEngine', 'Regressi
         }
         $bench | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $benchmarksDir 'models.json') -Encoding utf8
 
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }
+        $srExecProfile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' -Model 'opencode-go/deepseek-v4-pro' }
 
-        $profile.Provider | Should -Be 'opencode-go'
-        $profile.Model | Should -Be 'opencode-go/deepseek-v4-pro'
-        $profile.CostRule | Should -Be 'normal'
-        $profile.ApiCostPer1KTokens | Should -Be 0.87
-        $profile.EffectiveCostPer1KTokens | Should -Be 0.87
-        $profile.CostWithThinking | Should -Be 1.37
-        $profile.ThinkingTokenRatio | Should -Be 0.57
-        $profile.ThinkingTokensPer1KOutput | Should -Be 570
-        $profile.TokenizerEfficiency | Should -Be 2.12
-        $profile.SpeedTokPerS | Should -Be 95.6
-        $profile.Benchmarks['swe_bench_pro']['score'] | Should -Be 55.4
-        $profile.References | Should -Contain 'https://www.swebench.com/'
+        $srExecProfile.Provider | Should -Be 'opencode-go'
+        $srExecProfile.Model | Should -Be 'opencode-go/deepseek-v4-pro'
+        $srExecProfile.CostRule | Should -Be 'normal'
+        $srExecProfile.ApiCostPer1KTokens | Should -Be 0.87
+        $srExecProfile.EffectiveCostPer1KTokens | Should -Be 0.87
+        $srExecProfile.CostWithThinking | Should -Be 1.37
+        $srExecProfile.ThinkingTokenRatio | Should -Be 0.57
+        $srExecProfile.ThinkingTokensPer1KOutput | Should -Be 570
+        $srExecProfile.TokenizerEfficiency | Should -Be 2.12
+        $srExecProfile.SpeedTokPerS | Should -Be 95.6
+        $srExecProfile.Benchmarks['swe_bench_pro']['score'] | Should -Be 55.4
+        $srExecProfile.References | Should -Contain 'https://www.swebench.com/'
     }
 
     It 'matches provider overlay models by provider model_id' {
@@ -261,12 +261,12 @@ Describe 'Benchmark data from ~/.salmon/benchmarks' -Tag 'PondEngine', 'Regressi
         }
         $bench | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $benchmarksDir 'models.json') -Encoding utf8
 
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }
+        $srExecProfile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }
 
-        $profile.Provider | Should -Be 'deepinfra'
-        $profile.ThinkingTokenRatio | Should -Be 0.34
-        $profile.TokenizerEfficiency | Should -Be 1.84
-        $profile.CostWithThinking | Should -Be 0.241
+        $srExecProfile.Provider | Should -Be 'deepinfra'
+        $srExecProfile.ThinkingTokenRatio | Should -Be 0.34
+        $srExecProfile.TokenizerEfficiency | Should -Be 1.84
+        $srExecProfile.CostWithThinking | Should -Be 0.241
     }
 }
 
@@ -325,17 +325,17 @@ Describe 'Provider overlay from ~/.salmon/providers' -Tag 'PondEngine', 'Regress
         }
         $overlay | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $providersDir 'openrouter.json') -Encoding utf8
 
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Complex' }
+        $srExecProfile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Complex' }
 
-        $profile.Harness | Should -Be 'deepseek'
-        $profile.Provider | Should -Be 'openrouter'
-        $profile.Model | Should -Be 'openrouter/stealth/ox-alpha'
-        $profile.Cli | Should -Be 'dsh'
-        $profile.ExecutorFile | Should -Be 'Dsh'
-        $profile.Credentials | Should -Contain 'OPENROUTER_API_KEY'
-        $profile.CostRule | Should -Be 'normal'
-        $profile.ApiCostPer1KTokens | Should -Be 0.45
-        $profile.EffectiveCostPer1KTokens | Should -Be 0.45
+        $srExecProfile.Harness | Should -Be 'deepseek'
+        $srExecProfile.Provider | Should -Be 'openrouter'
+        $srExecProfile.Model | Should -Be 'openrouter/stealth/ox-alpha'
+        $srExecProfile.Cli | Should -Be 'dsh'
+        $srExecProfile.ExecutorFile | Should -Be 'Dsh'
+        $srExecProfile.Credentials | Should -Contain 'OPENROUTER_API_KEY'
+        $srExecProfile.CostRule | Should -Be 'normal'
+        $srExecProfile.ApiCostPer1KTokens | Should -Be 0.45
+        $srExecProfile.EffectiveCostPer1KTokens | Should -Be 0.45
     }
 
     It 'routes Frontier to an overlay DeepInfra/Codex model' {
@@ -365,17 +365,17 @@ Describe 'Provider overlay from ~/.salmon/providers' -Tag 'PondEngine', 'Regress
         }
         $overlay | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $providersDir 'deepinfra.json') -Encoding utf8
 
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }
+        $srExecProfile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Frontier' }
 
-        $profile.Harness | Should -Be 'deepseek'
-        $profile.Provider | Should -Be 'deepinfra'
-        $profile.Model | Should -Be 'deepseek-ai/DeepSeek-V4-Flash-0731'
-        $profile.Cli | Should -Be 'dsh'
-        $profile.ExecutorFile | Should -Be 'Dsh'
-        $profile.Credentials | Should -Contain 'DEEPINFRA_API_KEY'
-        $profile.CostRule | Should -Be 'normal'
-        $profile.ApiCostPer1KTokens | Should -Be 0.80
-        $profile.EffectiveCostPer1KTokens | Should -Be 0.80
+        $srExecProfile.Harness | Should -Be 'deepseek'
+        $srExecProfile.Provider | Should -Be 'deepinfra'
+        $srExecProfile.Model | Should -Be 'deepseek-ai/DeepSeek-V4-Flash-0731'
+        $srExecProfile.Cli | Should -Be 'dsh'
+        $srExecProfile.ExecutorFile | Should -Be 'Dsh'
+        $srExecProfile.Credentials | Should -Contain 'DEEPINFRA_API_KEY'
+        $srExecProfile.CostRule | Should -Be 'normal'
+        $srExecProfile.ApiCostPer1KTokens | Should -Be 0.80
+        $srExecProfile.EffectiveCostPer1KTokens | Should -Be 0.80
     }
 
     It 'merges multiple provider overlay files cleanly' {
@@ -449,3 +449,4 @@ Describe 'Provider overlay from ~/.salmon/providers' -Tag 'PondEngine', 'Regress
         $frontier.Provider | Should -Be 'deepinfra'
     }
 }
+

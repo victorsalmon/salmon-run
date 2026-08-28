@@ -132,7 +132,7 @@ Describe "WorkflowEvents tests" -Tag "WorkflowEvents" {
             Write-WorkflowEvent -Type CLAIM -AgentId "reader-test" -Phase coder -Files @("plan.md")
 
             $events = Get-WorkflowEvents -AgentId "reader-test"
-            $validEvents = @($events | Where-Object { $_.type -ne $null -and $_.type -ne "" })
+            $validEvents = @($events | Where-Object { $null -ne $_.type -and $_.type -ne "" })
             $validEvents.Count | Should -Be 2
             $validEvents[0].type | Should -Be "SESSION_START"
             $validEvents[1].type | Should -Be "CLAIM"
@@ -144,7 +144,7 @@ Describe "WorkflowEvents tests" -Tag "WorkflowEvents" {
 
             Write-WorkflowEvent -Type COMMIT -AgentId "reader-test" -Phase coder -Detail "abc1234"
             $events = Get-WorkflowEvents -AgentId "reader-test"
-            $validEvents = @($events | Where-Object { $_.type -ne $null -and $_.type -ne "" })
+            $validEvents = @($events | Where-Object { $null -ne $_.type -and $_.type -ne "" })
             $validEvents.Count | Should -Be 1
             $validEvents[0].type | Should -Be "COMMIT"
         }
@@ -243,3 +243,4 @@ Describe "WorkflowEvents tests" -Tag "WorkflowEvents" {
         }
     }
 }
+

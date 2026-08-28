@@ -145,7 +145,7 @@ Describe "SalmonRun.Diagnostics Module" -Tag "Diagnostics" {
                 $acquired = $mtx.WaitOne(0)
                 $acquired | Should -Be $true
             } finally {
-                if ($acquired) { try { $mtx.ReleaseMutex() } catch { } }
+                if ($acquired) { try { $mtx.ReleaseMutex() } catch { Write-Verbose "Suppressed mutex release error: $_" } }
                 $mtx.Dispose()
             }
         }

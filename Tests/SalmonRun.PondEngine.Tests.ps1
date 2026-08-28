@@ -100,9 +100,9 @@ Describe 'Get-SalmonRunPonds' -Tag 'PondEngine', 'Regression-Only' {
         }
     }
 
-    It 'keeps Review failures in Review so feedback can be written to Code' {
+    It 'routes Review failures back to Code so feedback can be written to Code' {
         $review = Get-SalmonRunPonds | Where-Object { $_.Name -eq 'Review' }
-        $review.OnFailure.MoveTo | Should -Be 'Review'
+        $review.OnFailure.MoveTo | Should -Be 'Code'
     }
 }
 
@@ -183,14 +183,14 @@ Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
 
 Describe 'Pond executor registry' -Tag 'PondEngine', 'Regression-Only' {
     It 'resolves a Daily profile from the model-router catalog' {
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' }
-        $profile | Should -Not -BeNullOrEmpty
-        $profile.Harness | Should -Not -BeNullOrEmpty
-        $profile.Provider | Should -Not -BeNullOrEmpty
-        $profile.Model | Should -Not -BeNullOrEmpty
-        $profile.Effort | Should -Not -BeNullOrEmpty
-        $profile.Cli | Should -Not -BeNullOrEmpty
-        $profile.ExecutorFile | Should -Not -BeNullOrEmpty
+        $srExecProfile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' }
+        $srExecProfile | Should -Not -BeNullOrEmpty
+        $srExecProfile.Harness | Should -Not -BeNullOrEmpty
+        $srExecProfile.Provider | Should -Not -BeNullOrEmpty
+        $srExecProfile.Model | Should -Not -BeNullOrEmpty
+        $srExecProfile.Effort | Should -Not -BeNullOrEmpty
+        $srExecProfile.Cli | Should -Not -BeNullOrEmpty
+        $srExecProfile.ExecutorFile | Should -Not -BeNullOrEmpty
     }
 
     It 'routes every tier to the configured opencode-go model' {
@@ -203,16 +203,16 @@ Describe 'Pond executor registry' -Tag 'PondEngine', 'Regression-Only' {
     }
 
     It 'produces a runnable executor command from a profile' {
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' }
-        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
+        $srExecProfile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Daily' }
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -srExecProfile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $srExecProfile
         $cmd.ExecutorPath | Should -Exist
-        $cmd.Command | Should -Match $profile.Model
+        $cmd.Command | Should -Match $srExecProfile.Model
 
-        if ($profile.Cli -eq 'opencode') {
+        if ($srExecProfile.Cli -eq 'opencode') {
             $cmd.Command | Should -Match 'opencode run'
             $cmd.Command | Should -Match '--variant'
             $cmd.Command | Should -Match '--auto'
-        } elseif ($profile.Cli -eq 'codex') {
+        } elseif ($srExecProfile.Cli -eq 'codex') {
             $cmd.Command | Should -Match 'codex exec'
             $cmd.Command | Should -Match 'model_reasoning_effort'
             $cmd.Command | Should -Match '--output-last-message'
@@ -386,7 +386,7 @@ Describe 'Project and ProjectReview pipeline' -Tag 'PondEngine', 'Regression-Onl
         $saved = $env:SALMON_RUN_HOME
         try {
             $env:SALMON_RUN_HOME = $tempDir
-            Start-PondEngine -RepoDir $tempDir -MaxIterations 2 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 8 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
             Join-Path $tempDir "Tasks/Complete/$planName" | Should -Exist
             Join-Path $tempDir "Tasks/Project/$planName" | Should -Not -Exist
             Join-Path $tempDir "Tasks/Failed/$planName" | Should -Not -Exist
@@ -414,7 +414,7 @@ Describe 'Project and ProjectReview pipeline' -Tag 'PondEngine', 'Regression-Onl
         $saved = $env:SALMON_RUN_HOME
         try {
             $env:SALMON_RUN_HOME = $tempDir
-            Start-PondEngine -RepoDir $tempDir -MaxIterations 2 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 8 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
             Join-Path $tempDir "Tasks/Complete/$planName" | Should -Exist
             Join-Path $tempDir "Tasks/Project/$planName" | Should -Not -Exist
             Join-Path $tempDir "Tasks/Failed/$planName" | Should -Not -Exist
@@ -587,14 +587,14 @@ Describe 'Pond capacity' -Tag 'PondEngine', 'Regression-Only' {
 
 Describe 'OpenCode executor command' -Tag 'PondEngine', 'Regression-Only' {
     It 'produces an opencode-go command without hardcoded private paths' {
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Complex' }
-        $profile.Provider | Should -Be 'opencode-go'
+        $srExecProfile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Complex' }
+        $srExecProfile.Provider | Should -Be 'opencode-go'
 
-        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -srExecProfile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $srExecProfile
 
         $cmd.Command | Should -Match 'opencode run'
-        $cmd.Command | Should -Match $profile.Model
-        $cmd.Command | Should -Match $profile.Effort
+        $cmd.Command | Should -Match $srExecProfile.Model
+        $cmd.Command | Should -Match $srExecProfile.Effort
         $cmd.Command | Should -Match '--variant'
         $cmd.Command | Should -Match '--auto'
 
@@ -619,15 +619,15 @@ Describe 'OpenCode executor command' -Tag 'PondEngine', 'Regression-Only' {
     }
 
     It 'produces an opencode (Zen) command' {
-        $profile = [PondExecutionProfile]::new()
-        $profile.Provider = 'opencode'
-        $profile.Cli = 'opencode'
-        $profile.Model = 'opencode/hy3-free'
-        $profile.Effort = 'max'
-        $profile.ExecutorFile = 'Opencode'
-        $profile.Credentials = @('OPENCODE_GO_KEY')
+        $srExecProfile = [PondExecutionProfile]::new()
+        $srExecProfile.Provider = 'opencode'
+        $srExecProfile.Cli = 'opencode'
+        $srExecProfile.Model = 'opencode/hy3-free'
+        $srExecProfile.Effort = 'max'
+        $srExecProfile.ExecutorFile = 'Opencode'
+        $srExecProfile.Credentials = @('OPENCODE_GO_KEY')
 
-        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'reviewer' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Review\plan.md') } $profile
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -srExecProfile $p -Role 'reviewer' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Review\plan.md') } $srExecProfile
 
         $cmd.Command | Should -Match 'opencode run'
         $cmd.Command | Should -Match 'opencode/hy3-free'
@@ -742,13 +742,13 @@ Describe 'OpenCode executor adapter' -Tag 'PondEngine', 'Regression-Only' {
 
 Describe 'OpenCode Go DeepSeek command' -Tag 'PondEngine', 'Regression-Only' {
     It 'produces an OpenCode Go command for Complex without hardcoded private paths' {
-        $profile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Complex' }
-        $profile.Provider | Should -Be 'opencode-go'
+        $srExecProfile = & (Get-Module SalmonRun.PondEngine) { Resolve-PondExecutionProfile -Tier 'Complex' }
+        $srExecProfile.Provider | Should -Be 'opencode-go'
 
-        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -srExecProfile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $srExecProfile
 
         $cmd.Command | Should -Match 'opencode run'
-        $cmd.Command | Should -Match $profile.Model
+        $cmd.Command | Should -Match $srExecProfile.Model
         $cmd.Command | Should -Match '--auto'
 
         $homePattern = [regex]::Escape(('C:', 'Users', 'RDP') -join [IO.Path]::DirectorySeparatorChar)
@@ -772,15 +772,15 @@ Describe 'OpenCode Go DeepSeek command' -Tag 'PondEngine', 'Regression-Only' {
     }
 
     It 'produces an OpenCode Go Frontier command' {
-        $profile = [PondExecutionProfile]::new()
-        $profile.Provider = 'opencode-go'
-        $profile.Cli = 'opencode'
-        $profile.Model = 'opencode-go/deepseek-v4-pro'
-        $profile.Effort = 'max'
-        $profile.ExecutorFile = 'Opencode'
-        $profile.Credentials = @('OPENCODE_GO_KEY')
+        $srExecProfile = [PondExecutionProfile]::new()
+        $srExecProfile.Provider = 'opencode-go'
+        $srExecProfile.Cli = 'opencode'
+        $srExecProfile.Model = 'opencode-go/deepseek-v4-pro'
+        $srExecProfile.Effort = 'max'
+        $srExecProfile.ExecutorFile = 'Opencode'
+        $srExecProfile.Credentials = @('OPENCODE_GO_KEY')
 
-        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'reviewer' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Review\plan.md') } $profile
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -srExecProfile $p -Role 'reviewer' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Review\plan.md') } $srExecProfile
 
         $cmd.Command | Should -Match 'opencode run'
         $cmd.Command | Should -Match 'opencode-go/deepseek-v4-pro'
@@ -795,15 +795,15 @@ Describe 'OpenCode Go DeepSeek command' -Tag 'PondEngine', 'Regression-Only' {
 
 Describe 'External executor command routing' -Tag 'PondEngine', 'Regression-Only' {
     It 'produces a devin command' {
-        $profile = [PondExecutionProfile]::new()
-        $profile.Provider = 'devin'
-        $profile.Cli = 'devin'
-        $profile.Model = 'swe-1-7'
-        $profile.Effort = 'medium'
-        $profile.ExecutorFile = 'Devin'
-        $profile.Credentials = @('DEVIN_API_KEY')
+        $srExecProfile = [PondExecutionProfile]::new()
+        $srExecProfile.Provider = 'devin'
+        $srExecProfile.Cli = 'devin'
+        $srExecProfile.Model = 'swe-1-7'
+        $srExecProfile.Effort = 'medium'
+        $srExecProfile.ExecutorFile = 'Devin'
+        $srExecProfile.Credentials = @('DEVIN_API_KEY')
 
-        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'planner' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -srExecProfile $p -Role 'planner' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $srExecProfile
 
         $cmd.Command | Should -Match 'devin'
         $cmd.Command | Should -Match 'swe-1-7'
@@ -816,15 +816,15 @@ Describe 'External executor command routing' -Tag 'PondEngine', 'Regression-Only
     }
 
     It 'produces a dsh/openrouter command' {
-        $profile = [PondExecutionProfile]::new()
-        $profile.Provider = 'openrouter'
-        $profile.Cli = 'dsh'
-        $profile.Model = 'deepseek-v4-pro'
-        $profile.Effort = 'max'
-        $profile.ExecutorFile = 'Dsh'
-        $profile.Credentials = @('OPENROUTER_API_KEY')
+        $srExecProfile = [PondExecutionProfile]::new()
+        $srExecProfile.Provider = 'openrouter'
+        $srExecProfile.Cli = 'dsh'
+        $srExecProfile.Model = 'deepseek-v4-pro'
+        $srExecProfile.Effort = 'max'
+        $srExecProfile.ExecutorFile = 'Dsh'
+        $srExecProfile.Credentials = @('OPENROUTER_API_KEY')
 
-        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'auditor' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -srExecProfile $p -Role 'auditor' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $srExecProfile
 
         $cmd.Command | Should -Match 'dsh --profile headless'
 
@@ -836,15 +836,15 @@ Describe 'External executor command routing' -Tag 'PondEngine', 'Regression-Only
     }
 
     It 'produces a dsh/deepinfra command' {
-        $profile = [PondExecutionProfile]::new()
-        $profile.Provider = 'deepinfra'
-        $profile.Cli = 'dsh'
-        $profile.Model = 'deepseek-v4-flash'
-        $profile.Effort = 'medium'
-        $profile.ExecutorFile = 'Dsh'
-        $profile.Credentials = @('DEEPINFRA_API_KEY')
+        $srExecProfile = [PondExecutionProfile]::new()
+        $srExecProfile.Provider = 'deepinfra'
+        $srExecProfile.Cli = 'dsh'
+        $srExecProfile.Model = 'deepseek-v4-flash'
+        $srExecProfile.Effort = 'medium'
+        $srExecProfile.ExecutorFile = 'Dsh'
+        $srExecProfile.Credentials = @('DEEPINFRA_API_KEY')
 
-        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'qa' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -srExecProfile $p -Role 'qa' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $srExecProfile
 
         $cmd.Command | Should -Match 'dsh --profile headless'
 
@@ -856,15 +856,15 @@ Describe 'External executor command routing' -Tag 'PondEngine', 'Regression-Only
     }
 
     It 'produces a codex command' {
-        $profile = [PondExecutionProfile]::new()
-        $profile.Provider = 'codex'
-        $profile.Cli = 'codex'
-        $profile.Model = 'gpt-5.6-luna'
-        $profile.Effort = 'low'
-        $profile.ExecutorFile = 'Codex'
-        $profile.Credentials = @('OPENAI_API_KEY')
+        $srExecProfile = [PondExecutionProfile]::new()
+        $srExecProfile.Provider = 'codex'
+        $srExecProfile.Cli = 'codex'
+        $srExecProfile.Model = 'gpt-5.6-luna'
+        $srExecProfile.Effort = 'low'
+        $srExecProfile.ExecutorFile = 'Codex'
+        $srExecProfile.Credentials = @('OPENAI_API_KEY')
 
-        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -Profile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $profile
+        $cmd = & (Get-Module SalmonRun.PondEngine) { param($p) Get-PondExecutorCommand -srExecProfile $p -Role 'coder' -RepoDir 'C:\temp\repo' -PlanFiles @('C:\temp\repo\Tasks\Code\plan.md') } $srExecProfile
 
         $cmd.Command | Should -Match 'codex exec'
         $cmd.Command | Should -Match 'gpt-5.6-luna'
@@ -1009,3 +1009,5 @@ Describe 'External executor adapter mocks' -Tag 'PondEngine', 'Regression-Only' 
         }
     }
 }
+
+

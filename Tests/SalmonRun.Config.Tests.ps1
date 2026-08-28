@@ -35,7 +35,7 @@ Describe "SalmonRun.Config Module" -Tag "Config" {
         It "returns null when no install.json exists anywhere" {
             $env:ORCHESTRATOR_INSTALL_JSON = $null
             $Result = Find-InstallJsonPath
-            $Result -is [string] -or $Result -eq $null | Should -BeTrue
+            $Result -is [string] -or $null -eq $Result | Should -BeTrue
         }
     }
 
@@ -376,3 +376,4 @@ Describe "SalmonRun.Config Module Manifest" -Tag "Config", "Regression-Only" {
         $manifest.AliasesToExport | Should -Contain "Test-InterclawConfigSchema"
     }
 }
+

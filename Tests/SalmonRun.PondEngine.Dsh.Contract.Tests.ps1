@@ -164,13 +164,13 @@ Describe "DSH provider contract" -Tag "Contract", "Regression" {
             $exit = Invoke-DshProvider
 
             $exit | Should -Be 0
-            $args = $script:captured.ArgumentList
-            $args | Should -Contain '--profile'
-            $args | Should -Contain 'headless'
-            $args | Should -Contain '--patch'
-            $pIdx = [array]::IndexOf($args, '--patch')
-            $args[$pIdx + 1] | Should -BeLike '*.yml'
-            $args[-1] | Should -Match 'Implement the following salmon-run plan'
+            $argList = $script:captured.ArgumentList
+            $argList | Should -Contain '--profile'
+            $argList | Should -Contain 'headless'
+            $argList | Should -Contain '--patch'
+            $pIdx = [array]::IndexOf($argList, '--patch')
+            $argList[$pIdx + 1] | Should -BeLike '*.yml'
+            $argList[-1] | Should -Match 'Implement the following salmon-run plan'
             $script:captured.FilePath | Should -Match 'pwsh|dsh'
         }
 
@@ -276,3 +276,4 @@ Do not use any tools. Just say exactly "hello from dsh" and exit.
         }
     }
 }
+
