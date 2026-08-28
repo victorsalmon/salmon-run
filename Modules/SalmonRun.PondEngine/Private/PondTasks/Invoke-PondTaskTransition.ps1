@@ -30,6 +30,9 @@ function Invoke-PondTaskTransition {
     $destDir = Join-Path $Context.TaskRoot $destPondName
     $null = New-Item -ItemType Directory -Path $destDir -Force -ErrorAction SilentlyContinue
 
+    $sourcePaths = @($files | ForEach-Object { $_.FullName })
+    $destFiles = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
+
     # Retry logic for failure transitions back to the same pond.
     $finalDest = $destPondName
     $retry = 0
@@ -60,6 +63,7 @@ function Invoke-PondTaskTransition {
         $dest = Join-Path $destDir $file.Name
         if (Test-Path -LiteralPath $dest) { Remove-Item -LiteralPath $dest -Force }
         Move-Item -LiteralPath $file.FullName -Destination $dest -Force -ErrorAction Stop
+        $destFiles.Add((Get-Item -LiteralPath $dest))
 
         # Mark the plan's status based on the outcome.
         $c = Get-Content -LiteralPath $dest -Raw
@@ -134,6 +138,11 @@ function Invoke-PondTaskTransition {
     if ($laneRemaining.Count -eq 0) {
         Remove-Item -LiteralPath $lanePath -Force -ErrorAction SilentlyContinue
     }
+
+    # Commit and push the .salmon task repo and the target code repo for every transition.
+    $firstName = $files[0].Name
+    $commitMsg = "move: $firstName from $($Pond.Name) to $finalDest"
+    Push-PondRepos -Pond $Pond -Context $Context -FinalDest $finalDest -SourcePaths $sourcePaths -DestFiles $destFiles -CommitMessage $commitMsg
 
     Write-Verbose "Invoke-PondTaskTransition: moved $($files.Count) plan(s) from '$($Pond.Name)' to '$finalDest' (success=$($Context.Success))"
     return $Context
