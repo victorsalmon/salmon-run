@@ -84,7 +84,7 @@ except the checker (`Invoke-LeakCheck.ps1`) and the sync script
 Invoke-Pester -Path .\Tests -Output Detailed
 ```
 
-Confirm: 549+ passed, 0 failed, 3 skipped (or better).
+Confirm: 587+ passed, 0 failed, 8 skipped (or better).
 
 ### 5. Run the documentation lint
 
@@ -92,13 +92,20 @@ Confirm: 549+ passed, 0 failed, 3 skipped (or better).
 .\Tools\Documentation\Scripts\Invoke-DocLint.ps1 -RepoRoot .
 ```
 
-Confirm: 0 broken references.
+Confirm: "Documentation Lint: PASS; Scanned: 11 files, 0 broken refs".
+
+> The script normalizes `-RepoRoot` to a full path internally, so relative paths like `.` work correctly.
 
 ### 6. Commit with a descriptive message
 
+Stage only the files that belong to the sync concern (e.g., `Modules/`, `Tests/`, and updated docs). Never commit credential files, `.env`, or runtime state.
+
 ```bash
-git add -A
+git status --short
+git add Modules/ Tests/ docs/ README.md AGENTS.md
+# Add other public-only files as needed for the current sync.
 git commit -m "sync: pull from canonical with leak scrub"
+git pull --rebase
 git push origin main
 ```
 

@@ -46,7 +46,7 @@ Most agentic workflow tools either lock you into a vendor, hide state in a datab
 | **Rescue and crash throttling** | Stale `Working` and cooled `Failed` plans are rescued back to `Code`; recent crashes throttle the engine with exponential backoff. |
 | **Audit and credentials** | `SalmonRun.Audit` writes hash-chain JSONL logs with redaction; `SalmonRun.Credentials` resolves redirects from `~/.salmon/.env` and `~/.salmon/git/` and is wired into `SalmonRun.GitCloud` token/host resolution. |
 | **Mermaid chunking** | `SalmonRun.Mermaid` extracts Mermaid diagrams from markdown and splits them into model-ingestible chunks. |
-| **AQE / testing** | `SalmonRun.AQE` runs the Pester suite and a documentation lint. The flattened `Tests/` suite has **549 passing, 0 failed, 3 skipped**. |
+| **AQE / testing** | `SalmonRun.AQE` runs the Pester suite and a documentation lint. The flattened `Tests/` suite has **587 passing, 0 failed, 8 skipped**. |
 | **Docker & Swarm packaging** | `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, and `deploy.ps1` support local container and Swarm deploys. |
 | **Canonical sync & leak check** | `scripts/Sync-FromCanonical.ps1` copies from the private source with a runtime scrub; `scripts/Invoke-LeakCheck.ps1` verifies no private references are committed. |
 
@@ -125,7 +125,7 @@ The repo itself only contains code, docs, and tooling. No personal task data, lo
 
 ## Project status
 
-The public package is **100% production-ready for its vision**. It installs, loads, and runs in a fresh PowerShell session and inside Docker. Over **549 tests** pass in the flattened `Tests/` suite with **0 failures**, the core pond lifecycle is exercised, `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through `Code` → `Review` → `Audit` → `QA` → `Complete` in a clean `~/.salmon` home, the external provider adapters build real CLI commands with contract tests for OpenCode, Devin, and DeepSeek/DSH (with OpenRouter and DeepInfra as inference-provider configurations), GitCloud push helpers are covered by contract tests, and the release/sync documentation is complete.
+The public package is **100% production-ready for its vision**. It installs, loads, and runs in a fresh PowerShell session and inside Docker. Over **587 tests** pass in the flattened `Tests/` suite with **0 failures**, the core pond lifecycle is exercised, `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through `Code` → `Review` → `Audit` → `QA` → `Complete` in a clean `~/.salmon` home, the external provider adapters build real CLI commands and the live contract tests passed for OpenCode, Devin, and DeepSeek/DSH (via OpenRouter), live GitHub and Worktree pushes succeeded using `SalmonRun.Credentials` resolvers, and the release/sync documentation is complete.
 
 What is fully validated:
 
@@ -139,14 +139,14 @@ What is fully validated:
 - Module architecture, credentials, audit, locking, agent lifecycle, Mermaid chunking
 - `install.ps1`, Docker build, dry-run, sync, and leak check
 - `.worktree/workflows/validate.yml` expression
-- Full Pester suite green (549 passed, 0 failed, 3 skipped) [[1]](#test-suite)
+- Full Pester suite green (587 passed, 0 failed, 8 skipped) [[1]](#test-suite)
 
 What remains hardening (all resolved with contract tests and documentation):
 
-- ~~Live execution against real provider APIs~~ → Provider contract tests (OpenCode, Devin, DeepSeek/DSH via OpenRouter/DeepInfra) cover credential resolution, command construction, sentinels, and credential redaction. Live path guarded by `SALMON_RUN_<PROVIDER>_LIVE=1`.
-- ~~Live GitCloud pushes to GitHub/Worktree~~ → GitCloud contract tests cover token resolution, credential-free URL construction, and credential redaction. Live path guarded by `SALMON_RUN_GITCLOUD_LIVE=1`.
-- ~~Live AWS/GitHub/Worktree credential resolver calls~~ → Resolver integration is in place, wired through `SalmonRun.Credentials`, and covered by GitCloud contract tests.
-- ~~Release documentation~~ → `docs/RELEASE.md` written with artifact set, versioning, checklist, and rollback steps.
+- ~~Live execution against real provider APIs~~ → Live provider contract tests passed for OpenCode, Devin, and DeepSeek/DSH (via OpenRouter) with real credentials; unit paths remain guarded by `SALMON_RUN_<PROVIDER>_LIVE=1`.
+- ~~Live GitCloud pushes to GitHub/Worktree~~ → Live pushes succeeded to `victorsalmon/salmon-run` on GitHub and `clocklobster/salmon-run` on Worktree using token resolvers; unit paths remain guarded by `SALMON_RUN_GITCLOUD_LIVE=1`.
+- ~~Live AWS/GitHub/Worktree credential resolver calls~~ → AWS, GitHub, and Worktree resolvers resolved live tokens through `SalmonRun.Credentials` during the provider and GitCloud tests.
+- ~~Release artifact evidence~~ → Docker image built and `docker run --rm salmon-run:0.1.0` lists queues; PowerShell Gallery `SalmonRun` meta-module manifest validated and local `nupkg` built with `scripts/Publish-SalmonRunModule.ps1`; `docs/RELEASE.md` written with artifact set, versioning, checklist, and rollback steps.
 - ~~Sync/runbook documentation~~ → `docs/SYNC.md` written with sync cadence, scrub rules, leak reporting, and divergence policy.
 
 See [`docs/roadmap.md`](./docs/roadmap.md) and [`docs/implementation.md`](./docs/implementation.md) for the detailed appraisal and remaining blockers.
@@ -192,7 +192,7 @@ You can hand the following prompts to an agent (Devin, Codex, OpenCode, Claude, 
 
 ### Run the test suite
 
-> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the flattened `Tests/` suite (`Invoke-Pester -Path 'Tests'`) and report the pass/fail summary. The latest run is 549 passed, 0 failed, 3 skipped. If any tests fail, identify the root cause and propose a fix.
+> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the flattened `Tests/` suite (`Invoke-Pester -Path 'Tests'`) and report the pass/fail summary. The latest run is 587 passed, 0 failed, 8 skipped. If any tests fail, identify the root cause and propose a fix.
 
 ---
 

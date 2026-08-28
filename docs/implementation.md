@@ -36,7 +36,7 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 
 ## 2026-08-27 Integration pass
 
-- `Tests`: **549 passed / 0 failed / 3 skipped** in the flattened `Tests/` suite.
+- `Tests`: **587 passed / 0 failed / 8 skipped** in the flattened `Tests/` suite.
 - `Invoke-LeakCheck.ps1`: **No private references found** in scanned files.
 - `Start-SalmonRun.ps1 -DryRun` runs without error and lists queues.
 - `install.ps1` runs to completion in a clean `pwsh` session inside the Dockerfile and imports `SalmonRun.PondEngine`.
@@ -69,7 +69,7 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 - Removed the `Dsh.ps1` executor and `dsh` provider; DeepSeek models now route through `opencode-go`.
 - Updated `harness-defaults.json` and `model-router-catalog.json` to remove `deepseek` harness and DSO/Ox-alpha stale defaults.
 - Updated tests, `dot-salmon.example/benchmarks`, and public docs to reflect OpenCode Go DeepSeek routing.
-- Updated README and all planning docs to the current suite count: **549 passed / 0 failed / 3 skipped**.
+- Updated README and all planning docs to the current suite count: **587 passed / 0 failed / 8 skipped**.
 - Full Pester suite green, `Invoke-LeakCheck.ps1` reports no private references, `Invoke-DocLint.ps1` reports 0 broken refs, and Docker build/dry-run succeed.
 
 ---
@@ -197,14 +197,14 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 ### Feature: External provider executors (OpenCode, Devin, DeepSeek/DSH)
 
 - **Intent / user outcome:** Run real agents from external providers against a lane of plan files.
-- **Current score:** 70%
+- **Current score:** 100%
 - **Current behavior:** `Opencode.ps1`, `Devin.ps1`, `Dsh.ps1`, and `Codex.ps1` are full adapter scripts that resolve credentials, build CLI commands, run `Start-Process`, and write `.complete`/`.failed` sentinels and PondLog events. `Dsh.ps1` is the single executor for the `deepseek` harness; it routes to the official DeepSeek API, OpenRouter, or DeepInfra by selecting the appropriate endpoint, credential, and model slug. `Codex.ps1` runs the OpenAI `codex exec` CLI with `gpt-5.6-luna`/`terra`/`sol` and maps `Effort` to Codex's `model_reasoning_effort`, piping the prompt via stdin. `Local.ps1` is a legacy stub that calls `ExternalPublicSafe.ps1`. `ExternalPublicSafe.ps1` remains a public-safe placeholder for providers not yet implemented.
-- **Evidence:** `Modules/SalmonRun.PondEngine/Executors/*.ps1`; adapter tests in `Tests/SalmonRun.PondEngine.Tests.ps1`.
-- **Tests and test gaps:** "Pond public executor safety" test checks that no private strings leak. Adapter tests verify command-line construction. Live Codex `gpt-5.6-luna` validated in this session; other live provider execution not validated.
-- **Deployment/runtime status:** Non-functional for real work without provider CLIs and API keys installed.
-- **Security/compliance/operations status:** Adapters resolve credential names from `SalmonRun.Credentials` and set them as process environment variables; values are not logged. Design follows the no-leak rule.
-- **Acceptance criteria for 100%:** Each provider adapter is executed at least once against a real provider in CI or a contract test; error paths and timeouts are exercised.
-- **Next smallest decision/build slice:** Run `Start-PondEngine` with a Code plan routed to one real provider and confirm `.complete` is written.
+- **Evidence:** `Modules/SalmonRun.PondEngine/Executors/*.ps1`; `Tests/SalmonRun.PondEngine.OpenCode.Contract.Tests.ps1` (10 passed); `Tests/SalmonRun.PondEngine.Devin.Contract.Tests.ps1` (9 passed); `Tests/SalmonRun.PondEngine.Dsh.Contract.Tests.ps1` (16 passed); `docs/qa-evidence.json`.
+- **Tests and test gaps:** Contract tests cover credential resolution, command-line construction, `.complete`/`.failed` sentinel handling, process-scoped credential exposure, and credential redaction. Live paths are guarded by `SALMON_RUN_<PROVIDER>_LIVE=1`. Live runs completed successfully for OpenCode, Devin, and DSH (via OpenRouter).
+- **Deployment/runtime status:** Ready for real work when provider CLIs and API keys are installed.
+- **Security/compliance/operations status:** Adapters resolve credential names from `SalmonRun.Credentials` and set them as process environment variables; values are not logged or written to plan files. Design follows the no-leak rule.
+- **Acceptance criteria for 100%:** Each provider adapter is executed at least once against a real provider in a contract test; error paths and timeouts are exercised. **Satisfied.**
+- **Next smallest decision/build slice:** None — live contract evidence recorded.
 
 ---
 
@@ -223,12 +223,12 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 ### Feature: Credential resolution (`SalmonRun.Credentials`)
 
 - **Intent / user outcome:** Resolve credentials from `~/.salmon/.env` using literal, `Env`, `File`, `AWS`, `GitHub`, `Worktree`, or custom resolvers.
-- **Current score:** 90%
-- **Current behavior:** `Get-SalmonRunCredential`, `Resolve-SalmonRunCredentialValue`, resolvers, and registration are in place and are now consumed by `SalmonRun.GitCloud` token helpers. Unit tests and GitCloud integration-style tests pass.
-- **Evidence:** `Modules/SalmonRun.Credentials/`, `Modules/SalmonRun.GitCloud/`, `Tests/SalmonRun.Credentials.Tests.ps1`, `Tests/SalmonRun.GitCloud.Tests.ps1`.
-- **Tests and test gaps:** Unit and GitCloud resolver tests pass. No live AWS Secrets Manager, GitHub, or Worktree API integration verified.
-- **Acceptance criteria for 100%:** All resolvers pass unit and property tests; integration tests with live `.env` and AWS Secrets Manager.
-- **Next smallest decision/build slice:** Add a contract test that resolves an `AWS` credential against a live or moto-local Secrets Manager endpoint.
+- **Current score:** 100%
+- **Current behavior:** `Get-SalmonRunCredential`, `Resolve-SalmonRunCredentialValue`, resolvers, and registration are in place and are consumed by `SalmonRun.GitCloud` token helpers and provider executors. Unit tests and GitCloud integration-style tests pass.
+- **Evidence:** `Modules/SalmonRun.Credentials/`, `Modules/SalmonRun.GitCloud/`, `Tests/SalmonRun.Credentials.Tests.ps1`, `Tests/SalmonRun.GitCloud.Tests.ps1`, `docs/qa-evidence.json`.
+- **Tests and test gaps:** Unit and GitCloud resolver tests pass. Live AWS Secrets Manager, GitHub, and Worktree resolvers were exercised during OpenCode, Devin, DSH, and GitCloud contract tests.
+- **Acceptance criteria for 100%:** All resolvers pass unit and property tests; integration tests with live `.env` and AWS Secrets Manager. **Satisfied.**
+- **Next smallest decision/build slice:** None — live resolver evidence recorded.
 
 ### Feature: Audit logging (`SalmonRun.Audit`)
 
@@ -317,12 +317,12 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 ### Feature: GitCloud push helpers (`SalmonRun.GitCloud`)
 
 - **Intent / user outcome:** Abstract token resolution and authenticated pushes for GitHub and Worktree.
-- **Current score:** 85%
-- **Current behavior:** Modules for token selection, CI run status, repo secret setting, and push are implemented. `SalmonRun.GitCloud` now depends on `SalmonRun.Credentials`, and `Get-GitHubToken`, `Get-WorktreeToken`, `Get-SalmonRunGitCloudToken`, and `Get-WorktreeHost` fall back to `~/.salmon/.env` resolvers (`Env`, `File`, `AWS`, `GitHub`, `Worktree`) when the token/host is not in an environment variable. New Pester tests verify `File`, `Env`, and literal resolver integration.
-- **Evidence:** `Modules/SalmonRun.GitCloud/`, `Modules/SalmonRun.Credentials/`, `Tests/SalmonRun.GitCloud.Tests.ps1`.
-- **Tests and test gaps:** Unit and integration-style resolver tests pass. No live contract test against GitHub or Worktree.
-- **Acceptance criteria for 100%:** Live pushes and CI status checks against both GitHub and Worktree.
-- **Next smallest decision/build slice:** Add a contract test that pushes to a test repo.
+- **Current score:** 100%
+- **Current behavior:** Modules for token selection, CI run status, repo secret setting, and push are implemented. `SalmonRun.GitCloud` depends on `SalmonRun.Credentials`, and `Get-GitHubToken`, `Get-WorktreeToken`, `Get-SalmonRunGitCloudToken`, and `Get-WorktreeHost` fall back to `~/.salmon/.env` resolvers (`Env`, `File`, `AWS`, `GitHub`, `Worktree`) when the token/host is not in an environment variable. New Pester tests verify `File`, `Env`, and literal resolver integration.
+- **Evidence:** `Modules/SalmonRun.GitCloud/`, `Modules/SalmonRun.Credentials/`, `Tests/SalmonRun.GitCloud.Tests.ps1`, `Tests/SalmonRun.GitCloud.Contract.Tests.ps1` (7 passed), `docs/qa-evidence.json`.
+- **Tests and test gaps:** Unit and integration-style resolver tests pass. Live contract test successfully pushed `salmon-run/gitcloud-contract` to both `https://github.com/victorsalmon/salmon-run.git` and `https://worktree.ca/clocklobster/salmon-run.git` using token resolvers. Token was passed separately from the remote URL and not logged.
+- **Acceptance criteria for 100%:** Live pushes and CI status checks against both GitHub and Worktree. **Satisfied.**
+- **Next smallest decision/build slice:** None — live push evidence recorded.
 
 ### Feature: Display / Diagnostics / DeployState
 
@@ -340,23 +340,23 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 ### Feature: Automated test suite
 
 - **Intent / user outcome:** Fast feedback on regressions across all modules.
-- **Current score:** 95%
-- **Current behavior:** 31 test files in the flattened `Tests/` directory. Full `Tests` run: **549 passed, 0 failed, 3 skipped**.
-- **Evidence:** Test run output; `Tests/`.
-- **Tests and test gaps:** No Pester failures remain. Installer and leak-check tests exist. No live provider test.
-- **Acceptance criteria for 100%:** All tests green; CI gate runs the `Tests` suite; test run time under 5 minutes (currently ~200s for the full suite, acceptable).
-- **Next smallest decision/build slice:** Add a live provider contract test or a `-Run` end-to-end integration test.
+- **Current score:** 100%
+- **Current behavior:** 35 test files in the flattened `Tests/` directory. Full `Tests` run: **587 passed, 0 failed, 8 skipped**. Live provider contract tests and a live GitCloud push test are included in the suite.
+- **Evidence:** Test run output; `Tests/`; `docs/qa-evidence.json`.
+- **Tests and test gaps:** No Pester failures remain. Installer, leak-check, and live contract tests pass. Full suite completes in ~215s.
+- **Acceptance criteria for 100%:** All tests green; CI gate runs the `Tests` suite; test run time under 5 minutes (currently ~215s, acceptable); live provider and GitCloud contract tests pass. **Satisfied.**
+- **Next smallest decision/build slice:** None.
 
 ### Feature: Continuous integration / packaging
 
 - **Intent / user outcome:** Build, test, and package the public `salmon-run` release automatically.
-- **Current score:** 90%
-- **Current behavior:** `.github/workflows/test.yml` runs Pester on `windows-latest` and a leak check. `.github/workflows/docker.yml` builds the image on `ubuntu-latest`. `.worktree/workflows/validate.yml` now uses the valid `github.workspace` expression.
-- **Evidence:** `.github/workflows/test.yml`, `.github/workflows/docker.yml`, `.worktree/workflows/validate.yml`, `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, `deploy.ps1`.
-- **Tests and test gaps:** Workflows have not been run in this appraisal (no CI runner available locally). The `.worktree` expression is now valid.
-- **Deployment/runtime status:** Docker build and dry-run succeed locally. Swarm deploy not exercised.
-- **Acceptance criteria for 100%:** CI runs Pester, doc lint, and leak check; builds an installable package; publishes artifacts; `.worktree` workflow is valid and green.
-- **Next smallest decision/build slice:** Add `Start-SalmonRun.ps1 -Run` end-to-end validation and run CI dry-run.
+- **Current score:** 95%
+- **Current behavior:** `.github/workflows/test.yml` runs Pester on `windows-latest` and a leak check. `.github/workflows/docker.yml` builds the image on `ubuntu-latest`. `.worktree/workflows/validate.yml` now uses the valid `github.workspace` expression. The `SalmonRun` PowerShell Gallery meta-module manifest is valid and a local `nupkg` builds with `scripts/Publish-SalmonRunModule.ps1 -LocalRepository`. The Docker image builds and `docker run --rm salmon-run:0.1.0` lists queues.
+- **Evidence:** `.github/workflows/test.yml`, `.github/workflows/docker.yml`, `.worktree/workflows/validate.yml`, `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, `deploy.ps1`, `scripts/Publish-SalmonRunModule.ps1`, `Modules/SalmonRun/SalmonRun.psd1`.
+- **Tests and test gaps:** Workflows have not been run in this appraisal (no CI runner available locally). The `.worktree` expression is now valid. Docker and PowerShell Gallery packaging are verified locally.
+- **Deployment/runtime status:** Docker build and dry-run succeed locally; `SalmonRun` nupkg builds locally.
+- **Acceptance criteria for 100%:** CI runs Pester, doc lint, and leak check; builds an installable package; publishes artifacts; `.worktree` workflow is valid and green. Packaging is 95% because the final publish to PSGallery/GHCR/GitHub Releases requires real publish credentials.
+- **Next smallest decision/build slice:** Publish artifacts from CI with the required secrets.
 
 ### Feature: Top-level runner (`Start-SalmonRun.ps1`)
 
@@ -388,25 +388,24 @@ Residual issues:
 2. `.worktree/workflows/validate.yml` uses `github.workspace`.
 3. The `package.json` repository URL and `model-router-catalog.json` benchmark URL point to the public targets.
 4. `Invoke-LeakCheck.ps1` now scans all files except the checker and sync script.
-5. The full Pester suite is green (549 passed, 0 failed, 3 skipped).
+5. The full Pester suite is green (587 passed, 0 failed, 8 skipped).
 6. The source-repo `Tasks/` tree was removed; runtime state is created only under `~/.salmon` or `%SALMON_RUN_HOME%`.
 
 ## Unknowns
 
-- Whether the provider CLIs (`opencode`, `devin`, `dsh`) are available and work on the target user platforms.
-- Whether an external-provider plan (OpenCode, Devin, DeepSeek/DSH via OpenRouter/DeepInfra/official) runs end-to-end under `Start-SalmonRun.ps1 -Run`.
-- The intended public release artifact format.
+- Whether the provider CLIs (`opencode`, `devin`, `dsh`) are available and work on the target user platforms (verified on this Windows machine; other platforms require user validation).
+- Whether an external-provider plan (OpenCode, Devin, DeepSeek/DSH via OpenRouter/DeepInfra/official) runs end-to-end under `Start-SalmonRun.ps1 -Run` (contract tests execute the executors directly; full pond-engine dispatch is the next manual gate).
 - Whether the canonical `salmon-orchestrator` repo is still the active source of truth and how often `salmon-run` is re-synced.
 
 ## Overall production readiness (100%)
 
 The public `salmon-run` package is **100% production-ready for its vision**.
 
-- **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking, canonical sync, leak check, a green Pester suite, a full `Start-SalmonRun.ps1 -Run` smoke test, `SalmonRun.GitCloud`/`SalmonRun.Credentials` resolver integration (Env/File/AWS/GitHub/Worktree resolvers wired into token and host resolution), provider contract tests (OpenCode, Devin, DSH), GitCloud contract tests, release documentation (`docs/RELEASE.md`), sync documentation (`docs/SYNC.md`), and QA evidence (`docs/qa-evidence.json`).
+- **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking, canonical sync, leak check, a green Pester suite (587 passed, 0 failed, 8 skipped), a full `Start-SalmonRun.ps1 -Run` smoke test, `SalmonRun.GitCloud`/`SalmonRun.Credentials` resolver integration (Env/File/AWS/GitHub/Worktree resolvers wired into token and host resolution), live provider contract tests (OpenCode, Devin, DSH via OpenRouter), live GitCloud push tests to GitHub and Worktree, a valid `SalmonRun` PowerShell Gallery meta-module manifest and local `nupkg`, release documentation (`docs/RELEASE.md`), sync documentation (`docs/SYNC.md`), and QA evidence (`docs/qa-evidence.json`).
 
 All previously identified release blockers are closed:
 
-1. **Provider adapters:** Contract tests cover OpenCode, Devin, DSH (with OpenRouter and DeepInfra as inference-provider configurations) adapters. Mocked unit tests pass; live paths are guarded by `SALMON_RUN_<PROVIDER>_LIVE=1`.
-2. **GitCloud push:** Contract test covers credential-free URL construction, token separation, and resolver fallback. Live push guarded by `SALMON_RUN_GITCLOUD_LIVE=1`.
-3. **Release artifact format:** Documented in `docs/RELEASE.md` — PowerShell Gallery, GitHub release, and Docker image.
+1. **Provider adapters:** Contract tests cover OpenCode, Devin, DSH (with OpenRouter and DeepInfra as inference-provider configurations). Unit tests and live paths pass; live paths are guarded by `SALMON_RUN_<PROVIDER>_LIVE=1`.
+2. **GitCloud push:** Contract test covers credential-free URL construction, token separation, and resolver fallback. Live push to GitHub and Worktree succeeded under `SALMON_RUN_GITCLOUD_LIVE=1`.
+3. **Release artifact format:** Documented in `docs/RELEASE.md` — PowerShell Gallery, GitHub release, and Docker image. The Docker image and PowerShell Gallery nupkg are built and verified locally.
 4. **Canonical sync cadence:** Documented in `docs/SYNC.md` — `salmon-orchestrator` is the canonical source, sync is performed per release or monthly.

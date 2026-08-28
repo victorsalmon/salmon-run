@@ -28,6 +28,16 @@ Each artifact is built from the same Git tag and carries the same version.
 - Compatibility, breaking changes, and patches follow [Semantic Versioning 2.0](https://semver.org/).
 - A release **MUST** have a signed, annotated Git tag.
 
+## Live validation notes
+
+The public `salmon-run` package was validated at `v0.1.0` on 2026-08-27:
+
+- Docker image built locally as `salmon-run:0.1.0` and `docker run --rm salmon-run:0.1.0 -DryRun` produced the expected queue listing.
+- The `SalmonRun` PowerShell Gallery meta-module manifest was validated with `Test-ModuleManifest` and a local `nupkg` was produced via `scripts/Publish-SalmonRunModule.ps1 -LocalRepository`.
+- Live provider contract tests passed for OpenCode, Devin, and DSH (via OpenRouter) with real API keys resolved through `SalmonRun.Credentials`.
+- Live GitCloud contract tests pushed a disposable branch to `https://github.com/victorsalmon/salmon-run.git` (using the authenticated GitHub token) and `https://worktree.ca/clocklobster/salmon-run.git`.
+- GitHub release, GHCR, and PowerShell Gallery *publication* were not performed because the required publish credentials (`POWERSHELL_GALLERY_KEY`, `DOCKER_TOKEN`, a release-creating GitHub token) are not configured in the validation environment. The CI workflows are ready to publish when a `v*` tag is pushed with those secrets.
+
 ---
 
 ## Pre-release checklist
@@ -40,7 +50,7 @@ Before cutting a release, every item below **MUST** pass:
 Invoke-Pester -Path .\Tests -Output Detailed
 ```
 
-- **Result**: 549+ passed, 0 failed, 3 skipped (or better).
+- **Result**: 587+ passed, 0 failed, 8 skipped (or better).
 - Failures block the release.
 
 ### 2. Leak check clean

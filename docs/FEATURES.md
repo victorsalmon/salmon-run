@@ -232,7 +232,7 @@ The repo has a single flattened test suite under `Tests/`:
 - Module and engine tests for the control-plane modules.
 - Cross-cutting utility-module tests for helpers, setup, display, and git/CI.
 
-All tests pass in the latest appraisal (549 passed, 0 failed, 3 skipped).
+All tests pass in the latest appraisal (587 passed, 0 failed, 8 skipped).
 
 ---
 
