@@ -101,4 +101,23 @@ Describe 'Pond scheduling safety' -Tag 'PondEngine','Regression-Only' {
         $selected = & (Get-Module SalmonRun.PondEngine) { param($p,$g,$c) Select-PondGroups -Pond $p -Groups $g -Context $c } $pond $groups $context
         @($selected) | Should -HaveCount 1
     }
+
+    It 'allocates a lane only from the selected repository stream' {
+        $currentsBase = Join-Path $TestDrive 'currents-base'
+        $uhBase = Join-Path $TestDrive 'uh-base'
+        $currentsWorktree = Join-Path $TestDrive 'currents-worktree'
+        $uhWorktree = Join-Path $TestDrive 'uh-worktree'
+        foreach ($path in $currentsBase,$uhBase) { $null = git init -b main $path }
+        $currents = New-PondStream -Id 'currents-ui' -Branch main -Path $currentsWorktree -RoleCounts @{ coder = 1 }
+        $currents | Add-Member BaseRepo $currentsBase -Force
+        $uh = New-PondStream -Id 'uh-canary' -Branch main -Path $uhWorktree -RoleCounts @{ coder = 1 }
+        $uh | Add-Member BaseRepo $uhBase -Force
+        $context = [PondContext]::new()
+        $context.Streams = [Collections.ArrayList]::new()
+        $null = $context.Streams.Add($currents)
+        $null = $context.Streams.Add($uh)
+        $pond = Get-SalmonRunPonds | Where-Object Name -eq Code
+        $lane = & (Get-Module SalmonRun.PondEngine) { param($p,$c,$r) Get-FreePondLane -Pond $p -Context $c -RepoPath $r } $pond $context $uhBase
+        $lane.StreamId | Should -Be 'uh-canary'
+    }
 }
