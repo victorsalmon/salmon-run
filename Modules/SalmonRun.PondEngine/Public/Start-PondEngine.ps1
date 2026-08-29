@@ -323,6 +323,15 @@ function Start-PondEngine {
                         continue
                     }
 
+                    $leaseIdentity = $null
+                    foreach ($claimedPlan in @(Get-ChildItem -LiteralPath $lane.Path -Filter '*.md' -File -ErrorAction SilentlyContinue)) {
+                        $identity = Initialize-PondGateAttempt -PlanPath $claimedPlan.FullName -Gate $pond.Name -TaskRoot $TaskRoot
+                        if (-not $leaseIdentity) { $leaseIdentity = $identity }
+                    }
+                    $leaseGeneration = [guid]::NewGuid().ToString('n')
+                    $leaseAttemptId = if ($leaseIdentity) { $leaseIdentity.AttemptId } else { $leaseGeneration }
+                    $null = Write-PondLaneLease -LanePath $lane.Path -Generation $leaseGeneration -SourcePond $pond.Name -AttemptId $leaseAttemptId -ProcessId 0
+
                     if (-not (Test-Path -LiteralPath $laneScript)) {
                         Write-Warning "PondEngine: lane runner not found at $laneScript"
                         $lane.Idle = $true
@@ -360,6 +369,8 @@ function Start-PondEngine {
                         $context.UsedNamespaces.Remove($group.Namespace)
                         continue
                     }
+
+                    $null = Write-PondLaneLease -LanePath $lane.Path -Generation $leaseGeneration -SourcePond $pond.Name -AttemptId $leaseAttemptId -ProcessId $proc.Id
 
                     $null = $activeLanes.Add([PSCustomObject]@{
                         Process    = $proc
@@ -418,3 +429,4 @@ function Start-PondEngine {
         Write-Host "PondEngine finished after $($context.Iteration) iterations" -ForegroundColor Cyan
     }
 }
+

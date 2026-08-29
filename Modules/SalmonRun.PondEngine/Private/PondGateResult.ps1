@@ -1,12 +1,12 @@
 function Set-PondPlanHeader {
     param([string]$Path,[string]$Name,[string]$Value)
     $content=Get-Content $Path -Raw
-    $pattern="(?im)^\*\*$([regex]::Escape($Name))\*\*:\s*[^\r\n]+"
+    $pattern="(?im)^\*\*$([regex]::Escape($Name))\*\*:[ \t]*[^\r\n]+"
     if($content -match $pattern){$content=[regex]::Replace($content,$pattern,"**$Name**: $Value",1)}
     else{$content=$content.TrimEnd()+"`n`n**$Name**: $Value`n"}
     Set-Content $Path $content -Encoding utf8 -NoNewline
 }
-function Get-PondPlanHeader { param([string]$Content,[string]$Name); $m=[regex]::Match($Content,"(?im)^\*\*$([regex]::Escape($Name))\*\*:\s*(?<v>[^\r\n]+)"); if($m.Success){return $m.Groups['v'].Value.Trim()}; return '' }
+function Get-PondPlanHeader { param([string]$Content,[string]$Name); $m=[regex]::Match($Content,"(?im)^\*\*$([regex]::Escape($Name))\*\*:[ \t]*(?<v>[^\r\n]+)"); if($m.Success){return $m.Groups['v'].Value.Trim()}; return '' }
 function Get-PondStablePlanId {
     param([string]$PlanPath)
     $content=Get-Content $PlanPath -Raw
@@ -18,7 +18,12 @@ function Get-PondStablePlanId {
 function Initialize-PondGateAttempt {
     param([string]$PlanPath,[string]$Gate,[string]$TaskRoot)
     $content=Get-Content $PlanPath -Raw; $planId=Get-PondStablePlanId $PlanPath; $n=0
-    [void][int]::TryParse((Get-PondPlanHeader $content 'GateAttempt'),[ref]$n); $n++
+    $currentAttempt=Get-PondPlanHeader $content 'AttemptId'; $currentRelative=Get-PondPlanHeader $content 'GateResult'
+    [void][int]::TryParse((Get-PondPlanHeader $content 'GateAttempt'),[ref]$n)
+    if ($currentAttempt -and $currentRelative -match "(?i)^Results/$([regex]::Escape($planId))/$([regex]::Escape($Gate))/$([regex]::Escape($currentAttempt))\.json$" -and -not (Test-Path (Join-Path (Split-Path $TaskRoot -Parent) $currentRelative))) {
+        return [pscustomobject]@{PlanId=$planId;AttemptId=$currentAttempt;GateAttempt=$n;RelativePath=$currentRelative;Path=(Join-Path (Split-Path $TaskRoot -Parent) $currentRelative)}
+    }
+    $n++
     $attemptId=[guid]::NewGuid().ToString('n')
     Set-PondPlanHeader $PlanPath 'PlanId' $planId; Set-PondPlanHeader $PlanPath 'AttemptId' $attemptId; Set-PondPlanHeader $PlanPath 'GateAttempt' ([string]$n)
     $relative="Results/$planId/$Gate/$attemptId.json"; Set-PondPlanHeader $PlanPath 'GateResult' $relative

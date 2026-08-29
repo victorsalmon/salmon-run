@@ -68,10 +68,7 @@ function Invoke-PondRescue {
 }
 
 function Invoke-PondLaneRecovery {
-    <#
-    .SYNOPSIS
-        Recovers lane directories left behind by a terminated engine process.
-    #>
+    <# Recover only proven orphans: dead PID, stale heartbeat, stable lease generation, no result. #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$WorkingDir,
@@ -81,35 +78,54 @@ function Invoke-PondLaneRecovery {
 
     $rescued = 0; $skipped = 0; $errors = 0
     if (-not (Test-Path -LiteralPath $WorkingDir)) { return [pscustomobject]@{ Rescued=0; Skipped=0; Errors=0 } }
-    $cutoff = (Get-Date).AddSeconds(-$StaleThresholdSeconds)
+    $cutoff = [datetimeoffset]::Now.AddSeconds(-$StaleThresholdSeconds)
     foreach ($lane in Get-ChildItem -LiteralPath $WorkingDir -Directory -ErrorAction SilentlyContinue) {
-        $pidPath = Join-Path $lane.FullName '.pid'
-        $lanePid = 0
-        if (Test-Path -LiteralPath $pidPath) {
-            $null = [int]::TryParse((Get-Content -LiteralPath $pidPath -Raw -ErrorAction SilentlyContinue), [ref]$lanePid)
+        $plans = @(Get-ChildItem -LiteralPath $lane.FullName -Filter '*.md' -File -ErrorAction SilentlyContinue)
+        if ($plans.Count -eq 0) { continue }
+        $leasePath = Join-Path $lane.FullName '.lease.json'
+        $lease = if (Test-Path -LiteralPath $leasePath) { Get-Content -LiteralPath $leasePath -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue } else { $null }
+        if (-not $lease -or [string]::IsNullOrWhiteSpace([string]$lease.generation) -or [string]::IsNullOrWhiteSpace([string]$lease.sourcePond)) {
+            $reason = "lane $($lane.Name) has no valid coordinator lease"
+            $paused = Move-PondLaneToEngineError -LanePath $lane.FullName -TaskRoot $TaskRoot -PondName 'Recovery' -Reason $reason
+            $errors += [math]::Max(1, $paused.Moved)
+            continue
         }
+
+        # A completed provider result belongs to the transition reaper, never orphan rescue.
+        if ((Test-Path (Join-Path $lane.FullName '.complete')) -or (Test-Path (Join-Path $lane.FullName '.failed'))) { $skipped++; continue }
+
+        $lanePid = 0
+        [void][int]::TryParse([string]$lease.processId, [ref]$lanePid)
         if ($lanePid -gt 0 -and (Get-Process -Id $lanePid -ErrorAction SilentlyContinue)) { $skipped++; continue }
 
-        $plans = @(Get-ChildItem -LiteralPath $lane.FullName -Filter '*.md' -File -ErrorAction SilentlyContinue)
-        $newest = @($plans + $lane | Sort-Object LastWriteTime -Descending | Select-Object -First 1)[0]
-        if ($newest -and $newest.LastWriteTime -ge $cutoff) { $skipped++; continue }
-
-        $target = switch -Regex ($lane.Name) {
-            '^lane-coder-'            { 'Code'; break }
-            '^lane-reviewer-'         { 'Review'; break }
-            '^lane-auditor-'          { 'Audit'; break }
-            '^lane-qa-'               { 'QA'; break }
-            '^lane-project-reviewer-' { 'ProjectReview'; break }
-            '^lane-project-planner-'  { 'Project'; break }
-            '^lane-planner-'          { 'Intake'; break }
-            default                   { 'Code' }
+        $heartbeat = ConvertTo-PondLeaseTimestamp -Value $lease['heartbeatAt']
+        if ($null -eq $heartbeat) {
+            $reason = "lane $($lane.Name) has an invalid lease heartbeat"
+            $paused = Move-PondLaneToEngineError -LanePath $lane.FullName -TaskRoot $TaskRoot -PondName ([string]$lease.sourcePond) -Reason $reason
+            $errors += [math]::Max(1, $paused.Moved)
+            continue
         }
+        if ($heartbeat -ge $cutoff) { $skipped++; continue }
+
+        $observedAt = ConvertTo-PondLeaseTimestamp -Value $lease['recoveryObservedAt']
+        $sameGeneration = ([string]($lease['recoveryObservedGeneration']) -eq [string]($lease['generation']))
+        $hasOldObservation = $sameGeneration -and $null -ne $observedAt -and $observedAt -lt $cutoff
+        if (-not $hasOldObservation) {
+            $lease['recoveryObservedGeneration'] = $lease['generation']
+            $lease['recoveryObservedAt'] = [datetimeoffset]::UtcNow.ToString('o')
+            $tmp = "$leasePath.tmp-$PID-$([guid]::NewGuid().ToString('n'))"
+            $lease | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $tmp -Encoding utf8 -NoNewline
+            Move-Item -LiteralPath $tmp -Destination $leasePath -Force
+            $skipped++
+            continue
+        }
+
         try {
-            if ($plans.Count -gt 0) {
-                $result = Invoke-PondRescue -SourceDir $lane.FullName -TargetDir (Join-Path $TaskRoot $target) -StaleThresholdSeconds 0
-                $rescued += $result.Rescued
-                $errors += $result.Errors
-            }
+            $target = [string]$lease.sourcePond
+            $targetDir = Join-Path $TaskRoot $target
+            $result = Invoke-PondRescue -SourceDir $lane.FullName -TargetDir $targetDir -StaleThresholdSeconds 0
+            $rescued += $result.Rescued
+            $errors += $result.Errors
             if (@(Get-ChildItem -LiteralPath $lane.FullName -Filter '*.md' -File -ErrorAction SilentlyContinue).Count -eq 0) {
                 Remove-Item -LiteralPath $lane.FullName -Recurse -Force -ErrorAction SilentlyContinue
             }
@@ -120,3 +136,9 @@ function Invoke-PondLaneRecovery {
     }
     return [pscustomobject]@{ Rescued=$rescued; Skipped=$skipped; Errors=$errors }
 }
+
+
+
+
+
+

@@ -68,6 +68,8 @@ Describe 'Pond scheduling safety' -Tag 'PondEngine','Regression-Only' {
         '99999999' | Set-Content (Join-Path $deadLane '.pid') -NoNewline
         '# active code' | Set-Content (Join-Path $liveLane 'code.md') -NoNewline
         "$PID" | Set-Content (Join-Path $liveLane '.pid') -NoNewline
+        @{ generation='dead-generation'; recoveryObservedGeneration='dead-generation'; recoveryObservedAt=(Get-Date).AddMinutes(-5).ToUniversalTime().ToString('o'); processId=99999999; sourcePond='Review'; heartbeatAt=(Get-Date).AddMinutes(-10).ToUniversalTime().ToString('o'); attemptId='dead-attempt' } | ConvertTo-Json | Set-Content (Join-Path $deadLane '.lease.json') -NoNewline
+        @{ generation='live-generation'; processId=$PID; sourcePond='Code'; heartbeatAt=(Get-Date).AddMinutes(-10).ToUniversalTime().ToString('o'); attemptId='live-attempt' } | ConvertTo-Json | Set-Content (Join-Path $liveLane '.lease.json') -NoNewline
         (Get-Item $deadLane).LastWriteTime = (Get-Date).AddMinutes(-10)
         (Get-Item (Join-Path $deadLane 'review.md')).LastWriteTime = (Get-Date).AddMinutes(-10)
         (Get-Item $liveLane).LastWriteTime = (Get-Date).AddMinutes(-10)
@@ -152,5 +154,30 @@ Describe 'Pond scheduling safety' -Tag 'PondEngine','Regression-Only' {
         $result = & (Get-Module SalmonRun.PondEngine) { param($w,$r) Invoke-PondLaneRecovery -WorkingDir $w -TaskRoot $r -StaleThresholdSeconds 60 } (Join-Path $taskRoot 'Working') $taskRoot
         $result.Rescued | Should -Be 0
         Join-Path $lane 'plan.md' | Should -Exist
+    }
+
+    It 'keeps one gate attempt identity across coordinator claim and child prepare' {
+        $taskRoot = Join-Path $TestDrive 'attempt-identity/Tasks'
+        $lane = Join-Path $taskRoot 'Working/lane-coder-attempt'
+        New-Item $lane -ItemType Directory -Force | Out-Null
+        $plan = Join-Path $lane 'plan.md'
+        "# Plan`n**Status**: ready`n**Scope**: test" | Set-Content $plan -NoNewline
+        $ids = & (Get-Module SalmonRun.PondEngine) { param($p,$t) @((Initialize-PondGateAttempt $p 'Code' $t),(Initialize-PondGateAttempt $p 'Code' $t)) } $plan $taskRoot
+        $ids[1].AttemptId | Should -Be $ids[0].AttemptId
+        $ids[1].GateAttempt | Should -Be 1
+    }
+
+    It 'renews a lease without changing generation or attempt identity' {
+        $lane = Join-Path $TestDrive 'lease-heartbeat'
+        New-Item $lane -ItemType Directory -Force | Out-Null
+        $before = & (Get-Module SalmonRun.PondEngine) { param($l) Write-PondLaneLease $l 'generation' 'Code' 'attempt' 0 } $lane
+        Start-Sleep -Milliseconds 25
+        $updated = & (Get-Module SalmonRun.PondEngine) { param($l) Update-PondLaneLeaseHeartbeat $l $PID } $lane
+        $lease = Get-Content (Join-Path $lane '.lease.json') -Raw | ConvertFrom-Json
+        $updated | Should -BeTrue
+        $lease.generation | Should -Be 'generation'
+        $lease.attemptId | Should -Be 'attempt'
+        $lease.processId | Should -Be $PID
+        ([datetimeoffset]$lease.heartbeatAt) -ge ([datetimeoffset]$before.heartbeatAt) | Should -BeTrue
     }
 }

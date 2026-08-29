@@ -79,6 +79,7 @@ function Start-PondExecutor {
 
         $pidContent = if ($proc) { $proc.Id.ToString() } else { '0' }
         $pidContent | Set-Content -LiteralPath $pidFile -Encoding utf8 -NoNewline
+        $null = Update-PondLaneLeaseHeartbeat -LanePath $LanePath -ProcessId $proc.Id
 
         $agentId = "pond-executor-$([System.IO.Path]::GetFileName($LanePath))"
         $heartbeatCmd = Get-Command 'Write-AgentHeartbeat' -ErrorAction SilentlyContinue
@@ -90,6 +91,7 @@ function Start-PondExecutor {
             Start-Sleep -Seconds 1
             if ((Get-Date) -ge $nextHeartbeat) {
                 (Get-Date -Format 'o') | Set-Content -LiteralPath $heartbeatFile -Encoding utf8 -NoNewline
+                $null = Update-PondLaneLeaseHeartbeat -LanePath $LanePath -ProcessId $proc.Id
                 if ($heartbeatCmd) { try { $null = & $heartbeatCmd $agentId } catch { Write-Verbose "Suppressed heartbeat command error: $_" } }
                 $nextHeartbeat = (Get-Date).AddSeconds(10)
             }
