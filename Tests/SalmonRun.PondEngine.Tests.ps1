@@ -444,6 +444,28 @@ Describe 'Pond dependency gating' -Tag 'PondEngine', 'Regression-Only' {
         } finally { $env:SALMON_RUN_HOME = $saved }
     }
 
+    It 'recognizes a dependency bundled under a completed project' {
+        $tempDir = Join-Path $TestDrive 'pondengine-depends-bundle'
+        foreach ($sub in @('Tasks/Code','Tasks/Complete/project/plans','Tasks/Archive','Tasks/Working','Tasks/Paused','Tasks/Failed')) {
+            $null = New-Item -ItemType Directory -Path (Join-Path $tempDir $sub) -Force
+        }
+        '# Bundled parent' | Set-Content -LiteralPath (Join-Path $tempDir 'Tasks/Complete/project/plans/uh-screening-1.md') -Encoding utf8 -NoNewline
+        @'
+# Child Plan
+**Status**: ready
+**Scope**: test
+**Challenge**: Local
+**DependsOn**: `uh-screening-1` (status: complete)
+'@ | Set-Content -LiteralPath (Join-Path $tempDir 'Tasks/Code/2026-08-29-bundled-child.md') -Encoding utf8 -NoNewline
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Join-Path $tempDir 'Tasks/Complete/2026-08-29-bundled-child.md' | Should -Exist
+        } finally { $env:SALMON_RUN_HOME = $saved }
+    }
+
+
 }
 Describe 'Project and ProjectReview pipeline' -Tag 'PondEngine', 'Regression-Only' {
     It 'moves a Project plan through ProjectReview to Complete with Local harness' {
