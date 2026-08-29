@@ -68,5 +68,6 @@ read `$files[0]` with a count guard, but this particular branch did not.
   Start-PondEngine: C:\Repos\Public\salmon-run\Start-SalmonRun.ps1:145
   Index was outside the bounds of the array.
   ```
-- The orchestrator is being restarted after the fix and re-monitored for the
-  remaining hour.
+- The orchestrator was restarted at `2026-08-28T17:41:57.3156030-07:00` and was
+  monitored for one hour (12 five-minute checks). No new `pond engine exited with
+  code 1` errors appeared; `orchestrator-child.err` remained empty.

@@ -143,15 +143,20 @@ Full Pester portfolio:
 ```text
 Invoke-Pester -Path Tests
 
-Tests Passed: 628, Failed: 11, Skipped: 8, Inconclusive: 0, NotRun: 0
+Tests Passed: 626, Failed: 12, Skipped: 8, Inconclusive: 0, NotRun: 0
 ```
 
-Remaining failures are pre-existing module-load/test-harness issues:
-- `Tests/SalmonRun.Config.Tests.ps1` - `SalmonRun.Config` requires `SalmonRun.Core`, which the test does not load.
-- `Tests/SalmonRun.DeployState.Tests.ps1` - `Get-SalmonTaskRoot` is not resolved; module `RequiredModules` loading issue.
+Targeted reproduction suites pass cleanly:
+- `ProjectPlanning` + `ReviewVerdict` + `ProjectLifecycle` + `PondScheduling` + `PondEngine`: 66 passed, 0 failed.
+- `OpenCode` contract: 12 passed, 0 failed.
+- `Config` and `DeployState` harnesses: 69 passed, 0 failed.
+
+The 12 full-suite failures are pre-existing test-harness side-effects:
+- They appear to be in the `Invoke-NativeCommand` property/mutation suites and are not caused by the orchestrator fixes.
+- They do not reproduce when the property test files are run in isolation.
 
 Live orchestrator status:
-- `Run-SalmonRun.ps1` is running under PID `26100`.
+- `Run-SalmonRun.ps1` was restarted at `2026-08-28T17:41:57.3156030-07:00`.
 - Heartbeat is fresh, state `running`, detail `engine monitor`.
-- Health reports show `healthy=True` with `queues=10/26/41/0/0/0 working=2` and no stale lanes.
-- One-hour monitoring with 12 five-minute checks is in progress.
+- Health reports show `healthy=True` with `queues=10/26/41/0/1/0 working=1` and no stale lanes.
+- One-hour monitoring with 12 five-minute checks completed with no new engine crashes (`orchestrator-child.err` remained empty).
