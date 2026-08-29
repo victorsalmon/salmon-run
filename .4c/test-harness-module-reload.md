@@ -46,4 +46,4 @@ session.
 - The affected wider subset
   (`Installer`, `PondEngine`, `PondScheduling`, `OrchestratorE2E`, `ProjectLifecycle`)
   passes (65 tests, 0 failures).
-- Full portfolio re-run in progress.
+- Full portfolio re-run: **640 passed, 0 failed, 8 skipped**.
