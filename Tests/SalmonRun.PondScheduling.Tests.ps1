@@ -120,4 +120,37 @@ Describe 'Pond scheduling safety' -Tag 'PondEngine','Regression-Only' {
         $lane = & (Get-Module SalmonRun.PondEngine) { param($p,$c,$r) Get-FreePondLane -Pond $p -Context $c -RepoPath $r } $pond $context $uhBase
         $lane.StreamId | Should -Be 'uh-canary'
     }
+
+    It 'requires a stable lease observation before recovering a dead lane' {
+        $taskRoot = Join-Path $TestDrive 'lease-observation/Tasks'
+        $lane = Join-Path $taskRoot 'Working/lane-coder-lease-1'
+        foreach ($path in $lane,(Join-Path $taskRoot 'Code'),(Join-Path $taskRoot 'Paused')) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
+        '# claimed plan' | Set-Content (Join-Path $lane 'plan.md') -NoNewline
+        @{ generation='generation-1'; processId=99999999; sourcePond='Code'; heartbeatAt=(Get-Date).AddMinutes(-10).ToUniversalTime().ToString('o'); attemptId='attempt-1' } | ConvertTo-Json | Set-Content (Join-Path $lane '.lease.json') -NoNewline
+        (Get-Item $lane).LastWriteTime = (Get-Date).AddMinutes(-10)
+        (Get-Item (Join-Path $lane 'plan.md')).LastWriteTime = (Get-Date).AddMinutes(-10)
+
+        $first = & (Get-Module SalmonRun.PondEngine) { param($w,$r) Invoke-PondLaneRecovery -WorkingDir $w -TaskRoot $r -StaleThresholdSeconds 60 } (Join-Path $taskRoot 'Working') $taskRoot
+        $first.Rescued | Should -Be 0
+        Join-Path $lane 'plan.md' | Should -Exist
+        $lease = Get-Content (Join-Path $lane '.lease.json') -Raw | ConvertFrom-Json
+        $lease.recoveryObservedGeneration | Should -Be 'generation-1'
+    }
+
+    It 'does not rescue a lane that has a completed result sentinel' {
+        $taskRoot = Join-Path $TestDrive 'lease-complete/Tasks'
+        $lane = Join-Path $taskRoot 'Working/lane-coder-lease-2'
+        foreach ($path in $lane,(Join-Path $taskRoot 'Code'),(Join-Path $taskRoot 'Paused')) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
+        '# completed plan' | Set-Content (Join-Path $lane 'plan.md') -NoNewline
+        '1' | Set-Content (Join-Path $lane '.complete') -NoNewline
+        @{ generation='generation-2'; recoveryObservedGeneration='generation-2'; recoveryObservedAt=(Get-Date).AddMinutes(-5).ToUniversalTime().ToString('o'); processId=99999999; sourcePond='Code'; heartbeatAt=(Get-Date).AddMinutes(-10).ToUniversalTime().ToString('o'); attemptId='attempt-2' } | ConvertTo-Json | Set-Content (Join-Path $lane '.lease.json') -NoNewline
+        (Get-Item $lane).LastWriteTime = (Get-Date).AddMinutes(-10)
+        (Get-Item (Join-Path $lane 'plan.md')).LastWriteTime = (Get-Date).AddMinutes(-10)
+        (Get-Item (Join-Path $lane '.complete')).LastWriteTime = (Get-Date).AddMinutes(-10)
+        (Get-Item (Join-Path $lane '.lease.json')).LastWriteTime = (Get-Date).AddMinutes(-10)
+
+        $result = & (Get-Module SalmonRun.PondEngine) { param($w,$r) Invoke-PondLaneRecovery -WorkingDir $w -TaskRoot $r -StaleThresholdSeconds 60 } (Join-Path $taskRoot 'Working') $taskRoot
+        $result.Rescued | Should -Be 0
+        Join-Path $lane 'plan.md' | Should -Exist
+    }
 }
