@@ -36,7 +36,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('coder','reviewer','auditor','qa','planner','project','project-planner','project-reviewer')]
+    [ValidateSet('coder','reviewer','auditor','qa','planner','project','project-planner','project-reviewer','investigator')]
     [string]$Role,
 
     [Parameter(Mandatory)]
@@ -136,6 +136,7 @@ function Get-CodexRolePrompt {
         'project'          { return 'Manage the following salmon-run project plan and report progress.' }
         'project-planner'  { return 'Plan the following salmon-run project. Break it into child work items.' }
         'project-reviewer' { return 'Review the integrated project and all child evidence. Append **ProjectReviewDecision**: pass and **ProjectReview**: passed by codex only when the project works as a whole; otherwise append **ProjectReviewDecision**: rework and the reason.' }
+        'investigator'     { return 'Investigate the Salmon Run orchestrator failure in the attached plan. Reproduce with tests, fix the root cause in the public salmon-run repository, commit and push, then append **InvestigatorDecision**: pass and **Investigated**: passed by codex with a summary. If you cannot fix it, append **InvestigatorDecision**: fail and **Investigated**: failed by codex with the blocker.' }
         default            { return 'Implement the following salmon-run plan.' }
     }
 }

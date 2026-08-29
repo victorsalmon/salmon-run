@@ -19,7 +19,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('coder','reviewer','auditor','qa','planner','project','project-planner','project-reviewer')]
+    [ValidateSet('coder','reviewer','auditor','qa','planner','project','project-planner','project-reviewer','investigator')]
     [string]$Role,
 
     [Parameter(Mandatory)]
@@ -61,6 +61,7 @@ try {
         'project'          = 'Project'
         'project-planner'  = 'Project'
         'project-reviewer' = 'ProjectReview'
+        'investigator'     = 'Investigate'
     }
     $pondName = if ($roleToPond.ContainsKey($Role)) { $roleToPond[$Role] } else { 'Unknown' }
 
@@ -159,6 +160,10 @@ try {
             $content = $content + "`n**ProjectReviewDecision**: pass`n**ProjectReview**: passed by public local project reviewer`n"
         }
 
+        if ($Role -eq 'investigator') {
+            $content = $content + "`n**InvestigatorDecision**: pass`n**Investigated**: passed by public local investigator - engine improvement applied`n"
+        }
+
         $content | Set-Content -LiteralPath $planPath -Encoding utf8 -NoNewline
 
         # Append the canonical timestamped PondLog event for this role.
@@ -168,6 +173,7 @@ try {
             'auditor'  = 'audit'
             'qa'       = 'qa'
             'project-reviewer' = 'review'
+            'investigator' = 'investigate'
         }
         if ($actionMap.ContainsKey($Role)) {
             $null = Add-PlanPondLog -PlanPath $planPath -Entry @{
