@@ -134,6 +134,16 @@ $report = [ordered]@{
     failed = @()
     completedLastPeriod = 0
     completedByNamespace = [ordered]@{}
+    uniqueCompletions = 0
+    forwardTransitions = 0
+    backwardTransitions = 0
+    cycleCount = 0
+    transitionErrors = 0
+    syncBacklog = 0
+    syncFailures = 0
+    duplicateFamilies = 0
+    largestPromptBytes = 0
+    usefulAgentRunRatio = 0.0
     heartbeat = @{}
     recentLogErrors = @()
     crashCount = 0
@@ -260,6 +270,18 @@ foreach ($f in $completedFiles) {
     $report.completedByNamespace[$ns]++
 }
 
+# Meaningful progress comes only from validated attempt transitions.
+$eventPath = Join-Path $LogDir 'workflow-events.jsonl'; $recentEvents = @()
+if (Test-Path $eventPath) { foreach ($line in Get-Content $eventPath -ErrorAction SilentlyContinue) { try { $event=$line|ConvertFrom-Json -ErrorAction Stop; $eventTs=[datetimeoffset]::MinValue; if([datetimeoffset]::TryParse([string]$event.ts,[ref]$eventTs) -and $eventTs -ge [datetimeoffset]::Now.AddMinutes(-30)){$recentEvents += $event} } catch {} } }
+$transitions=@($recentEvents|Where-Object action -eq 'transition');$forward=@($transitions|Where-Object failureKind -eq 'success');$backward=@($transitions|Where-Object { $_.failureKind -ne 'success' })
+$report.forwardTransitions=$forward.Count;$report.backwardTransitions=$backward.Count;$report.uniqueCompletions=@($forward|Where-Object pond -in @('QA','ProjectReview','Complete')|Select-Object -ExpandProperty planId -Unique).Count;$report.transitionErrors=@($transitions|Where-Object failureKind -eq 'engine-error').Count
+$cycleGroups=@($transitions|Group-Object planId|Where-Object { $_.Count -ge 6 -and @($_.Group|Where-Object failureKind -eq 'success').Count -eq 0 });$report.cycleCount=$cycleGroups.Count;$report.usefulAgentRunRatio=if($transitions.Count -gt 0){[math]::Round($forward.Count/$transitions.Count,3)}else{0.0}
+$syncDir=Join-Path $TaskRoot 'SyncOutbox';if(Test-Path $syncDir){$syncFiles=@(Get-ChildItem $syncDir -Filter '*.json' -File -ErrorAction SilentlyContinue);$report.syncBacklog=$syncFiles.Count;foreach($f in $syncFiles){try{$s=Get-Content $f.FullName -Raw|ConvertFrom-Json;$report.syncFailures += [int]$s.attempts}catch{$report.syncFailures++}}}
+$packetFiles=@();foreach($pondName in @('Code','Review','Audit','QA','Project','ProjectReview','Working','Investigate')){$d=Join-Path $TaskRoot "Tasks/$pondName";if(Test-Path $d){$packetFiles+=Get-ChildItem $d -Filter '*.md' -File -Recurse -ErrorAction SilentlyContinue}}
+if($packetFiles.Count -gt 0){$report.largestPromptBytes=[int64](($packetFiles|Measure-Object Length -Maximum).Maximum);$report.duplicateFamilies=@($packetFiles|Group-Object { Get-SalmonRunPlanFamily $_.Name }|Where-Object Count -gt 1).Count}
+if($report.transitionErrors -gt 0 -or $report.cycleCount -gt 0 -or $report.syncFailures -ge 3 -or $report.largestPromptBytes -gt 65536 -or $report.duplicateFamilies -gt 0){$report.healthy=$false}
+$executableBacklog=[int]$report.queueCounts.Code+[int]$report.queueCounts.Review+[int]$report.queueCounts.Audit+[int]$report.queueCounts.QA;if($executableBacklog -gt 0 -and $transitions.Count -ge 2 -and $report.forwardTransitions -eq 0){$report.healthy=$false}
+
 # Orchestrator log errors in the last 10 minutes (recent crashes, not history)
 $logPath = Join-Path $LogDir 'orchestrator.log'
 if (Test-Path -LiteralPath $logPath) {
@@ -278,13 +300,9 @@ if (Test-Path -LiteralPath $logPath) {
     if ($errors.Count -gt 0) { $report.healthy = $false }
 }
 
-# Churn signal: any queue movement or completion is good; no movement with stale
-# working is bad.
-$deltaSum = ($report.queueDeltas.Values | Measure-Object -Sum).Sum
-$usefulWork = ($deltaSum -ne 0) -or ($report.completedLastPeriod -gt 0) -or ($report.queueDeltas['Complete'] -gt 0)
-if (-not $usefulWork -and $report.working.Count -gt 0 -and ($report.staleWorking -gt 0 -or $report.heartbeat.fresh -eq $false)) {
-    $report.healthy = $false
-}
+# Process liveness is necessary but never sufficient for useful work.
+$usefulWork = $report.forwardTransitions -gt 0
+if (-not $usefulWork -and $report.working.Count -gt 0 -and ($report.staleWorking -gt 0 -or $report.heartbeat.fresh -eq $false)) { $report.healthy = $false }
 
 function Format-QueueCount {
     param([int]$Active, [int]$Accessory)
@@ -297,7 +315,7 @@ $qa = $report.queueAccessoryCounts
 $actionCount = 0
 foreach ($a in $report.actionRequired) { $actionCount += $a.Count }
 
-$report.summary = "queues=$(Format-QueueCount -Active $q.Complete -Accessory $qa.Complete)/$(Format-QueueCount -Active $q.Code -Accessory $qa.Code)/$(Format-QueueCount -Active $q.Review -Accessory $qa.Review)/$(Format-QueueCount -Active $q.Audit -Accessory $qa.Audit)/$(Format-QueueCount -Active $q.QA -Accessory $qa.QA)/$(Format-QueueCount -Active $q.Failed -Accessory $qa.Failed) working=$(Format-QueueCount -Active $q.Working -Accessory $qa.Working) stale=$($report.staleWorking) completed+${HistoryHours}h=$($report.completedLastPeriod) actions=$actionCount healthy=$($report.healthy)"
+$report.summary = "queues=$(Format-QueueCount -Active $q.Complete -Accessory $qa.Complete)/$(Format-QueueCount -Active $q.Code -Accessory $qa.Code)/$(Format-QueueCount -Active $q.Review -Accessory $qa.Review)/$(Format-QueueCount -Active $q.Audit -Accessory $qa.Audit)/$(Format-QueueCount -Active $q.QA -Accessory $qa.QA)/$(Format-QueueCount -Active $q.Failed -Accessory $qa.Failed) forward=$($report.forwardTransitions) backward=$($report.backwardTransitions) cycles=$($report.cycleCount) sync=$($report.syncBacklog)/$($report.syncFailures) useful=$($report.usefulAgentRunRatio) healthy=$($report.healthy)"
 
 $reportPath = Join-Path $LogDir 'health-churn-report.json'
 $report | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $reportPath -Encoding utf8 -NoNewline

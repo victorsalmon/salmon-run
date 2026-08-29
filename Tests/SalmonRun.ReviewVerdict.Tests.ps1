@@ -47,42 +47,21 @@ Describe 'Executor verdict contract' -Tag 'PondEngine','Regression-Only' {
         Test-PondExecutorVerdict -Role reviewer -PlanFiles @($plan) | Should -BeFalse
     }
 
-    It 'blocks a rejected Review plan and creates a Code feedback plan' {
-        $taskRoot = Join-Path $TestDrive 'Tasks'
-        $lane = Join-Path $taskRoot 'Working/review-lane'
+    It 'returns the canonical plan to Code with linked feedback' {
+        $taskRoot = Join-Path $TestDrive 'Tasks'; $lane = Join-Path $taskRoot 'Working/review-lane'
         foreach ($path in $lane,(Join-Path $taskRoot 'Code'),(Join-Path $taskRoot 'Review')) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
-        $planName = '2026-08-28-review-me.md'
-        $plan = Join-Path $lane $planName
+        $planName='2026-08-28-review-me.md'; $plan=Join-Path $lane $planName
         "# Plan`n**Status**: ready`n**Scope**: test`n**Reviewed**: failed by test - missing behavior" | Set-Content $plan -NoNewline
-        $pond = Get-SalmonRunPonds | Where-Object Name -eq Review
-        $group = [PondGroup]::new(); $group.Namespace='review-me'; $group.StreamPath=$lane; $group.RepoPath=$TestDrive; $group.Files=@(Get-Item $plan)
-        $context = [PondContext]::new(); $context.TaskRoot=$taskRoot; $context.RepoDir=$TestDrive; $context.CurrentGroup=$group; $context.CurrentPond=$pond; $context.Success=$true
-        $task = $pond.Tasks | Where-Object Name -eq Transition
+        $pond=Get-SalmonRunPonds|Where-Object Name -eq Review; $group=[PondGroup]::new();$group.Namespace='review-me';$group.StreamPath=$lane;$group.RepoPath=$TestDrive;$group.Files=@(Get-Item $plan)
+        $context=[PondContext]::new();$context.TaskRoot=$taskRoot;$context.RepoDir=$TestDrive;$context.CurrentGroup=$group;$context.CurrentPond=$pond;$context.Success=$true
+        $task=$pond.Tasks|Where-Object Name -eq Transition
         & (Get-Module SalmonRun.PondEngine) { param($p,$t,$c) Invoke-PondTaskTransition -Pond $p -Task $t -Context $c } $pond $task $context | Out-Null
-
-        $blockedPlan = Join-Path $taskRoot "Review/$planName"
-        $feedbackName = '2026-08-28-review-me-feedback1.md'
-        $feedbackPlan = Join-Path $taskRoot "Code/$feedbackName"
-
-        $blockedPlan | Should -Exist
-        $feedbackPlan | Should -Exist
-        Join-Path $taskRoot "Code/$planName" | Should -Not -Exist
-
-        $blockedContent = Get-Content $blockedPlan -Raw
-        $blockedContent | Should -Match '(?im)^\*\*Blocked\*\*: true$'
-        $blockedContent | Should -Match '(?im)^\*\*BlockedBy\*\*: Review$'
-        $blockedContent | Should -Match '(?im)^\*\*BlockedReason\*\*: missing behavior$'
-        $blockedContent | Should -Match "(?im)^\*\*WaitingFor\*\*: $([regex]::Escape($feedbackName))"
-        $blockedContent | Should -Match '(?im)^\*\*Status\*\*: blocked$'
-
-        $feedbackContent = Get-Content $feedbackPlan -Raw
-        $feedbackContent | Should -Match '# Feedback plan: 2026-08-28-review-me'
-        $feedbackContent | Should -Match '\*\*Status\*\*: ready'
-        $feedbackContent | Should -Match '\*\*PlanType\*\*: feedback'
-        $feedbackContent | Should -Match '\*\*FailedStage\*\*: Review'
-        $feedbackContent | Should -Match '\*\*Reviewed\*\*: failed by reviewer - missing behavior'
-        $feedbackContent | Should -Match '## Feedback for Coder'
-        $feedbackContent | Should -Match '\*\*Source\*\*: Review'
-        $feedbackContent | Should -Match '\*\*Verdict\*\*: failed'
+        $canonical=Join-Path $taskRoot "Code/$planName"; $canonical|Should -Exist; Join-Path $taskRoot "Review/$planName"|Should -Not -Exist
+        $content=Get-Content $canonical -Raw
+        $content | Should -Match '(?im)^\*\*Status\*\*:\s*ready$'
+        $content | Should -Match '(?im)^\*\*Feedback\*\*:\s*Results/'
+        $relative=([regex]::Match($content,'(?im)^\*\*Feedback\*\*:\s*(?<v>[^\r\n]+)')).Groups['v'].Value.Trim(); $sidecar=Join-Path (Split-Path $taskRoot -Parent) $relative
+        $sidecar|Should -Exist; (Get-Content $sidecar -Raw|ConvertFrom-Json).reason|Should -Be 'missing behavior'
+        @(Get-ChildItem (Join-Path $taskRoot 'Code') -Filter '*feedback*.md').Count|Should -Be 0
     }
 }

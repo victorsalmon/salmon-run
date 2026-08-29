@@ -361,6 +361,14 @@ function Invoke-PondTaskTransition {
     $activeFile = Get-PondPlanActiveFile -Files $files
     $activeContent = if ($activeFile) { Get-Content -LiteralPath $activeFile.FullName -Raw } else { '' }
 
+    # Materialize and validate the attempt-scoped result sidecar. The coordinator
+    # owns this record and routing never consults stale results from another attempt.
+    $gateResult = Get-PondValidatedGateResult -PlanPath $activeFile.FullName -Gate $Pond.Name -TaskRoot $Context.TaskRoot
+    if (-not $gateResult) {
+        $gateResult = Write-PondGateResult -PlanPath $activeFile.FullName -Gate $Pond.Name -TaskRoot $Context.TaskRoot -ProviderSucceeded $Context.Success
+    }
+    $Context.Success = ($gateResult.verdict -eq 'pass' -and $gateResult.failureKind -eq 'success')
+
     $timeoutMinutes = if ($Context.Config -and $null -ne $Context.Config.TimeoutMinutes) { $Context.Config.TimeoutMinutes } else { 30 }
 
     $finalDest = $null
@@ -369,62 +377,21 @@ function Invoke-PondTaskTransition {
     $retry = 0
     $feedbackFile = $null
     $reason = $null
+    $attemptState = Register-PondAttemptOutcome -PlanPath $activeFile.FullName -Gate $Pond.Name -TaskRoot $Context.TaskRoot -Result $gateResult
 
     if (-not $Context.Success) {
-        # a) A decision from the product owner is required.
-        if (Test-PlanHasDecisionRequired -Content $activeContent) {
-            $finalDest = 'Intake'
-            $newStatus = 'blocked'
-            $action = 'decision-required'
-        }
-        # b) The failure is a transient timeout and should be retried in place.
-        elseif (Test-PlanTransientFailure -Content $activeContent -ActiveFile $activeFile -TimeoutMinutes $timeoutMinutes) {
-            $retry = 0
-            if ($activeContent -match '(?im)^\*\*Retry\*\*:\s*(?<value>\d+)') {
-                $retry = [int]$Matches['value'].Trim()
+        $reason = [string]$gateResult.evidenceSummary
+        $reasonMatch = [regex]::Match($reason, '(?i)^failed by .+?\s+-\s+(?<reason>.+)$')
+        if ($reasonMatch.Success) { $reason = $reasonMatch.Groups['reason'].Value.Trim() }
+        switch ($attemptState.Directive) {
+            'Decision' { $finalDest='Intake'; $newStatus='blocked'; $action='decision-required' }
+            'Retry' { $finalDest=$Pond.Name; $newStatus='ready'; $action='retry'; $retry=$attemptState.TransportAttempts }
+            'Rework' {
+                $finalDest='Code'; $newStatus='ready'; $action='feedback'
+                $feedbackFile=Write-PondFeedbackSidecar -PlanPath $activeFile.FullName -Gate $Pond.Name -TaskRoot $Context.TaskRoot -Reason $reason
             }
-            $retry++
-
-            if ($retry -ge $Pond.OnFailure.MaxRetries) {
-                $finalDest = $Pond.OnFailure.FinalMoveTo
-                if ($finalDest -notin @('Failed','Intake')) { $finalDest = 'Failed' }
-                $newStatus = if ($finalDest -eq 'Failed') { 'failed' } else { 'blocked' }
-                $action = 'fail'
-            } else {
-                $finalDest = $Pond.Name
-                $newStatus = 'ready'
-                $action = 'retry'
-            }
-        }
-        # c) Quality/work-pond failure: keep the plan in the failing pond, block
-        #    it, and create a new feedback plan in the Code queue for the Coder.
-        elseif ($Pond.Name -in @('Code','Review','Audit','QA','ProjectReview')) {
-            $finalDest = $Pond.Name
-            $newStatus = 'blocked'
-            $action = 'feedback'
-
-            $evidenceHeader = switch ($Pond.Name) {
-                'Review' { 'Reviewed' }
-                'Audit'  { 'Audit' }
-                'QA'     { 'QA' }
-                'Code'   { 'Implementation' }
-                default  { $Pond.Name }
-            }
-            $latestEvidence = Get-LatestPondHeaderMatch -Content $activeContent -Headers @($evidenceHeader)
-            $reasonMatch = if ($latestEvidence) { [regex]::Match($latestEvidence.Groups['value'].Value, '(?i)^failed by (?<provider>[^\-]+(?:-[^\-]+)*)\s+-\s+(?<reason>.+)$') } else { $null }
-            $reason = if ($reasonMatch -and $reasonMatch.Success) { $reasonMatch.Groups['reason'].Value.Trim() } else { "$($Pond.Name) did not record an explicit passing verdict." }
-
-            $feedbackFile = New-PondFeedbackPlan -Pond $Pond -Context $Context -ActiveFile $activeFile -Reason $reason
-            $null = Invoke-PondInvestigatorSpawn -Context $Context
-        }
-        # d) Non-quality failure (e.g. Failed, Project, Intake): route according to
-        #    the pond's configured OnFailure destination.
-        else {
-            $finalDest = $Pond.OnFailure.MoveTo
-            if ([string]::IsNullOrWhiteSpace($finalDest)) { $finalDest = 'Failed' }
-            if ($finalDest -notin @('Failed','Intake')) { $finalDest = 'Failed' }
-            $newStatus = if ($finalDest -eq 'Failed') { 'failed' } else { 'blocked' }
-            $action = 'fail'
+            'Investigate' { $finalDest='Investigate'; $newStatus='ready'; $action='investigate' }
+            default { $finalDest='Paused'; $newStatus='engine-error'; $action='fail' }
         }
     } else {
         $finalDest = $Pond.OnSuccess.MoveTo
@@ -450,12 +417,6 @@ function Invoke-PondTaskTransition {
     $destFiles = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
 
     foreach ($file in $files) {
-        # For a non-transient failure, mark every family member as blocked and
-        # waiting on the newly created feedback file.
-        if (-not $Context.Success -and $action -eq 'feedback' -and $feedbackFile) {
-            Add-PondBlockedNote -PlanPath $file.FullName -BlockedBy $Pond.Name -Reason $reason -WaitingFor $feedbackFile.Name
-        }
-
         $dest = Join-Path $destDir $file.Name
         if (Test-Path -LiteralPath $dest) { Remove-Item -LiteralPath $dest -Force }
         Move-Item -LiteralPath $file.FullName -Destination $dest -Force -ErrorAction Stop
@@ -488,7 +449,7 @@ function Invoke-PondTaskTransition {
                 'decision-required' { $detail = "requires a decision; moved to $finalDest" }
                 'retry'             { $detail = "retry $retry of $($Pond.OnFailure.MaxRetries) in $($Pond.Name)" }
                 'fail'              { $detail = if ($retry -gt 0) { "exceeded max retries in $($Pond.Name); moved to $finalDest" } else { "failed in $($Pond.Name); moved to $finalDest" } }
-                'feedback'          { $detail = if ($feedbackFile) { "blocked in $($Pond.Name); feedback written to $($feedbackFile.Name)" } else { "blocked in $($Pond.Name)" } }
+                'feedback'          { $detail = if ($feedbackFile) { "blocked in $($Pond.Name); feedback linked at $($feedbackFile.Name)" } else { "blocked in $($Pond.Name)" } }
             }
         }
 

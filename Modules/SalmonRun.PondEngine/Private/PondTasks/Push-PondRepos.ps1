@@ -92,21 +92,7 @@ function Push-PondRepos {
                 return
             }
 
-            # Record the commit immediately so a later pull/push failure does not lose it.
-            foreach ($dst in $DestFiles) {
-                if (-not (Test-Path -LiteralPath $dst.FullName) -or $dst.Extension -ne '.md') { continue }
-                $now = Get-Date -Format 'o'
-                $null = Add-PlanPondLog -PlanPath $dst.FullName -Entry @{
-                    ts     = $now
-                    pond   = $Pond.Name
-                    role   = $Pond.Role
-                    action = 'commit'
-                    detail = "$RepoLabel`: $CommitMessage @ $sha"
-                    agent  = 'PondEngine'
-                } -ErrorAction SilentlyContinue
-            }
-
-            # Skip pull/push when there is no remote configured.
+            # Skip synchronization when there is no remote configured.
             $remotes = & git -C $RepoPath remote 2>&1
             if (-not $remotes) {
                 return
@@ -118,35 +104,10 @@ function Push-PondRepos {
                 return
             }
 
-            $null = & git -C $RepoPath fetch origin $branch 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                Write-Warning "POND_FETCH_FAILED repo=$RepoLabel"
-                return
-            }
-
-            $null = & git -C $RepoPath rebase --autostash "origin/$branch" 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                Write-Warning "POND_REBASE_FAILED repo=$RepoLabel sha=$sha"
-                return
-            }
-
-            $null = & git -C $RepoPath push 2>&1
-            $pushed = ($LASTEXITCODE -eq 0)
-
-            if ($pushed) {
-                foreach ($dst in $DestFiles) {
-                    if (-not (Test-Path -LiteralPath $dst.FullName) -or $dst.Extension -ne '.md') { continue }
-                    $now = Get-Date -Format 'o'
-                    $null = Add-PlanPondLog -PlanPath $dst.FullName -Entry @{
-                        ts     = $now
-                        pond   = $Pond.Name
-                        role   = $Pond.Role
-                        action = 'push'
-                        detail = "$RepoLabel`: pushed to origin"
-                        agent  = 'PondEngine'
-                    } -ErrorAction SilentlyContinue
-                }
-            }
+            # A single coordinator drains this durable request. Transport errors
+            # never mutate queue routing or redispatch an agent.
+            $taskRoot = $Context.TaskRoot
+            $null = Add-PondSyncRequest -TaskRoot $taskRoot -RepoPath $RepoPath -CommitSha $sha
         } finally {
             if ($null -ne $mutex) {
                 if ($acquired) { [void]$mutex.ReleaseMutex() }

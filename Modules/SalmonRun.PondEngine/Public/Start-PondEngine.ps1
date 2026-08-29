@@ -210,19 +210,13 @@ function Start-PondEngine {
         }
 
         # Rescue legacy root-level in-progress files before scanning ponds.
-        $rescue = Invoke-PondRescue -SourceDir (Join-Path $TaskRoot 'Working') -TargetDir (Join-Path $TaskRoot 'Code') -StaleThresholdSeconds $PollIntervalSeconds
+        $rescue = Invoke-PondRescue -SourceDir (Join-Path $TaskRoot 'Working') -TargetDir (Join-Path $TaskRoot 'Paused') -StaleThresholdSeconds $PollIntervalSeconds
         if ($rescue.Rescued -gt 0) {
             Write-Verbose "PondEngine: rescued $($rescue.Rescued) stale working file(s)"
             $didWork = $true
         }
 
-        # Rescue failed plans after a longer cool-down so they can be retried.
-        $failedRescueThreshold = [math]::Max($PollIntervalSeconds * 2, 60)
-        $failedRescue = Invoke-PondRescue -SourceDir (Join-Path $TaskRoot 'Failed') -TargetDir (Join-Path $TaskRoot 'Code') -StaleThresholdSeconds $failedRescueThreshold
-        if ($failedRescue.Rescued -gt 0) {
-            Write-Verbose "PondEngine: rescued $($failedRescue.Rescued) failed file(s)"
-            $didWork = $true
-        }
+        # Failed plans are terminal until an explicit retry decision; they are never auto-rescued.
 
         # Reap completed or failed child lanes.
         for ($i = $activeLanes.Count - 1; $i -ge 0; $i--) {
@@ -241,6 +235,13 @@ function Start-PondEngine {
             $null = $activeLanes.RemoveAt($i)
 
             Write-Verbose "PondEngine: lane $($entry.Lane.Id) for namespace '$($entry.Namespace)' exited with code $exitCode"
+        }
+
+        $syncState = Invoke-PondSyncOutbox -TaskRoot $TaskRoot
+        if ($syncState.CircuitOpen) {
+            Write-Warning "POND_SYNC_CIRCUIT_OPEN backlog=$($syncState.Backlog) reasons=$($syncState.Reasons -join ',')"
+            if ($activeLanes.Count -eq 0) { Start-Sleep -Seconds ([math]::Min($PollIntervalSeconds, 30)) }
+            continue
         }
 
         foreach ($pond in $Ponds) {

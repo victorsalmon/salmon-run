@@ -179,6 +179,14 @@ function Add-PlanPondLog {
 
     $newEntry = [PSCustomObject]$ordered
 
+    # Claims, locks, routing, process starts, and Git transport are operational
+    # telemetry. Keep them out of the immutable plan packet and in the bounded
+    # external event journal.
+    $operationalActions = @('claim','prepare','lock','route','spawn','commit','push')
+    if ($ordered['action'] -in $operationalActions) {
+        return Write-PondOperationalEvent -PlanPath $PlanPath -Entry $newEntry
+    }
+
     # Acquire a per-plan cross-process mutex. Use the Global\ prefix so the
     # same plan file is protected across sessions, containers, and agent runspaces.
     $pathForHash = [System.Text.Encoding]::UTF8.GetBytes($PlanPath)
@@ -233,7 +241,8 @@ function Add-PlanPondLog {
         }
 
         $allEntries.Add($newEntry)
-        $jsonBlock = $allEntries | ConvertTo-Json -Depth 3 -Compress:$false
+        $boundedEntries = @($allEntries | Select-Object -Last 32)
+        $jsonBlock = $boundedEntries | ConvertTo-Json -Depth 3 -Compress:$false
 
         $extraSection = if ($extraText.Count -gt 0) { "`n`n" + ($extraText -join "`n`n").Trim() } else { '' }
         $newContent = $content + "`n`n**PondLog**`n``````json`n" + $jsonBlock + "`n``````n" + $extraSection

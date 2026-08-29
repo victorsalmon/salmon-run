@@ -2,7 +2,7 @@ function Get-LatestPondHeaderMatch {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Content,
-        [Parameter(Mandatory)][string[]]$Headers
+        [Parameter(Mandatory)][AllowNull()][AllowEmptyCollection()][AllowEmptyString()][string[]]$Headers
     )
 
     $names = @($Headers | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object { [regex]::Escape($_) })
@@ -18,7 +18,7 @@ function Get-PondGateVerdict {
     param(
         [Parameter(Mandatory)][string]$Content,
         [string]$DecisionHeader,
-        [Parameter(Mandatory)][string]$EvidenceHeader
+        [AllowNull()][AllowEmptyString()][string]$EvidenceHeader
     )
 
     $match = Get-LatestPondHeaderMatch -Content $Content -Headers @($DecisionHeader, $EvidenceHeader)

@@ -551,7 +551,7 @@ Describe 'Pond rescue' -Tag 'PondEngine', 'Regression-Only' {
         }
     }
 
-    It 'rescues stale failed plans back to Code' {
+    It 'does not automatically rescue terminal failed plans' {
         $tempDir = Join-Path $TestDrive 'rescue-failed'
         foreach ($sub in @('Tasks/Code','Tasks/Failed')) {
             $null = New-Item -ItemType Directory -Path (Join-Path $tempDir $sub) -Force
@@ -566,7 +566,7 @@ Describe 'Pond rescue' -Tag 'PondEngine', 'Regression-Only' {
         try {
             $env:SALMON_RUN_HOME = $tempDir
             Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
-            Join-Path $tempDir "Tasks/Failed/$plan" | Should -Not -Exist
+            Join-Path $tempDir "Tasks/Failed/$plan" | Should -Exist
             $found = @(Get-ChildItem -Path (Join-Path $tempDir 'Tasks') -Recurse -Filter $plan -File | Select-Object -ExpandProperty FullName)
             $found.Count | Should -Be 1
         } finally {
@@ -733,8 +733,7 @@ Describe 'OpenCode executor adapter' -Tag 'PondEngine', 'Regression-Only' {
             $script:OpencodeArgs | Should -Contain $plan
 
             $log = Get-PlanPondLog -PlanPath $plan
-            $log | Should -HaveCount 2
-            $log.action | Should -Contain 'spawn'
+            $log | Should -HaveCount 1
             $log.action | Should -Contain 'external-complete'
         } finally {
             $env:SALMON_RUN_HOME = $savedSalmonHome
@@ -963,8 +962,7 @@ Describe 'External executor adapter mocks' -Tag 'PondEngine', 'Regression-Only' 
             $script:ExtArgs | Should -Contain 'swe-1-7'
 
             $log = Get-PlanPondLog -PlanPath $plan
-            $log | Should -HaveCount 2
-            $log.action | Should -Contain 'spawn'
+            $log | Should -HaveCount 1
             $log.action | Should -Contain 'external-complete'
         } finally {
             $env:SALMON_RUN_HOME = $savedSalmonHome
@@ -1039,8 +1037,7 @@ Describe 'External executor adapter mocks' -Tag 'PondEngine', 'Regression-Only' 
             $script:ExtArgs | Should -Contain '--patch'
 
             $log = Get-PlanPondLog -PlanPath $plan
-            $log | Should -HaveCount 2
-            $log.action | Should -Contain 'spawn'
+            $log | Should -HaveCount 1
             $log.action | Should -Contain 'external-complete'
         } finally {
             $env:SALMON_RUN_HOME = $savedSalmonHome

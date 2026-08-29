@@ -23,6 +23,8 @@ function Invoke-PondTaskPrepare {
         $src = $file.FullName
         if (-not (Test-Path -LiteralPath $src)) { continue }
 
+        $null = Initialize-PondGateAttempt -PlanPath $src -Gate $Pond.Name -TaskRoot $Context.TaskRoot
+
         $streamId = if ($group.Stream) { $group.Stream.Id } else { 'main' }
         $null = Add-PlanPondLog -PlanPath $src -Entry @{
             ts     = (Get-Date -Format 'o')

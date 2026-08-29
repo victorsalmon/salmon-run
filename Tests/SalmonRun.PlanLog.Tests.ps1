@@ -99,9 +99,11 @@ Describe 'Add-PlanPondLog' -Tag 'PlanLog' {
         $after = [datetime]::UtcNow
 
         $result = Get-PlanPondLog -PlanPath $script:TestPlan
-        $result[0].ts | Should -BeOfType [datetime]
-        $result[0].ts.ToUniversalTime() | Should -BeGreaterOrEqual $before
-        $result[0].ts.ToUniversalTime() | Should -BeLessOrEqual $after
+        $result | Should -BeNullOrEmpty
+        $journal = Join-Path $TestDrive 'Logs/workflow-events.jsonl'
+        $event = Get-Content $journal | Select-Object -Last 1 | ConvertFrom-Json
+        ([datetime]$event.ts).ToUniversalTime() | Should -BeGreaterOrEqual $before
+        ([datetime]$event.ts).ToUniversalTime() | Should -BeLessOrEqual $after
     }
 
     It 'rejects an unknown action' {
@@ -149,10 +151,10 @@ Describe 'Add-PlanPondLog' -Tag 'PlanLog' {
         $null = Receive-Job -Job $jobs -Wait -AutoRemoveJob
 
         $result = Get-PlanPondLog -PlanPath $plan
-        $result | Should -HaveCount ($count * 2)
+        $result | Should -HaveCount 32
 
         $agents = $result | ForEach-Object { $_.agent }
-        ($agents | Select-Object -Unique).Count | Should -Be ($count * 2)
+        ($agents | Select-Object -Unique).Count | Should -Be 32
     }
 }
 

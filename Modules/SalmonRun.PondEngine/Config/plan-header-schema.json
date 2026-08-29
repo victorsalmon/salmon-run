@@ -7,7 +7,21 @@
       "description": "Current pond status. Updated on every transition.",
       "required": true,
       "mutable": true,
-      "allowedValues": ["draft", "proposal", "ready", "claimed", "working", "completed", "failed", "blocked", "review", "qa", "manual", "archive", "engine-error"]
+      "allowedValues": [
+        "draft",
+        "proposal",
+        "ready",
+        "claimed",
+        "working",
+        "completed",
+        "failed",
+        "blocked",
+        "review",
+        "qa",
+        "manual",
+        "archive",
+        "engine-error"
+      ]
     },
     "Scope": {
       "description": "One-line description of the plan's responsibility.",
@@ -18,7 +32,13 @@
       "description": "Model tier or override for routing (Flash, Daily, Complex, Frontier, Local).",
       "required": false,
       "mutable": true,
-      "allowedValues": ["Flash", "Daily", "Complex", "Frontier", "Local"]
+      "allowedValues": [
+        "Flash",
+        "Daily",
+        "Complex",
+        "Frontier",
+        "Local"
+      ]
     },
     "DependsOn": {
       "description": "Comma-separated list of plan IDs that must reach Complete before this plan enters Code.",
@@ -52,7 +72,11 @@
       "description": "Machine-readable reviewer decision.",
       "required": false,
       "mutable": true,
-      "allowedValues": ["pass", "rework", "manual"]
+      "allowedValues": [
+        "pass",
+        "rework",
+        "manual"
+      ]
     },
     "ReviewSummary": {
       "description": "Concise explanation of the review result.",
@@ -73,7 +97,10 @@
       "description": "Machine-readable investigator decision.",
       "required": false,
       "mutable": true,
-      "allowedValues": ["pass", "fail"]
+      "allowedValues": [
+        "pass",
+        "fail"
+      ]
     },
     "Investigated": {
       "description": "Concise explanation of the investigation result.",
@@ -84,7 +111,10 @@
       "description": "Whether this plan is currently blocked waiting on feedback.",
       "required": false,
       "mutable": true,
-      "allowedValues": ["true", "false"]
+      "allowedValues": [
+        "true",
+        "false"
+      ]
     },
     "BlockedBy": {
       "description": "Pond that blocked this plan.",
@@ -105,7 +135,13 @@
       "description": "Kind of plan (main, feedback, investigation, etc.).",
       "required": false,
       "mutable": false,
-      "allowedValues": ["main", "feedback", "project", "intake", "investigation"]
+      "allowedValues": [
+        "main",
+        "feedback",
+        "project",
+        "intake",
+        "investigation"
+      ]
     },
     "ParentPlan": {
       "description": "Filename of the parent plan this feedback plan was derived from.",
@@ -121,138 +157,373 @@
       "description": "Whether a human decision is required before this plan may proceed.",
       "required": false,
       "mutable": true,
-      "allowedValues": ["yes", "true", "required", "no", "false"]
+      "allowedValues": [
+        "yes",
+        "true",
+        "required",
+        "no",
+        "false"
+      ]
     },
     "FailureType": {
       "description": "Class of failure (transient, permanent, etc.).",
       "required": false,
       "mutable": true,
-      "allowedValues": ["transient", "permanent", "engine-error"]
+      "allowedValues": [
+        "transient",
+        "permanent",
+        "engine-error"
+      ]
     },
     "Retry": {
       "description": "Current transient-failure retry count.",
       "required": false,
       "mutable": true,
       "minimum": 0
+    },
+    "PlanId": {
+      "required": true,
+      "description": "Stable logical plan identity.",
+      "mutable": false
+    },
+    "AttemptId": {
+      "required": false,
+      "description": "Unique identity for the current gate execution attempt.",
+      "mutable": true
+    },
+    "GateAttempt": {
+      "required": false,
+      "description": "Monotonic attempt number for the current plan.",
+      "minimum": 0,
+      "mutable": true
+    },
+    "GateResult": {
+      "required": false,
+      "description": "Relative path to the validated structured gate result sidecar.",
+      "mutable": true
+    },
+    "Feedback": {
+      "required": false,
+      "mutable": true,
+      "description": "Relative path to feedback linked to the canonical plan attempt."
     }
   },
   "pondLogActions": {
     "claim": {
       "description": "An agent or operator claimed the plan for work.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "prepare": {
       "description": "The plan was prepared for execution (lane/stream selected, model routed).",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "lock": {
       "description": "An exclusive lock was acquired on the plan for an execution attempt.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent", "lane", "stream"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent",
+        "lane",
+        "stream"
+      ]
     },
     "route": {
       "description": "A model/profile was selected for the plan.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "spawn": {
       "description": "An executor process was started for the plan.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "implement": {
       "description": "The Code pond produced an implementation.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "review": {
       "description": "The Review pond reviewed the implementation.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "audit": {
       "description": "The Audit pond audited the plan for public-safety issues.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "qa": {
       "description": "The QA pond verified quality gates.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "external-complete": {
       "description": "An external agent executor completed a plan.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "external-fail": {
       "description": "An external agent executor failed to complete a plan.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "external-timeout": {
       "description": "An external agent executor was stopped because it exceeded its time budget.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "complete": {
       "description": "The plan moved to Complete.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "fail": {
       "description": "The plan moved to Failed (final failure).",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "retry": {
       "description": "The plan was retried and moved back to an earlier pond.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "feedback": {
       "description": "A non-transient failure created a feedback plan for the Coder.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "decision-required": {
       "description": "The plan was moved to Intake because a human decision is required.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "created": {
       "description": "A new feedback plan was created in the Code queue.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "investigate": {
       "description": "The Investigate pond investigated a recurring failure pattern and produced a fix or root-cause summary.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "override": {
       "description": "A routing or execution value was overridden (preserved as history, not just current state).",
-      "requiredFields": ["ts", "pond", "role", "action", "detail"],
-      "optionalFields": ["agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action",
+        "detail"
+      ],
+      "optionalFields": [
+        "agent"
+      ]
     },
     "commit": {
       "description": "The task repo or target repo was committed after a transition.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     },
     "push": {
       "description": "The task repo or target repo was pushed after a commit.",
-      "requiredFields": ["ts", "pond", "role", "action"],
-      "optionalFields": ["detail", "agent"]
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
+    },
+    "transition": {
+      "description": "A validated gate outcome was routed.",
+      "requiredFields": [
+        "ts",
+        "pond",
+        "role",
+        "action"
+      ],
+      "optionalFields": [
+        "detail",
+        "agent"
+      ]
     }
   },
   "evidenceActions": {
-    "implement": { "satisfiesPond": "Review" },
-    "review": { "satisfiesPond": "Audit" },
-    "audit": { "satisfiesPond": "QA" },
-    "qa": { "satisfiesPond": "Complete" }
+    "implement": {
+      "satisfiesPond": "Review"
+    },
+    "review": {
+      "satisfiesPond": "Audit"
+    },
+    "audit": {
+      "satisfiesPond": "QA"
+    },
+    "qa": {
+      "satisfiesPond": "Complete"
+    }
   },
   "overrideActions": {
     "override": {

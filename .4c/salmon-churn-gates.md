@@ -36,7 +36,18 @@ The control plane lacks a canonical attempt/result and repository-identity bound
 - `Tools/Get-SalmonRunHealthReport.ps1:256,283-286` - 24-hour completion totals and any queue delta mask current backward churn.
 
 ## Countermeasure
-Pending Cause gate.
+- Replaced first-match parsing with a shared latest-attempt verdict resolver used by executors and transition validation.
+- Added stable PlanId, AttemptId, GateAttempt, and validated attempt-scoped JSON gate results with total failure kinds.
+- Transition/reaper exceptions now fail closed to Paused with engine-error; terminal Failed plans are never auto-rescued.
+- Canonical Git common-directory identities now serialize all writer roles across base repositories and worktrees.
+- Feedback is an attempt-linked JSON sidecar on the canonical plan; semantic rework no longer creates a second circulating family.
+- Added persistent per-plan retry budgets, identical-signature escalation, and a six-transition/no-progress circuit breaker.
+- Removed claim commits and direct fetch/rebase/push. Stable checkpoints enqueue an idempotent serialized sync request with dispatch backpressure.
+- Operational telemetry moved to a rotating external JSONL journal. Plans retain at most 32 semantic outcomes in one normalized PondLog block.
+- Health now measures forward/backward transitions, cycles, errors, sync state, duplicate families, prompt size, unique completions, and useful-run ratio.
 
 ## Check
-Pending Countermeasure gate.
+- Focused churn regressions: 20 passed, 0 failed.
+- Full Pester suite: 657 passed, 0 failed, 10 skipped. Two skips are obsolete global-counter tests retained for history and replaced by per-plan persistent-budget tests.
+- PowerShell parser scan: all module, tool, and test scripts parse successfully.
+- Queue recovery and live canary evidence pending.

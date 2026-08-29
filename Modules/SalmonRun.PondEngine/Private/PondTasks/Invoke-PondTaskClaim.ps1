@@ -31,10 +31,10 @@ function Invoke-PondTaskClaim {
         $destFiles.Add((Get-Item -LiteralPath $dest))
     }
 
-    # Commit and push the .salmon task repo for the claim.
-    if ($destFiles.Count -gt 0) {
-        $commitMsg = "claim: $($destFiles[0].Name) for $($Pond.Name)"
-        Push-PondRepos -Pond $Pond -Context $Context -FinalDest $lanePath -SourcePaths $sourcePaths -DestFiles $destFiles -CommitMessage $commitMsg -TaskRepoOnly
+    # Claims are local atomic queue moves. They are journaled, not committed or
+    # synchronized; only stable gate transitions create Git checkpoints.
+    foreach ($destFile in $destFiles) {
+        Write-PondOperationalEvent -PlanPath $destFile.FullName -Entry @{ pond=$Pond.Name; role=$Pond.Role; action='claim'; detail="lane=$($group.LaneId)"; agent='PondEngine' } | Out-Null
     }
 
     $Context.UsedNamespaces[$group.Namespace] = $true
