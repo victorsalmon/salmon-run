@@ -30,6 +30,8 @@ Describe "SalmonRun.DeployState Module" -Tag "DeployState" {
 
         # Stub forwarder dependencies
         function global:Get-HomeDir { $script:TestHomeDir }
+        function global:Get-SalmonHome { $script:TestHomeDir }
+        function global:Get-SalmonTaskRoot { $script:TestHomeDir }
         function global:Get-InterclawRepoRoot { $script:TestRepoRoot }
         function global:Get-ReportsDir {
             $d = Join-Path (Join-Path $script:TestRepoRoot "Tasks") "Logs"

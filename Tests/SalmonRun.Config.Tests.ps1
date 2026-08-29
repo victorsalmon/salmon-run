@@ -4,7 +4,12 @@ BeforeAll {
     $repoRoot = (Get-Item $PSCommandPath).Directory.Parent.FullName
     $salmonModules = Join-Path $repoRoot "Modules"
 
+    # RequiredModules resolves through PSModulePath.
+    $env:PSModulePath = "$salmonModules$([System.IO.Path]::PathSeparator)$env:PSModulePath"
+
     Get-Module SalmonRun.Config -All | Remove-Module -Force -ErrorAction SilentlyContinue
+    Get-Module SalmonRun.Core -All | Remove-Module -Force -ErrorAction SilentlyContinue
+    Import-Module (Join-Path $salmonModules "SalmonRun.Core\SalmonRun.Core.psd1") -Force -DisableNameChecking -Scope Global
     Import-Module (Join-Path $salmonModules "SalmonRun.Config\SalmonRun.Config.psd1") -Force -DisableNameChecking -Scope Global
 }
 
