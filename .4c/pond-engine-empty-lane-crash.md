@@ -65,7 +65,7 @@ read `$files[0]` with a count guard, but this particular branch did not.
 - The actual failing stack trace was observed in the `Run-SalmonRun` console
   output before the fix:
   ```text
-  Start-PondEngine: C:\Repos\Public\salmon-run\Start-SalmonRun.ps1:145
+  Start-SalmonRun.ps1:145
   Index was outside the bounds of the array.
   ```
 - The orchestrator was restarted at `2026-08-28T17:41:57.3156030-07:00` and was
