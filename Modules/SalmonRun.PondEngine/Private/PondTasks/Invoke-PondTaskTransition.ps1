@@ -409,7 +409,12 @@ function Invoke-PondTaskTransition {
     $null = New-Item -ItemType Directory -Path $destDir -Force -ErrorAction SilentlyContinue
 
     $sourcePaths = [System.Collections.Generic.List[string]]::new()
-    foreach ($f in $files) { $sourcePaths.Add($f.FullName) }
+    $sourceQueuePath = Get-PondQueuePath -Pond $Pond -Context $Context
+    foreach ($f in $files) {
+        $sourcePaths.Add($f.FullName)
+        # Claim is local/uncommitted; checkpoint deletion from the canonical source pond.
+        $sourcePaths.Add((Join-Path $sourceQueuePath $f.Name))
+    }
 
     if ($feedbackFile) {
         $sourcePaths.Add($feedbackFile.FullName)
