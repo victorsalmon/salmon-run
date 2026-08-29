@@ -96,7 +96,7 @@ Describe "SalmonRun.DeployState Module" -Tag "DeployState" {
         }
         if ($script:SavedRunId) { $env:INTERCLAW_RUN_ID = $script:SavedRunId } else { Remove-Item Env:\INTERCLAW_RUN_ID -ErrorAction SilentlyContinue }
 
-        $globalStubs = @('Get-HomeDir','Get-InterclawRepoRoot','Get-ReportsDir','Write-SetupLog','Write-AtomicJson','Write-AtomicFile')
+        $globalStubs = @('Get-HomeDir','Get-SalmonHome','Get-SalmonTaskRoot','Get-InterclawRepoRoot','Get-ReportsDir','Write-SetupLog','Write-AtomicJson','Write-AtomicFile')
         foreach ($stub in $globalStubs) {
             if (Get-Item -Path "function:\$stub" -ErrorAction SilentlyContinue) {
                 Remove-Item -Path "function:\$stub" -Force -ErrorAction SilentlyContinue
