@@ -143,9 +143,9 @@ function Test-PlanTransientFailure {
     $spawn = @($log | Where-Object { $_.action -eq 'spawn' }) | Select-Object -Last 1
     $fail  = @($log | Where-Object { $_.action -in @('external-fail','external-timeout') }) | Select-Object -Last 1
     if ($spawn -and $fail) {
-        $spawnTs = $null
-        $failTs  = $null
-        if ([datetime]::TryParse($spawn.ts, [ref]$spawnTs) -and [datetime]::TryParse($fail.ts, [ref]$failTs)) {
+        [datetimeoffset]$spawnTs = [datetimeoffset]::MinValue
+        [datetimeoffset]$failTs  = [datetimeoffset]::MinValue
+        if ([datetimeoffset]::TryParse([string]$spawn.ts, [ref]$spawnTs) -and [datetimeoffset]::TryParse([string]$fail.ts, [ref]$failTs)) {
             $duration = $failTs - $spawnTs
             $condB = [Math]::Abs($duration.TotalMinutes - $TimeoutMinutes) -le 2
         }
@@ -341,13 +341,8 @@ function Invoke-PondTaskTransition {
     if ($Context.Success -and $decisionContract) {
         foreach ($verdictFile in $files) {
             $verdictContent = Get-Content -LiteralPath $verdictFile.FullName -Raw
-            $decisionMatch = [regex]::Match($verdictContent, "(?im)^\*\*$($decisionContract.Decision)\*\*:\s*(?<value>[^\r\n]+)")
-            $evidenceMatch = [regex]::Match($verdictContent, "(?im)^\*\*$($decisionContract.Evidence)\*\*:\s*(?<value>[^\r\n]+)")
-            $passed = ($decisionMatch.Success -and $decisionMatch.Groups['value'].Value.Trim() -match '^pass(?:ed)?\b') -or
-                      ($evidenceMatch.Success -and $evidenceMatch.Groups['value'].Value.Trim() -match '^(passed|completed)\b')
-            $failed = ($decisionMatch.Success -and $decisionMatch.Groups['value'].Value.Trim() -match '^(rework|fail(?:ed)?|reject(?:ed)?|blocked)\b') -or
-                      ($evidenceMatch.Success -and $evidenceMatch.Groups['value'].Value.Trim() -match '^(failed|rework|rejected|blocked)\b')
-            if ($failed -or -not $passed) { $Context.Success = $false; break }
+            $verdict = Get-PondGateVerdict -Content $verdictContent -DecisionHeader $decisionContract.Decision -EvidenceHeader $decisionContract.Evidence
+            if (-not $verdict.Found -or $verdict.Failed -or -not $verdict.Passed) { $Context.Success = $false; break }
         }
     }
 
@@ -415,8 +410,9 @@ function Invoke-PondTaskTransition {
                 'Code'   { 'Implementation' }
                 default  { $Pond.Name }
             }
-            $reasonMatch = [regex]::Match($activeContent, "(?im)^\*\*$evidenceHeader\*\*:\s*failed by (?<provider>[^\-]+(?:-[^\-]+)*)\s+-\s+(?<reason>[^\r\n]+)")
-            $reason = if ($reasonMatch.Success) { $reasonMatch.Groups['reason'].Value.Trim() } else { "$($Pond.Name) did not record an explicit passing verdict." }
+            $latestEvidence = Get-LatestPondHeaderMatch -Content $activeContent -Headers @($evidenceHeader)
+            $reasonMatch = if ($latestEvidence) { [regex]::Match($latestEvidence.Groups['value'].Value, '(?i)^failed by (?<provider>[^\-]+(?:-[^\-]+)*)\s+-\s+(?<reason>.+)$') } else { $null }
+            $reason = if ($reasonMatch -and $reasonMatch.Success) { $reasonMatch.Groups['reason'].Value.Trim() } else { "$($Pond.Name) did not record an explicit passing verdict." }
 
             $feedbackFile = New-PondFeedbackPlan -Pond $Pond -Context $Context -ActiveFile $activeFile -Reason $reason
             $null = Invoke-PondInvestigatorSpawn -Context $Context

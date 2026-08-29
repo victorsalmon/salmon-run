@@ -7,7 +7,7 @@
       "description": "Current pond status. Updated on every transition.",
       "required": true,
       "mutable": true,
-      "allowedValues": ["draft", "proposal", "ready", "claimed", "working", "completed", "failed", "blocked", "review", "qa", "manual", "archive"]
+      "allowedValues": ["draft", "proposal", "ready", "claimed", "working", "completed", "failed", "blocked", "review", "qa", "manual", "archive", "engine-error"]
     },
     "Scope": {
       "description": "One-line description of the plan's responsibility.",
@@ -127,7 +127,7 @@
       "description": "Class of failure (transient, permanent, etc.).",
       "required": false,
       "mutable": true,
-      "allowedValues": ["transient", "permanent"]
+      "allowedValues": ["transient", "permanent", "engine-error"]
     },
     "Retry": {
       "description": "Current transient-failure retry count.",

@@ -165,35 +165,22 @@ function Start-PondEngine {
                         $null = Invoke-PondTaskTransition -Pond $Pond -Task $transitionTask -Context $reapContext
                         $didReapWork = $true
                     } catch {
-                        Write-Warning "PondEngine: transition during reap for $($Lane.Id) failed: $_"
+                        $reason = "transition failed in $($Pond.Name): $($_.Exception.Message)"
+                        Write-Warning "PondEngine: transition during reap for $($Lane.Id) failed closed: $reason"
+                        $paused = Move-PondLaneToEngineError -LanePath $lanePath -TaskRoot $Workdir -PondName $Pond.Name -Reason $reason
+                        if ($paused.Moved -gt 0) { $didReapWork = $true }
                     }
                 }
 
-                $remaining = @(Get-ChildItem -LiteralPath $lanePath -Force -ErrorAction SilentlyContinue)
-                if ($remaining.Count -gt 0) {
-                    $onFailure = if ($Pond.OnFailure -and $Pond.OnFailure.MoveTo) { $Pond.OnFailure.MoveTo } else { 'Code' }
-                    $targetDir = Join-Path $Workdir $onFailure
-                    $rescue = Invoke-PondRescue -SourceDir $lanePath -TargetDir $targetDir -StaleThresholdSeconds 0
-                    if ($rescue.Rescued -gt 0) {
-                        $sourcePaths = @($files | ForEach-Object { $_.FullName })
-                        $destFiles = @()
-                        foreach ($f in $files) {
-                            $dest = Join-Path $targetDir $f.Name
-                            if (Test-Path -LiteralPath $dest) { $destFiles += (Get-Item -LiteralPath $dest) }
-                        }
-                        if ($destFiles.Count -gt 0) {
-                            $rescueContext = [PondContext]::new()
-                            $rescueContext.TaskRoot = $Workdir
-                            $rescueContext.RepoDir = $Ctx.RepoDir
-                            $rescueContext.Config = $Ctx.Config
-                            $rescueContext.Streams = $Ctx.Streams
-                            $rescueContext.CurrentPond = $Pond
-                            $rescueContext.CurrentGroup = $reapGroup
-                            $commitMsg = "rescue: $($destFiles[0].Name) from $($Pond.Name)"
-                            Push-PondRepos -Pond $Pond -Context $rescueContext -FinalDest $onFailure -SourcePaths $sourcePaths -DestFiles $destFiles -CommitMessage $commitMsg -TaskRepoOnly
-                        }
-                        $didReapWork = $true
-                    }
+                # A child process that exited without completing a transition is
+                # an engine/transport failure, not permission to redo Code work.
+                $remainingPlans = @(Get-ChildItem -LiteralPath $lanePath -Filter '*.md' -File -ErrorAction SilentlyContinue)
+                if ($remainingPlans.Count -gt 0) {
+                    $reason = "lane $($Lane.Id) exited with code $ExitCode without a completed $($Pond.Name) transition"
+                    $paused = Move-PondLaneToEngineError -LanePath $lanePath -TaskRoot $Workdir -PondName $Pond.Name -Reason $reason
+                    if ($paused.Moved -gt 0) { $didReapWork = $true }
+                }
+                if (Test-Path -LiteralPath $lanePath) {
                     Remove-Item -LiteralPath $lanePath -Recurse -Force -ErrorAction SilentlyContinue
                 }
             } else {
@@ -248,8 +235,8 @@ function Start-PondEngine {
             if ($reapDidWork) { $didWork = $true }
 
             $null = $context.UsedNamespaces.Remove($entry.Namespace)
-            if ($entry.Pond.Role -in @('coder','auditor','qa') -and -not [string]::IsNullOrWhiteSpace($entry.RepoPath)) {
-                $null = $context.BusyNamespaces.Remove("repo:$($entry.RepoPath.ToLowerInvariant())")
+            if ($entry.Pond.Role -in @('coder','auditor','qa','investigator') -and -not [string]::IsNullOrWhiteSpace($entry.RepoPath)) {
+                $null = $context.BusyNamespaces.Remove($entry.RepositoryKey)
             }
             $null = $activeLanes.RemoveAt($i)
 
@@ -382,12 +369,13 @@ function Start-PondEngine {
                         Stream     = $stream
                         StreamPath = $stream.Path
                         RepoPath   = $group.RepoPath
+                        RepositoryKey = if (-not [string]::IsNullOrWhiteSpace($group.RepoPath)) { Get-PondRepositoryKey -RepoPath $group.RepoPath } else { '' }
                         Group      = $group
                     })
 
                     $context.UsedNamespaces[$group.Namespace] = $true
-                    if ($pond.Role -in @('coder','auditor','qa') -and -not [string]::IsNullOrWhiteSpace($group.RepoPath)) {
-                        $context.BusyNamespaces["repo:$($group.RepoPath.ToLowerInvariant())"] = $true
+                    if ($pond.Role -in @('coder','auditor','qa','investigator') -and -not [string]::IsNullOrWhiteSpace($group.RepoPath)) {
+                        $context.BusyNamespaces[(Get-PondRepositoryKey -RepoPath $group.RepoPath)] = $true
                     }
                     $didWork = $true
                     Write-Verbose "PondEngine: spawned lane $($lane.Id) for namespace '$($group.Namespace)' on stream '$($stream.Id)' ($($stream.Path))"

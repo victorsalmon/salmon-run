@@ -1,3 +1,7 @@
+if (-not (Get-Command Get-PondGateVerdict -ErrorAction SilentlyContinue)) {
+    . (Join-Path $PSScriptRoot '../Private/PondGateVerdict.ps1')
+}
+
 function Test-PondExecutorVerdict {
     <#
     .SYNOPSIS
@@ -6,20 +10,17 @@ function Test-PondExecutorVerdict {
     [CmdletBinding()]
     [OutputType([bool])]
     param(
-        [Parameter(Mandatory)]
-        [string]$Role,
-
-        [Parameter(Mandatory)]
-        [string[]]$PlanFiles
+        [Parameter(Mandatory)][string]$Role,
+        [Parameter(Mandatory)][string[]]$PlanFiles
     )
 
     $contract = switch ($Role) {
-        'coder'            { @{ Header = 'Implementation'; Pass = 'completed|passed' } }
-        'reviewer'         { @{ Header = 'Reviewed'; Pass = 'passed|completed'; Decision = 'ReviewDecision' } }
-        'auditor'          { @{ Header = 'Audit'; Pass = 'passed|completed'; Decision = 'AuditDecision' } }
-        'qa'               { @{ Header = 'QA'; Pass = 'passed|completed'; Decision = 'QADecision' } }
-        'project-reviewer' { @{ Header = 'ProjectReview'; Pass = 'passed|completed'; Decision = 'ProjectReviewDecision' } }
-        'investigator'     { @{ Header = 'Investigated'; Pass = 'passed|completed'; Decision = 'InvestigatorDecision' } }
+        'coder'            { @{ Header = 'Implementation'; Decision = $null } }
+        'reviewer'         { @{ Header = 'Reviewed'; Decision = 'ReviewDecision' } }
+        'auditor'          { @{ Header = 'Audit'; Decision = 'AuditDecision' } }
+        'qa'               { @{ Header = 'QA'; Decision = 'QADecision' } }
+        'project-reviewer' { @{ Header = 'ProjectReview'; Decision = 'ProjectReviewDecision' } }
+        'investigator'     { @{ Header = 'Investigated'; Decision = 'InvestigatorDecision' } }
         default            { return $true }
     }
 
@@ -28,26 +29,14 @@ function Test-PondExecutorVerdict {
         $content = Get-Content -LiteralPath $plan -Raw -ErrorAction SilentlyContinue
         if ([string]::IsNullOrWhiteSpace($content)) { return $false }
 
-        if ($contract.Decision) {
-            $decision = [regex]::Match($content, "(?im)^\*\*$($contract.Decision)\*\*:\s*(?<value>[^\r\n]+)")
-            if ($decision.Success) {
-                $value = $decision.Groups['value'].Value.Trim()
-                if ($value -match '^(rework|fail(?:ed)?|reject(?:ed)?|blocked)\b') { return $false }
-                if ($value -match '^pass(?:ed)?\b') { continue }
-            }
-        }
-
-        $evidence = [regex]::Match($content, "(?im)^\*\*$($contract.Header)\*\*:\s*(?<value>[^\r\n]+)")
-        if (-not $evidence.Success) {
-            # Coding adapters historically return successfully after applying a
-            # change even when the legacy evidence line was omitted. Preserve
-            # that compatibility, but never accept an explicit failed line.
+        $verdict = Get-PondGateVerdict -Content $content -DecisionHeader $contract.Decision -EvidenceHeader $contract.Header
+        if (-not $verdict.Found) {
+            # Preserve coding-adapter compatibility while all providers migrate
+            # to the structured result contract.
             if ($Role -eq 'coder') { continue }
             return $false
         }
-        $value = $evidence.Groups['value'].Value.Trim()
-        if ($value -match '^(failed|rework|rejected|blocked)\b') { return $false }
-        if ($value -notmatch "^($($contract.Pass))\b") { return $false }
+        if ($verdict.Failed -or -not $verdict.Passed) { return $false }
     }
     return $true
 }

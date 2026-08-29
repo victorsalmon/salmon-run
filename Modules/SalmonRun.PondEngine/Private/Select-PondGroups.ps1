@@ -47,11 +47,17 @@ function Select-PondGroups {
     # for Add' on a generic List<PondGroup>.
     $selected = [System.Collections.ArrayList]::new()
     $selectedRepos = @{}
-    $busyRepos = if ($Context.BusyNamespaces) { $Context.BusyNamespaces } else { @{} }
+    $busyRepos = @{}
+    if ($Context.BusyNamespaces) {
+        foreach ($rawKey in $Context.BusyNamespaces.Keys) {
+            $path = if ($rawKey -like 'repo:*') { $rawKey.Substring(5) } else { $rawKey }
+            $busyRepos[(Get-PondRepositoryKey -RepoPath $path)] = $true
+        }
+    }
     foreach ($group in $available) {
         if ($selected.Count -ge $limit) { break }
         if ($writerRole -and -not [string]::IsNullOrWhiteSpace($group.RepoPath)) {
-            $repoKey = "repo:$($group.RepoPath.ToLowerInvariant())"
+            $repoKey = Get-PondRepositoryKey -RepoPath $group.RepoPath
             if ($selectedRepos.ContainsKey($repoKey) -or $busyRepos.ContainsKey($repoKey)) { continue }
             $selectedRepos[$repoKey] = $true
         }
