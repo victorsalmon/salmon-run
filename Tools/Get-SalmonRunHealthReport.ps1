@@ -63,7 +63,7 @@ function Get-SalmonRunQueueCounts {
     #>
     param([string]$TaskRoot)
 
-    $ponds = @('Code','Review','Audit','QA','Project','ProjectReview','Complete','Failed','Working','Manual','Intake','Archive','Paused')
+    $ponds = @('Code','Review','Audit','QA','Project','ProjectReview','Complete','Failed','Working','Manual','Intake','Archive','Paused','Investigate')
     $allItems = [System.Collections.Generic.List[psobject]]::new()
 
     foreach ($p in $ponds) {
