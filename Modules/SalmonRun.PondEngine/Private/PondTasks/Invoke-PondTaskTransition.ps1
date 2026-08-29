@@ -48,11 +48,11 @@ function Add-PondReworkFeedback {
 
 ## Feedback for Coder
 
-**Source**: $PondName
-**Verdict**: failed
-**FailedChecks**:
+|**Source**: $PondName
+|**Verdict**: failed
+|**FailedChecks**:
 $($failedLines.ToString().TrimEnd())
-**FixActions**:
+|**FixActions**:
 1. Resolve every FailedCheck above.
 2. Re-run the plan's **Validation Rubric** or equivalent quality checks.
 3. Update the **$header** evidence line to a passing result.
@@ -69,6 +69,239 @@ $($failedLines.ToString().TrimEnd())
     }
 
     $content | Set-Content -LiteralPath $PlanPath -Encoding utf8 -NoNewline
+}
+
+function Get-PondPlanActiveFile {
+    <#
+    .SYNOPSIS
+        Returns the active file for a lane group.
+    .DESCRIPTION
+        The active file is the family member with the highest plan feedback
+        sequence number (original = 0, -feedback1 = 1, etc.).
+    #>
+    [CmdletBinding()]
+    [OutputType([System.IO.FileInfo])]
+    param(
+        [Parameter(Mandatory)]
+        [System.IO.FileInfo[]]$Files
+    )
+
+    if ($Files.Count -eq 0) { return $null }
+
+    $sorted = @($Files | Sort-Object { (Get-PondFilePlanSequence -FileName $_.Name) }, Name -Descending)
+    return $sorted[0]
+}
+
+function Test-PlanHasDecisionRequired {
+    <#
+    .SYNOPSIS
+        Returns $true if the plan content signals a human decision is needed.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Content
+    )
+
+    $decisionRequired = $Content -match '(?im)^\*\*DecisionRequired\*\*:\s*(?:yes|true|required)\b'
+    $questionsSection = $Content -match '(?im)^## Questions\s*$'
+    return $decisionRequired -or $questionsSection
+}
+
+function Test-PlanTransientFailure {
+    <#
+    .SYNOPSIS
+        Returns $true if a failure should be treated as a transient timeout
+        and retried in the current pond.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Content,
+
+        [Parameter(Mandatory)]
+        [System.IO.FileInfo]$ActiveFile,
+
+        [int]$TimeoutMinutes = 30
+    )
+
+    $log = @(Get-PlanPondLog -PlanPath $ActiveFile.FullName)
+    if ($log.Count -eq 0) { return $false }
+
+    # (a) The latest PondLog entry is a timeout or mentions one.
+    $latest = $log | Select-Object -Last 1
+    $condA = $latest -and (
+        $latest.action -eq 'external-timeout' -or
+        ($latest.detail -and $latest.detail -match 'timeout')
+    )
+
+    # (b) The spawn and external-fail/external-timeout timestamps are within
+    #     two minutes of the configured timeout length.
+    $condB = $false
+    $spawn = @($log | Where-Object { $_.action -eq 'spawn' }) | Select-Object -Last 1
+    $fail  = @($log | Where-Object { $_.action -in @('external-fail','external-timeout') }) | Select-Object -Last 1
+    if ($spawn -and $fail) {
+        $spawnTs = $null
+        $failTs  = $null
+        if ([datetime]::TryParse($spawn.ts, [ref]$spawnTs) -and [datetime]::TryParse($fail.ts, [ref]$failTs)) {
+            $duration = $failTs - $spawnTs
+            $condB = [Math]::Abs($duration.TotalMinutes - $TimeoutMinutes) -le 2
+        }
+    }
+
+    # (c) The plan explicitly labels the failure as transient.
+    $condC = $Content -match '(?im)^\*\*FailureType\*\*:\s*transient\b'
+
+    # (d) Any legacy evidence line mentions timeout-related language.
+    $condD = $false
+    $evidenceRe = '(?im)^\*\*(Reviewed|Audit|QA|Implementation|ReviewSummary|AuditSummary|QASummary)\*\*:\s*(?<value>[^\r\n]+)'
+    foreach ($m in [regex]::Matches($Content, $evidenceRe)) {
+        $value = $m.Groups['value'].Value
+        if ($value -match 'timeout|timed out|exceeded|deadline|transient|killed') {
+            $condD = $true
+            break
+        }
+    }
+
+    return ($condA -and $condB) -or $condC -or $condD
+}
+
+function Add-PondBlockedNote {
+    <#
+    .SYNOPSIS
+        Marks a plan as blocked and notes which feedback file it is waiting on.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$PlanPath,
+
+        [Parameter(Mandatory)]
+        [string]$BlockedBy,
+
+        [Parameter(Mandatory)]
+        [string]$Reason,
+
+        [Parameter(Mandatory)]
+        [string]$WaitingFor
+    )
+
+    $content = Get-Content -LiteralPath $PlanPath -Raw
+    $headers = [ordered]@{
+        Blocked       = 'true'
+        BlockedBy     = $BlockedBy
+        BlockedReason = $Reason
+        WaitingFor    = $WaitingFor
+        Status        = 'blocked'
+    }
+
+    foreach ($header in $headers.GetEnumerator()) {
+        $pattern = "(?im)^\*\*$([regex]::Escape($header.Key))\*\*:\s*[^\r\n]+"
+        $line = "**$($header.Key)**: $($header.Value)"
+        if ($content -match $pattern) {
+            $content = $content -replace $pattern, $line
+        } else {
+            $content = $content.TrimEnd() + "`n`n$line`n"
+        }
+    }
+
+    $content | Set-Content -LiteralPath $PlanPath -Encoding utf8 -NoNewline
+}
+
+function New-PondFeedbackPlan {
+    <#
+    .SYNOPSIS
+        Creates a new feedback plan in the Code queue for a failed plan.
+    .DESCRIPTION
+        The feedback plan carries the failure reason and becomes the active
+        work item for the Coder. It is linked to the original plan through the
+        **ParentPlan** and **PlanType** headers.
+    #>
+    [CmdletBinding()]
+    [OutputType([System.IO.FileInfo])]
+    param(
+        [Parameter(Mandatory)]
+        [Pond]$Pond,
+
+        [Parameter(Mandatory)]
+        [PondContext]$Context,
+
+        [Parameter(Mandatory)]
+        [System.IO.FileInfo]$ActiveFile,
+
+        [Parameter(Mandatory)]
+        [string]$Reason
+    )
+
+    $codeDir = Join-Path $Context.TaskRoot 'Code'
+    $null = New-Item -ItemType Directory -Path $codeDir -Force -ErrorAction SilentlyContinue
+
+    $family = Get-PondFilePlanFamily -FileName $ActiveFile.Name
+    $stem = $ActiveFile.BaseName -replace '-feedback\d*$', ''
+
+    $maxSeq = 0
+    foreach ($queue in @('Code','Review','Audit','QA','Working')) {
+        $dir = Join-Path $Context.TaskRoot $queue
+        if (-not (Test-Path -LiteralPath $dir)) { continue }
+        $candidates = Get-ChildItem -LiteralPath $dir -Filter '*.md' -File -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { (Get-PondFilePlanFamily -FileName $_.Name) -eq $family }
+        foreach ($f in $candidates) {
+            $seq = Get-PondFilePlanSequence -FileName $f.Name
+            if ($seq -gt $maxSeq) { $maxSeq = $seq }
+        }
+    }
+
+    # Prepend a date prefix only when the stem does not already start with one.
+    if ($stem -notmatch '^\d{4}[-.]\d{2}[-.]\d{2}') {
+        $stem = "$(Get-Date -Format 'yyyy.MM.dd')-$stem"
+    }
+
+    $feedbackBase = "$stem-feedback$($maxSeq + 1)"
+    $feedbackName = "$feedbackBase.md"
+    $feedbackPath = Join-Path $codeDir $feedbackName
+
+    $header = switch ($Pond.Name) {
+        'Review' { 'Reviewed' }
+        'Audit'  { 'Audit' }
+        'QA'     { 'QA' }
+        'Code'   { 'Implementation' }
+        default  { $Pond.Name }
+    }
+
+    $content = @(
+        "# Feedback plan: $stem"
+        ''
+        '**Status**: ready'
+        "**Scope**: Feedback for $stem"
+        '**PlanType**: feedback'
+        "**ParentPlan**: $($ActiveFile.Name)"
+        "**FailedStage**: $($Pond.Name)"
+        ''
+        "**$header**: failed by $($Pond.Role) - $Reason"
+        ''
+        '**PondLog**'
+        ''
+        '```json'
+        '[]'
+        '```'
+    ) -join "`n"
+
+    $content | Set-Content -LiteralPath $feedbackPath -Encoding utf8 -NoNewline
+
+    Add-PondReworkFeedback -PondName $Pond.Name -PlanPath $feedbackPath
+
+    $null = Add-PlanPondLog -PlanPath $feedbackPath -Entry @{
+        ts     = (Get-Date -Format 'o')
+        pond   = $Pond.Name
+        role   = $Pond.Role
+        action = 'created'
+        detail = "feedback for $($ActiveFile.Name)"
+        agent  = 'PondEngine'
+    } -ErrorAction Stop
+
+    return (Get-Item -LiteralPath $feedbackPath)
 }
 
 function Invoke-PondTaskTransition {
@@ -118,43 +351,6 @@ function Invoke-PondTaskTransition {
         }
     }
 
-    if (-not $Context.Success -and $Pond.Name -eq 'Review') {
-        $feedbackDir = Join-Path $Context.TaskRoot 'Feedback'
-        $null = New-Item -ItemType Directory -Path $feedbackDir -Force
-        foreach ($reviewFile in $files) {
-            $reviewContent = Get-Content -LiteralPath $reviewFile.FullName -Raw
-            $reasonMatch = [regex]::Match($reviewContent, '(?im)^\*\*(ReviewSummary|Reviewed)\*\*:\s*(?<value>[^\r\n]+)')
-            $reason = if ($reasonMatch.Success) { $reasonMatch.Groups['value'].Value.Trim() } else { 'Review did not record an explicit passing verdict.' }
-            $feedbackName = "$($reviewFile.BaseName)-review.md"
-            $feedbackPath = Join-Path $feedbackDir $feedbackName
-            @"
-# Review feedback: $($reviewFile.BaseName)
-
-**ReviewDecision**: rework
-**ReviewedPlan**: $($reviewFile.Name)
-**RecordedAt**: $(Get-Date -Format 'o')
-
-## Summary
-
-$reason
-"@ | Set-Content -LiteralPath $feedbackPath -Encoding utf8 -NoNewline
-
-            $headers = [ordered]@{
-                ReviewDecision = 'rework'
-                ReviewSummary = $reason
-                ReviewFeedbackFile = $feedbackName
-                ReviewedPlan = $reviewFile.Name
-            }
-            foreach ($header in $headers.GetEnumerator()) {
-                $pattern = "(?im)^\*\*$([regex]::Escape($header.Key))\*\*:\s*[^\r\n]+"
-                $line = "**$($header.Key)**: $($header.Value)"
-                if ($reviewContent -match $pattern) { $reviewContent = $reviewContent -replace $pattern, $line }
-                else { $reviewContent += "`n$line" }
-            }
-            Set-Content -LiteralPath $reviewFile.FullName -Value $reviewContent -Encoding utf8 -NoNewline
-        }
-    }
-
     if ($Context.Success -and $Pond.Name -eq 'QA') {
         $projectGroups = $files | Group-Object {
             $qaContent = Get-Content -LiteralPath $_.FullName -Raw
@@ -166,98 +362,136 @@ $reason
         }
     }
 
-    $destPondName = if ($Context.Success) { $Pond.OnSuccess.MoveTo } else { $Pond.OnFailure.MoveTo }
-    if ([string]::IsNullOrWhiteSpace($destPondName)) {
+    # Determine the active file in the lane (highest feedback sequence).
+    $activeFile = Get-PondPlanActiveFile -Files $files
+    $activeContent = if ($activeFile) { Get-Content -LiteralPath $activeFile.FullName -Raw } else { '' }
+
+    $timeoutMinutes = if ($Context.Config -and $null -ne $Context.Config.TimeoutMinutes) { $Context.Config.TimeoutMinutes } else { 30 }
+
+    $finalDest = $null
+    $newStatus = 'ready'
+    $action = $null
+    $retry = 0
+    $feedbackFile = $null
+    $reason = $null
+
+    if (-not $Context.Success) {
+        # a) A decision from the product owner is required.
+        if (Test-PlanHasDecisionRequired -Content $activeContent) {
+            $finalDest = 'Intake'
+            $newStatus = 'blocked'
+            $action = 'decision-required'
+        }
+        # b) The failure is a transient timeout and should be retried in place.
+        elseif (Test-PlanTransientFailure -Content $activeContent -ActiveFile $activeFile -TimeoutMinutes $timeoutMinutes) {
+            $retry = 0
+            if ($activeContent -match '(?im)^\*\*Retry\*\*:\s*(?<value>\d+)') {
+                $retry = [int]$Matches['value'].Trim()
+            }
+            $retry++
+
+            if ($retry -ge $Pond.OnFailure.MaxRetries) {
+                $finalDest = $Pond.OnFailure.FinalMoveTo
+                if ($finalDest -notin @('Failed','Intake')) { $finalDest = 'Failed' }
+                $newStatus = if ($finalDest -eq 'Failed') { 'failed' } else { 'blocked' }
+                $action = 'fail'
+            } else {
+                $finalDest = $Pond.Name
+                $newStatus = 'ready'
+                $action = 'retry'
+            }
+        }
+        # c) Quality/work-pond failure: keep the plan in the failing pond, block
+        #    it, and create a new feedback plan in the Code queue for the Coder.
+        elseif ($Pond.Name -in @('Code','Review','Audit','QA','ProjectReview')) {
+            $finalDest = $Pond.Name
+            $newStatus = 'blocked'
+            $action = 'feedback'
+
+            $evidenceHeader = switch ($Pond.Name) {
+                'Review' { 'Reviewed' }
+                'Audit'  { 'Audit' }
+                'QA'     { 'QA' }
+                'Code'   { 'Implementation' }
+                default  { $Pond.Name }
+            }
+            $reasonMatch = [regex]::Match($activeContent, "(?im)^\*\*$evidenceHeader\*\*:\s*failed by (?<provider>[^\-]+(?:-[^\-]+)*)\s+-\s+(?<reason>[^\r\n]+)")
+            $reason = if ($reasonMatch.Success) { $reasonMatch.Groups['reason'].Value.Trim() } else { "$($Pond.Name) did not record an explicit passing verdict." }
+
+            $feedbackFile = New-PondFeedbackPlan -Pond $Pond -Context $Context -ActiveFile $activeFile -Reason $reason
+        }
+        # d) Non-quality failure (e.g. Failed, Project, Intake): route according to
+        #    the pond's configured OnFailure destination.
+        else {
+            $finalDest = $Pond.OnFailure.MoveTo
+            if ([string]::IsNullOrWhiteSpace($finalDest)) { $finalDest = 'Failed' }
+            if ($finalDest -notin @('Failed','Intake')) { $finalDest = 'Failed' }
+            $newStatus = if ($finalDest -eq 'Failed') { 'failed' } else { 'blocked' }
+            $action = 'fail'
+        }
+    } else {
+        $finalDest = $Pond.OnSuccess.MoveTo
+        $newStatus = if ($Pond.OnSuccess.MoveTo -eq 'Complete' -or $finalDest -eq 'Complete' -or $finalDest -like 'Complete/*') { 'complete' } else { 'ready' }
+        $action = 'complete'
+    }
+
+    if ([string]::IsNullOrWhiteSpace($finalDest)) {
         Write-Verbose "Invoke-PondTaskTransition: no transition for pond '$($Pond.Name)'"
         return $Context
     }
 
-    $destDir = Join-Path $Context.TaskRoot $destPondName
+    $destDir = Join-Path $Context.TaskRoot $finalDest
     $null = New-Item -ItemType Directory -Path $destDir -Force -ErrorAction SilentlyContinue
 
-    $sourcePaths = @($files | ForEach-Object { $_.FullName })
-    $destFiles = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
+    $sourcePaths = [System.Collections.Generic.List[string]]::new()
+    foreach ($f in $files) { $sourcePaths.Add($f.FullName) }
 
-    # Retry logic for failure transitions back to the same pond.
-    $finalDest = $destPondName
-    $retry = 0
-    if (-not $Context.Success -and $destPondName -eq $Pond.Name) {
-        $first = $files | Select-Object -First 1
-        $content = Get-Content -LiteralPath $first.FullName -Raw
-        $retry = 0
-        if ($content -match '(?im)^\*\*Retry\*\*:\s*(?<value>\d+)') {
-            $retry = [int]$Matches['value'].Trim()
-        }
-        $retry++
-        if ($retry -ge $Pond.OnFailure.MaxRetries) {
-            $finalDest = $Pond.OnFailure.FinalMoveTo
-            $destDir = Join-Path $Context.TaskRoot $finalDest
-            $null = New-Item -ItemType Directory -Path $destDir -Force -ErrorAction SilentlyContinue
-        } else {
-            # Mark the retry count on every plan file.
-            foreach ($f in $files) {
-                $c = Get-Content -LiteralPath $f.FullName -Raw
-                $c = $c -replace '(?im)^\*\*Retry\*\*:\s*\d+\r?\n?', ''
-                $c = $c + "`n`n**Retry**: $retry`n"
-                $c | Set-Content -LiteralPath $f.FullName -Encoding utf8 -NoNewline
-            }
-        }
+    if ($feedbackFile) {
+        $sourcePaths.Add($feedbackFile.FullName)
     }
 
+    $destFiles = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
+
     foreach ($file in $files) {
-        # If a failing plan is being returned to a work pond, ensure it carries a
-        # structured feedback block for the next Coder to read.
-        if (-not $Context.Success -and $finalDest -notin @('Complete','Failed')) {
-            Add-PondReworkFeedback -PondName $Pond.Name -PlanPath $file.FullName
+        # For a non-transient failure, mark every family member as blocked and
+        # waiting on the newly created feedback file.
+        if (-not $Context.Success -and $action -eq 'feedback' -and $feedbackFile) {
+            Add-PondBlockedNote -PlanPath $file.FullName -BlockedBy $Pond.Name -Reason $reason -WaitingFor $feedbackFile.Name
         }
 
         $dest = Join-Path $destDir $file.Name
         if (Test-Path -LiteralPath $dest) { Remove-Item -LiteralPath $dest -Force }
         Move-Item -LiteralPath $file.FullName -Destination $dest -Force -ErrorAction Stop
-        $destFiles.Add((Get-Item -LiteralPath $dest))
+        $movedFile = Get-Item -LiteralPath $dest
+        $destFiles.Add($movedFile)
 
-        # Mark the plan's status based on the outcome.
+        # Update the plan's status based on the outcome.
         $c = Get-Content -LiteralPath $dest -Raw
-        $newStatus = if ($Context.Success) { 'ready' } else { 'blocked' }
-        if ($Context.Success -and $Pond.OnSuccess.MoveTo -eq 'Complete') {
-            $newStatus = 'complete'
-        }
-        if (-not $Context.Success -and $finalDest -notin @('Complete','Failed')) {
-            # The plan is being retried in a work pond; leave it eligible so the
-            # next matching lane can pick it up. The Retry counter already tracks
-            # how many times it has failed.
-            $newStatus = 'ready'
-        }
-        if ($c -match '(?im)^\*\*Status\*\*:\s*[^\r\n]+') {
-            $c = $c -replace '(?im)^\*\*Status\*\*:\s*[^\r\n]+', "**Status**: $newStatus"
+        $statusPattern = '(?im)^\*\*Status\*\*:\s*[^\r\n]+'
+        if ($c -match $statusPattern) {
+            $c = $c -replace $statusPattern, "**Status**: $newStatus"
         } else {
-            $c = $c + "`n`n**Status**: $newStatus`n"
+            $c = $c.TrimEnd() + "`n`n**Status**: $newStatus`n"
         }
+
+        # Track retry count for transient failures.
+        if ($action -eq 'retry' -or ($action -eq 'fail' -and $retry -gt 0)) {
+            $c = $c -replace '(?im)^\*\*Retry\*\*:\s*\d+\r?\n?', ''
+            $c = $c.TrimEnd() + "`n`n**Retry**: $retry`n"
+        }
+
         $c | Set-Content -LiteralPath $dest -Encoding utf8 -NoNewline
 
         # Append a transition event to the canonical **PondLog** history.
-        $action = $null
         $detail = $null
         if ($Context.Success) {
-            $action = 'complete'
             $detail = "moved from $($Pond.Name) to $finalDest"
         } else {
-            if ($destPondName -eq $Pond.Name) {
-                if ($retry -lt $Pond.OnFailure.MaxRetries) {
-                    $action = 'retry'
-                    $detail = "retry $retry of $($Pond.OnFailure.MaxRetries) in $($Pond.Name)"
-                } else {
-                    $action = 'fail'
-                    $detail = "exceeded max retries in $($Pond.Name); moved to $finalDest"
-                }
-            } else {
-                if ($finalDest -in @('Failed','Tasks/Failed')) {
-                    $action = 'fail'
-                    $detail = "moved from $($Pond.Name) to $finalDest"
-                } else {
-                    $action = 'retry'
-                    $detail = "moved from $($Pond.Name) back to $finalDest after failure"
-                }
+            switch ($action) {
+                'decision-required' { $detail = "requires a decision; moved to $finalDest" }
+                'retry'             { $detail = "retry $retry of $($Pond.OnFailure.MaxRetries) in $($Pond.Name)" }
+                'fail'              { $detail = if ($retry -gt 0) { "exceeded max retries in $($Pond.Name); moved to $finalDest" } else { "failed in $($Pond.Name); moved to $finalDest" } }
+                'feedback'          { $detail = if ($feedbackFile) { "blocked in $($Pond.Name); feedback written to $($feedbackFile.Name)" } else { "blocked in $($Pond.Name)" } }
             }
         }
 
@@ -289,15 +523,20 @@ $reason
         }
     }
 
+    # Include the new feedback plan in the set of files to be committed.
+    if ($feedbackFile) {
+        $destFiles.Add($feedbackFile)
+    }
+
     # A successful final project review becomes one self-contained evidence
     # bundle. Include every old/new path so task-repo commits preserve moves.
-    if ($Context.Success -and $Pond.Name -eq 'ProjectReview' -and $destFiles.Count -eq 1) {
+    if ($Context.Success -and $Pond.Name -eq 'ProjectReview' -and $destFiles.Count -ge 1) {
         $parentDest = $destFiles[0].FullName
         $parentContent = Get-Content -LiteralPath $parentDest -Raw
         $depMatch = [regex]::Match($parentContent, '(?im)^\*\*DependsOn\*\*:\s*(?<value>[^\r\n]+)')
         $projectIdMatch = [regex]::Match($parentContent, '(?im)^\*\*ProjectId\*\*:\s*(?<value>[^\r\n]+)')
         $projectId = if ($projectIdMatch.Success) { $projectIdMatch.Groups['value'].Value.Trim() } else { $destFiles[0].BaseName }
-        $children = if ($depMatch.Success) { @($depMatch.Groups['value'].Value -split ',\s*' | ForEach-Object { [IO.Path]::GetFileNameWithoutExtension($_.Trim()) }) } else { @() }
+        $children = if ($depMatch.Success) { @($depMatch.Groups['value'] -split ',\s*' | ForEach-Object { [IO.Path]::GetFileNameWithoutExtension($_.Trim()) }) } else { @() }
         foreach ($child in $children) {
             $oldChild = Join-Path $Context.TaskRoot "Complete/$child.md"
             if (Test-Path -LiteralPath $oldChild) { $sourcePaths += $oldChild }
