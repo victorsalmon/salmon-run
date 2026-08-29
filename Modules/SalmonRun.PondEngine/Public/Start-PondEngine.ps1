@@ -134,8 +134,10 @@ function Start-PondEngine {
 
             if ($files.Count -gt 0 -and $files[0].Name -match '^\d{4}[-.]?\d{2}[-.]?\d{2}[-.]([^-]+)') {
                 $reapGroup.Namespace = $Matches[1]
-            } else {
+            } elseif ($files.Count -gt 0) {
                 $reapGroup.Namespace = $files[0].BaseName
+            } else {
+                $reapGroup.Namespace = $Lane.Id
             }
 
             if ($files.Count -gt 0) {

@@ -97,6 +97,9 @@ while ($true) {
 
     Write-Heartbeat -State 'running' -Detail "cycle start (crashes=$consecutiveCrashes)"
 
+    $childOutLog = Join-Path $LogDir 'orchestrator-child.log'
+    $childErrLog = Join-Path $LogDir 'orchestrator-child.err'
+
     $startArgs = @{
         FilePath     = (Get-Command -Name 'pwsh' -CommandType Application -ErrorAction SilentlyContinue).Source
         ArgumentList = @(
@@ -111,6 +114,8 @@ while ($true) {
         PassThru     = $true
         NoNewWindow  = $true
         WorkingDirectory = $PSScriptRoot
+        RedirectStandardOutput = $childOutLog
+        RedirectStandardError  = $childErrLog
     }
 
     if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
