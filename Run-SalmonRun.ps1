@@ -32,6 +32,13 @@ param(
 
 $ErrorActionPreference = 'Continue'
 
+# Pester test runs can leave stale `Pester_*/Modules` entries in the user PSModulePath.
+# These can cause `SalmonRun.PondEngine` to resolve to an old module copy and produce
+# `Unable to find type [PondGroup]`. Strip them before any module load.
+$sep = if ($IsWindows -or $env:OS -eq 'Windows_NT') { ';' } else { ':' }
+$cleanPaths = @($env:PSModulePath -split [regex]::Escape($sep) | Where-Object { $_ -and $_ -notlike '*Pester_*' })
+$env:PSModulePath = ($cleanPaths -join $sep)
+
 $moduleLoader = Join-Path $PSScriptRoot 'Modules' 'SalmonRun.ModuleLoader' 'Public' 'Initialize-InterclawEnvironment.ps1'
 if (-not (Test-Path $moduleLoader -PathType Leaf)) {
     throw "Run-SalmonRun: module loader not found at $moduleLoader"

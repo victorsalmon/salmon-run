@@ -50,6 +50,12 @@ if ($Run -and $DryRun) {
     throw "Cannot use -Run and -DryRun together."
 }
 
+# Pester test runs can leave stale `Pester_*/Modules` entries in the user PSModulePath.
+# Strip them before any module load so `SalmonRun.PondEngine` resolves to the repo copy.
+$sep = if ($IsWindows -or $env:OS -eq 'Windows_NT') { ';' } else { ':' }
+$cleanPaths = @($env:PSModulePath -split [regex]::Escape($sep) | Where-Object { $_ -and $_ -notlike '*Pester_*' })
+$env:PSModulePath = ($cleanPaths -join $sep)
+
 # Bootstrap the module environment from the repo this script lives in.
 $moduleLoader = Join-Path $PSScriptRoot 'Modules' 'SalmonRun.ModuleLoader' 'Public' 'Initialize-InterclawEnvironment.ps1'
 if (-not (Test-Path $moduleLoader -PathType Leaf)) {

@@ -24,6 +24,12 @@ param(
 
 $ErrorActionPreference = 'Continue'
 
+# Pester test runs can leave stale `Pester_*/Modules` entries in the user PSModulePath.
+# Strip them before any module load so `SalmonRun.PondEngine` resolves to the repo copy.
+$sep = if ($IsWindows -or $env:OS -eq 'Windows_NT') { ';' } else { ':' }
+$cleanPaths = @($env:PSModulePath -split [regex]::Escape($sep) | Where-Object { $_ -and $_ -notlike '*Pester_*' })
+$env:PSModulePath = ($cleanPaths -join $sep)
+
 $moduleLoader = if ($RepoDir) { Join-Path $RepoDir 'Modules' 'SalmonRun.ModuleLoader' 'Public' 'Initialize-InterclawEnvironment.ps1' } else { $null }
 if (-not ($moduleLoader -and (Test-Path -LiteralPath $moduleLoader))) {
     $moduleLoader = (Resolve-Path (Join-Path (Split-Path $PSScriptRoot -Parent) 'Modules' 'SalmonRun.ModuleLoader' 'Public' 'Initialize-InterclawEnvironment.ps1') -ErrorAction SilentlyContinue)?.Path
