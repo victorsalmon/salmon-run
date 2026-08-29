@@ -33,6 +33,20 @@ Describe 'Executor verdict contract' -Tag 'PondEngine','Regression-Only' {
         Test-PondExecutorVerdict -Role reviewer -PlanFiles @($plan) | Should -BeTrue
     }
 
+    It 'uses the latest review evidence when historical attempts disagree' {
+        . $script:VerdictHelper
+        $plan = Join-Path $TestDrive 'review-history.md'
+        "# Plan`n**Reviewed**: failed by test - old attempt failed`n**Reviewed**: passed by test" | Set-Content $plan -NoNewline
+        Test-PondExecutorVerdict -Role reviewer -PlanFiles @($plan) | Should -BeTrue
+    }
+
+    It 'rejects when the latest review evidence fails after an earlier pass' {
+        . $script:VerdictHelper
+        $plan = Join-Path $TestDrive 'review-regression.md'
+        "# Plan`n**Reviewed**: passed by test`n**Reviewed**: failed by test - current attempt failed" | Set-Content $plan -NoNewline
+        Test-PondExecutorVerdict -Role reviewer -PlanFiles @($plan) | Should -BeFalse
+    }
+
     It 'blocks a rejected Review plan and creates a Code feedback plan' {
         $taskRoot = Join-Path $TestDrive 'Tasks'
         $lane = Join-Path $taskRoot 'Working/review-lane'

@@ -37,6 +37,25 @@ Describe 'Pond scheduling safety' -Tag 'PondEngine','Regression-Only' {
         @($selected | Where-Object RepoPath -eq 'C:\same') | Should -HaveCount 1
     }
 
+    It 'treats a base repository and its worktree as one busy writer resource' {
+        $baseRepo = Join-Path $TestDrive 'shared-repo'
+        $worktree = Join-Path $TestDrive 'shared-worktree'
+        $null = git init -b main $baseRepo
+        $null = git -C $baseRepo config user.email 'salmon-run-tests@example.invalid'
+        $null = git -C $baseRepo config user.name 'Salmon Run Tests'
+        $null = git -C $baseRepo commit --allow-empty -m init
+        $null = git -C $baseRepo worktree add -b lane $worktree
+        $pond = Get-SalmonRunPonds | Where-Object Name -eq Code
+        $context = [PondContext]::new()
+        $context.Streams = [Collections.ArrayList]::new()
+        $context.UsedNamespaces = @{}
+        $context.BusyNamespaces = @{ "repo:$($worktree.ToLowerInvariant())" = $true }
+        $null = $context.Streams.Add((New-PondStream -Id 's1' -Branch main -Path $worktree))
+        $group = [PondGroup]::new(); $group.Namespace='same-common-dir'; $group.RepoPath=$baseRepo
+        $selected = & (Get-Module SalmonRun.PondEngine) { param($p,$g,$c) Select-PondGroups -Pond $p -Groups $g -Context $c } $pond @($group) $context
+        @($selected) | Should -HaveCount 0
+    }
+
     It 'recovers dead lanes to their source pond and leaves live lanes untouched' {
         $taskRoot = Join-Path $TestDrive 'recovery/Tasks'
         $working = Join-Path $taskRoot 'Working'

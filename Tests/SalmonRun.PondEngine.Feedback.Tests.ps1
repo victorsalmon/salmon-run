@@ -43,6 +43,23 @@ Describe 'OpenCode role prompts surface semantic feedback to coders' -Tag 'PondE
 }
 
 Describe 'Failing transitions create feedback plans in Code and block originals' -Tag 'PondEngine','Feedback','Regression' {
+    It 'classifies timestamped external failures without throwing and preserves the failing pond' {
+        $taskRoot = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'timestamp-transition-root') -Force
+        $lane = New-Item -ItemType Directory -Path (Join-Path $taskRoot 'Working' 'lane-reviewer-time-1') -Force
+        $null = New-Item -ItemType Directory -Path (Join-Path $taskRoot 'Code') -Force
+        $null = New-Item -ItemType Directory -Path (Join-Path $taskRoot 'Review') -Force
+        $planName = '2026.08.29-review-time.md'
+        $plan = Join-Path $lane $planName
+        $planContent = "# Test plan`n**Status**: ready`n**Reviewed**: failed by opencode-go/hy3 - current verification failed`n`n**PondLog**`n``````json`n[{`"ts`":`"2026-08-29T16:00:00Z`",`"pond`":`"Review`",`"role`":`"reviewer`",`"action`":`"spawn`",`"detail`":`"started`",`"agent`":`"test`"},{`"ts`":`"2026-08-29T16:01:00Z`",`"pond`":`"Review`",`"role`":`"reviewer`",`"action`":`"external-fail`",`"detail`":`"exit=2`",`"agent`":`"test`"}]`n``````"
+        $planContent | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+        $ctx = [PondContext]@{ TaskRoot=$taskRoot; RepoDir=$taskRoot; CurrentGroup=[PondGroup]@{ StreamPath=$lane; Namespace='time'; RepoPath=$taskRoot }; Success=$false; Config=[pscustomobject]@{ TimeoutMinutes=30 } }
+        $pond = Get-SalmonRunPonds | Where-Object Name -eq Review
+        $task = $pond.Tasks | Where-Object Name -eq Transition | Select-Object -First 1
+        { & (Get-Module SalmonRun.PondEngine) { param($p,$t,$c) Invoke-PondTaskTransition -Pond $p -Task $t -Context $c } $pond $task $ctx } | Should -Not -Throw
+        Join-Path $taskRoot "Review/$planName" | Should -Exist
+        Join-Path $taskRoot "Code/$planName" | Should -Not -Exist
+    }
+
     It 'blocks a failed Review plan in Review and creates a Code feedback plan' {
         $taskRoot = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'feedback-transition-root') -Force
         $lane = New-Item -ItemType Directory -Path (Join-Path $taskRoot 'Working' 'lane-reviewer-x-1') -Force
