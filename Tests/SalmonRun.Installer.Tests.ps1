@@ -97,6 +97,7 @@ Describe 'salmon-run installer' -Tag 'Installer', 'Regression-Only' {
         $ignore | Should -Match '(?m)^/Results/\r?$'
         $ignore | Should -Match '(?m)^/State/\r?$'
         $ignore | Should -Match '(?m)^/SyncOutbox/\r?$'
+        $ignore | Should -Match '(?m)^/Tasks/Working/\r?$'
     }
 
 
