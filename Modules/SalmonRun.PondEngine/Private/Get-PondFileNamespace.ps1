@@ -37,6 +37,57 @@ function Get-PondFileNamespace {
     return 'ungrouped'
 }
 
+function Get-PondFilePlanFamily {
+    <#
+    .SYNOPSIS
+        Returns the family key for a plan file.
+    .DESCRIPTION
+        Strips date prefixes, leading role/tracker tokens, and the `-feedback<N>`
+        suffix so the original plan and all of its feedback files share one key.
+        This is the "exact plan's namespace" — one key per originally written
+        session plan and all of its descendants.
+    .PARAMETER FileName
+        Name of the plan file.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)]
+        [string]$FileName
+    )
+
+    $base = [System.IO.Path]::GetFileNameWithoutExtension($FileName)
+    $base = $base -replace '-feedback\d*$', ''
+    $base = $base -creplace '^[A-Z]+-', ''
+    $base = $base -replace '^\d{4}[-.]\d{2}[-.]\d{2}-?', ''
+
+    if ([string]::IsNullOrWhiteSpace($base)) { return 'ungrouped' }
+    return $base
+}
+
+function Get-PondFilePlanSequence {
+    <#
+    .SYNOPSIS
+        Returns the feedback sequence number for a plan file.
+    .DESCRIPTION
+        0 for the original plan, 1 for `-feedback1`, 2 for `-feedback2`, etc.
+    .PARAMETER FileName
+        Name of the plan file.
+    #>
+    [CmdletBinding()]
+    [OutputType([int])]
+    param(
+        [Parameter(Mandatory)]
+        [string]$FileName
+    )
+
+    $base = [System.IO.Path]::GetFileNameWithoutExtension($FileName)
+    if ($base -match '-feedback(\d+)$') {
+        return [int]$Matches[1].Value
+    }
+    return 0
+}
+
 function Get-PondNamespaceGroups {
     <#
     .SYNOPSIS

@@ -3,14 +3,16 @@
     Groups pond candidate files by the pond's GroupBy property.
 .DESCRIPTION
     Supported GroupBy values:
-      - 'Namespace'  : group by namespace derived from filename
+      - 'Namespace'  : group by exact plan family (original + feedback files)
+                       while preserving the connascence namespace for stream/lane
+                       selection.
       - 'None'       : each file is its own group
       - 'ProjectId'  : group by **ProjectId** header
       - 'Role|Namespace|Module' : legacy connascence grouping
 
-    When a pond sets Operators.MaxFilesPerGroup, each namespace (or project)
-    group larger than that limit is split into smaller chunks.  This keeps a
-    single lane from running an unbounded number of plans and timing out.
+    A plan family is one originally-written session plan plus all of its
+    `-feedback<N>.md` descendants. Families are never split across groups, so
+    the whole family moves through the pipeline as a unit.
 #>
 function Group-PondFiles {
     [CmdletBinding()]
@@ -28,22 +30,26 @@ function Group-PondFiles {
         $Pond.Operators.MaxFilesPerGroup
     } else { 0 }
 
-    # Split a flat list of files into one or more PondGroups respecting the
-    # per-group file cap.  Namespace/role are preserved; Module gets a chunk suffix
-    # so logs can distinguish the batches.
+    # Split a flat list of files into one or more PondGroups.  Families are not
+    # split, so the chunk size is capped only for project/legacy groupings.
     function New-ChunkedGroups {
         param(
             [string]$Namespace,
+            [string]$PlanFamily,
             [string]$Role,
-            [System.IO.FileInfo[]]$Items
+            [System.IO.FileInfo[]]$Items,
+            [int]$ChunkSize = -1
         )
         $sorted = @($Items | Sort-Object Name)
-        $chunkSize = if ($max -gt 0) { $max } else { $sorted.Count }
+        $chunkSize = if ($ChunkSize -gt 0 -and $max -gt 0) { [math]::Min($ChunkSize, $max) } elseif ($max -gt 0) { $max } else { $sorted.Count }
+        if ($chunkSize -le 0) { $chunkSize = $sorted.Count }
         $groups = @()
         for ($i = 0; $i -lt $sorted.Count; $i += $chunkSize) {
-            $chunk = $sorted[$i..([math]::Min($i + $chunkSize - 1, $sorted.Count - 1))]
+            $end = [math]::Min($i + $chunkSize - 1, $sorted.Count - 1)
+            $chunk = $sorted[$i..$end]
             $g = [PondGroup]::new()
             $g.Namespace = $Namespace
+            $g.PlanFamily = $PlanFamily
             $g.Role = $Role
             $g.Module = if ($i -eq 0) { 'main' } else { "main-$($i / $chunkSize + 1)" }
             $g.Files = @($chunk)
@@ -55,7 +61,8 @@ function Group-PondFiles {
     if ($Pond.GroupBy -eq 'None' -or $Files.Count -eq 0) {
         $groups = foreach ($f in ($Files | Sort-Object Name)) {
             $g = [PondGroup]::new()
-            $g.Namespace = $f.BaseName
+            $g.Namespace = (Get-PondFileNamespace -FileName $f.Name)
+            $g.PlanFamily = (Get-PondFilePlanFamily -FileName $f.Name)
             $g.Role = $Pond.Role
             $g.Module = 'main'
             $g.Files = @($f)
@@ -78,7 +85,10 @@ function Group-PondFiles {
             }
         }
         $groups = foreach ($grp in $grouped) {
-            New-ChunkedGroups -Namespace $grp.Name -Role $Pond.Role -Items @($grp.Group)
+            $first = $grp.Group | Select-Object -First 1
+            $ns = Get-PondFileNamespace -FileName $first.Name
+            $planFamily = Get-PondFilePlanFamily -FileName $first.Name
+            New-ChunkedGroups -Namespace $ns -PlanFamily $planFamily -Role $Pond.Role -Items @($grp.Group) -ChunkSize 0
         }
         return $groups
     }
@@ -90,18 +100,23 @@ function Group-PondFiles {
         }
         $groups = foreach ($grp in $grouped) {
             $parts = $grp.Name -split '\|'
-            New-ChunkedGroups -Namespace $parts[1] -Role $parts[0] -Items @($grp.Group) |
+            $first = $grp.Group | Select-Object -First 1
+            $planFamily = Get-PondFilePlanFamily -FileName $first.Name
+            New-ChunkedGroups -Namespace $parts[1] -PlanFamily $planFamily -Role $parts[0] -Items @($grp.Group) -ChunkSize 0 |
                 ForEach-Object { $_.Module = $parts[2]; $_ }
         }
         return $groups
     }
 
-    # Default: Namespace derived consistently with Get-PondWorktreeStreams.
+    # Default: group by exact plan family, keep connascence namespace for lane/streams.
     $grouped = $Files | Group-Object {
-        Get-PondFileNamespace -FileName $_.Name
+        Get-PondFilePlanFamily -FileName $_.Name
     }
     $groups = foreach ($grp in $grouped) {
-        New-ChunkedGroups -Namespace $grp.Name -Role $Pond.Role -Items @($grp.Group)
+        $first = $grp.Group | Select-Object -First 1
+        $ns = Get-PondFileNamespace -FileName $first.Name
+        $planFamily = $grp.Name
+        New-ChunkedGroups -Namespace $ns -PlanFamily $planFamily -Role $Pond.Role -Items @($grp.Group) -ChunkSize 0
     }
     return $groups
 }

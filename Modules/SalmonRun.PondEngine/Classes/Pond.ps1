@@ -93,14 +93,15 @@ class Pond {
 }
 
 class PondGroup {
-    [string]$Namespace
+    [string]$Namespace        # connascence namespace used for stream/lane selection
+    [string]$PlanFamily       # exact base for this plan family (original + feedbacks)
     [string]$Role
     [string]$Module
     [System.IO.FileInfo[]]$Files
     [string]$LaneId
     [string]$StreamPath
     [PondStream]$Stream
-    [string]$RepoPath     # target code repository for the plans in this group
+    [string]$RepoPath         # target code repository for the plans in this group
 }
 
 class PondContext {

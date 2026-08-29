@@ -249,5 +249,25 @@ function Get-PondCandidates {
         $candidates.Add($f)
     }
 
+    # A ready/active family member may have blocked siblings (the original plan
+    # parked in the same pond while a feedback file is in flight).  Include those
+    # siblings as context so the whole family can be processed as one unit.
+    $candidateFamilies = @{}
+    $already = @{}
+    foreach ($c in $candidates) {
+        $candidateFamilies[(Get-PondFilePlanFamily -FileName $c.Name)] = $true
+        $already[$c.FullName] = $true
+    }
+
+    foreach ($f in $files) {
+        if ($already.ContainsKey($f.FullName)) { continue }
+        $family = Get-PondFilePlanFamily -FileName $f.Name
+        if ($candidateFamilies.ContainsKey($family)) {
+            $siblingContent = Get-Content $f.FullName -Raw -ErrorAction SilentlyContinue
+            if ($Pond.Entry.SkipScheduled -and $siblingContent -match $scheduledRe) { continue }
+            $candidates.Add($f)
+        }
+    }
+
     return $candidates.ToArray()
 }
