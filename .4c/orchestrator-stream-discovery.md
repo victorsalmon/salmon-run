@@ -62,4 +62,4 @@ output exposed both issues.
   change (`lane-planner-smoke-test-*`, `lane-qa-uh-signing-*`,
   `lane-project-reviewer-upscale-havens-*`) and claimed `Intake`, `QA`, and
   `ProjectReview` plans.
-- Monitoring: 12 five-minute health checks in progress.
+- Monitoring: 12 five-minute health checks completed; no stalls, healthy=True at every check.
