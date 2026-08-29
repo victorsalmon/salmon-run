@@ -24,7 +24,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('coder','reviewer','auditor','qa','planner','project','project-planner','project-reviewer')]
+    [ValidateSet('coder','reviewer','auditor','qa','planner','project','project-planner','project-reviewer','investigator')]
     [string]$Role,
 
     [Parameter(Mandatory)]
@@ -234,6 +234,46 @@ target repository. Append a ``plan`` action to the **PondLog**. You do not need 
 implement.
 "@
         }
+        'investigator' {
+            @"
+
+ROLE: Investigator
+You are debugging the Salmon Run pond-orchestration engine itself. The attached
+plan has reached the Investigate pond because feedback plans are being produced
+frequently (counter is even). Your job is NOT to implement the original
+user-facing plan; it is to improve the engine so that future Code plans succeed
+on the first run without repeatedly cycling through Review/Audit/QA feedback.
+
+1. Read the recent feedback plans listed in the attached investigation plan and
+   identify the two most common failure patterns.
+2. Inspect the `Code` role prompt in
+   `Modules/SalmonRun.PondEngine/Executors/Opencode.ps1`. If it allows the
+   coder to skip the validation rubric, skip tests, or leave FixActions
+   unaddressed, rewrite the prompt so the coder must pass every rubric item and
+   run the relevant tests before appending `**Implementation**: completed`.
+3. Inspect `Modules/SalmonRun.PondEngine/Public/New-SalmonProjectPlan.ps1` and
+   `Modules/SalmonRun.PondEngine/Private/PondTasks/Invoke-PondTaskPlanProject.ps1`.
+   If session plans are being printed with vague scope, missing acceptance
+   criteria, or unrealistic token budgets, improve the templates and rubrics so
+   the Coder receives a clear, testable, single-run plan.
+4. Run the focused Pester tests (`Tests/SalmonRun.PondEngine.Feedback.Tests.ps1`,
+   `Tests/SalmonRun.PondEngine.Tests.ps1`) and the full Pester suite. Fix any
+   failures introduced by your changes.
+5. Commit and push any changes with conventional-commit messages.
+6. Update the attached plan file: add a brief **InvestigationSummary**
+   describing the root cause and the fix, then append either:
+
+**Investigated**: passed by opencode-go/hy3 - <summary>
+
+or, if you could not fix it:
+
+**Investigated**: failed by opencode-go/hy3 - <reason>
+
+Also append an `investigate` action to the **PondLog**. If the fix succeeded,
+the orchestrator will move this plan to Complete. If it failed, the plan will
+move to Intake for a human.
+"@
+        }
         default {
             @"
 
@@ -254,6 +294,11 @@ Before implementing, read the attached plan file for prior failure evidence:
 3. If no prior failure evidence is present, implement the plan body and the
    **Validation Rubric** normally.
 
+4. Execute every item in the **Validation Rubric** before claiming completion.
+   If a rubric step fails, fix the underlying code and rerun it. Do not append
+   `**Implementation**: completed` until every rubric item passes and the
+   focused tests for the touched module exit 0.
+
 Update the plan's **ConnascenceScope** with the exact relative paths of files you
 create or modify (no broad commits). After implementing, append:
 
@@ -272,6 +317,7 @@ stop without writing `.complete`.
         'auditor'  = @('Audit', 'audit', 'Audit')
         'qa'       = @('QA', 'qa', 'QA')
         'project-reviewer' = @('ProjectReview', 'review', 'ProjectReview')
+        'investigator' = @('Investigated', 'investigate', 'Investigate')
         'planner'  = @($null, 'plan', 'Project')
         default    = @('Implementation', 'implement', 'Code')
     }
