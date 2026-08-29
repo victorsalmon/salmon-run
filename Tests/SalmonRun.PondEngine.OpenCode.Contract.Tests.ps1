@@ -273,5 +273,47 @@ Do not use any tools. Just say exactly "hello from opencode" and exit.
             Test-Path -LiteralPath (Join-Path $lane.FullName '.complete') | Should -Be $true
         }
     }
+
+    Context "Windows POSIX tool availability" -Tag "OpenCode", "Contract", "Windows" {
+        It "Resolve-OpencodeWindowsToolPath finds Git for Windows POSIX tools on Windows" -Skip:($IsLinux -or $IsMacOS -or -not ($IsWindows -or $env:OS -eq 'Windows_NT')) {
+            $toolPath = Resolve-OpencodeWindowsToolPath
+            $toolPath | Should -Not -BeNullOrEmpty
+            $toolPath | Should -Match ([regex]::Escape('Git\usr\bin'))
+            $toolPath | Should -Match ([regex]::Escape('Git\bin'))
+        }
+
+        It "Invoke-OpencodeProvider prepends POSIX tools to the child PATH on Windows" -Skip:($IsLinux -or $IsMacOS -or -not ($IsWindows -or $env:OS -eq 'Windows_NT')) {
+            $lane = New-Item -ItemType Directory -Path (Join-Path $TestDrive "path-lane-$(New-Guid)") -Force
+            $repo = New-Item -ItemType Directory -Path (Join-Path $TestDrive "path-repo-$(New-Guid)") -Force
+            $plan = Join-Path $TestDrive "path-plan-$(New-Guid).md"
+            '# Test plan' | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+
+            $captured = @{ Env = $null }
+            Mock Start-Process -MockWith {
+                param($FilePath, $ArgumentList, $WorkingDirectory, $RedirectStandardOutput, $RedirectStandardError, $NoNewWindow, $PassThru, $ErrorAction)
+                $captured.Env = $env:PATH
+                return [pscustomobject]@{ HasExited = $true; ExitCode = 0; Id = 999 }
+            } -ParameterFilter { $true }
+            Mock Add-PlanPondLog -MockWith { } -ParameterFilter { $true }
+
+            $LanePath = $lane.FullName
+            $RepoDir = $repo.FullName
+            $Provider = 'opencode-go'
+            $Model = 'opencode-go/mimo-v2.5'
+            $Effort = 'default'
+            $PlanFiles = @($plan)
+
+            $null = Invoke-OpencodeProvider
+
+            $captured.Env | Should -Match ([regex]::Escape('Git\usr\bin'))
+            $captured.Env | Should -Match ([regex]::Escape('Git\bin'))
+            # Git's POSIX find must come before Windows' find.exe
+            $idxUsrBin = $captured.Env.IndexOf('\Git\usr\bin')
+            $idxSystem32 = $captured.Env.IndexOf('\System32')
+            if ($idxSystem32 -ge 0) {
+                $idxUsrBin | Should -BeLessThan $idxSystem32
+            }
+        }
+    }
 }
 
