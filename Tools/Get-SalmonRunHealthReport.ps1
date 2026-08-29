@@ -32,6 +32,86 @@ param(
 
 $ErrorActionPreference = 'Continue'
 
+# Plan-family helpers so the report can distinguish the active/main plan from
+# accessory/feedback plans without loading the full module.
+function Get-SalmonRunPlanFamily {
+    param([Parameter(Mandatory)][string]$FileName)
+    $base = [System.IO.Path]::GetFileNameWithoutExtension($FileName)
+    $base = $base -replace '-feedback\d*$', ''
+    $base = $base -creplace '^[A-Z]+-', ''
+    $base = $base -replace '^\d{4}[-.]\d{2}[-.]\d{2}-?', ''
+    if ([string]::IsNullOrWhiteSpace($base)) { return 'ungrouped' }
+    return $base
+}
+
+function Get-SalmonRunPlanSequence {
+    param([Parameter(Mandatory)][string]$FileName)
+    $base = [System.IO.Path]::GetFileNameWithoutExtension($FileName)
+    if ($base -match '-feedback(\d+)$') { return [int]$Matches[1].Value }
+    return 0
+}
+
+function Get-SalmonRunQueueCounts {
+    <#
+    .SYNOPSIS
+        Counts main (active) and accessory (blocked/feedback) plans per pond.
+    .DESCRIPTION
+        A plan family is an original plan plus all of its -feedback<N>.md
+        descendants. The family member with the highest feedback sequence is the
+        main plan; all other family members are accessory. The returned object has
+        Active and Accessory hashtables keyed by pond name.
+    #>
+    param([string]$TaskRoot)
+
+    $ponds = @('Code','Review','Audit','QA','Project','ProjectReview','Complete','Failed','Working','Manual','Intake','Archive','Paused')
+    $allItems = [System.Collections.Generic.List[psobject]]::new()
+
+    foreach ($p in $ponds) {
+        $dir = Join-Path $TaskRoot "Tasks/$p"
+        if (-not (Test-Path -LiteralPath $dir)) { continue }
+        $files = Get-ChildItem -LiteralPath $dir -Filter '*.md' -File -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -ne '.gitkeep' }
+        foreach ($f in $files) { $allItems.Add([pscustomobject]@{ File = $f; Pond = $p }) }
+    }
+
+    $families = @{} 
+    foreach ($item in $allItems) {
+        $family = Get-SalmonRunPlanFamily -FileName $item.File.Name
+        if (-not $families.ContainsKey($family)) { $families[$family] = [System.Collections.Generic.List[psobject]]::new() }
+        $families[$family].Add($item)
+    }
+
+    $active = @{} ; $accessory = @{}
+    foreach ($p in $ponds) { $active[$p] = 0; $accessory[$p] = 0 }
+
+    foreach ($familyItems in $families.Values) {
+        # Active = highest feedback sequence (the family head).  If the highest
+        # sequence is shared, prefer a file whose Status is not blocked.
+        $seqMap = @{}
+        foreach ($item in $familyItems) {
+            $seq = Get-SalmonRunPlanSequence -FileName $item.File.Name
+            if (-not $seqMap.ContainsKey($seq)) { $seqMap[$seq] = [System.Collections.Generic.List[psobject]]::new() }
+            $seqMap[$seq].Add($item)
+        }
+        $maxSeq = [int]($seqMap.Keys | Measure-Object -Maximum).Maximum
+        $candidates = $seqMap[$maxSeq]
+        $main = $null
+        foreach ($c in $candidates) {
+            $cContent = Get-Content -LiteralPath $c.File.FullName -Raw -ErrorAction SilentlyContinue
+            if ($cContent -notmatch '(?im)^\*\*Status\*\*:\s*blocked\b') { $main = $c; break }
+        }
+        if (-not $main) { $main = $candidates | Select-Object -First 1 }
+
+        $active[$main.Pond]++
+        foreach ($item in $familyItems) {
+            if ($item.File.FullName -eq $main.File.FullName) { continue }
+            $accessory[$item.Pond]++
+        }
+    }
+
+    return [pscustomobject]@{ Active = $active; Accessory = $accessory }
+}
+
 if ([string]::IsNullOrWhiteSpace($TaskRoot)) {
     $TaskRoot = if ($env:SALMON_RUN_HOME) { $env:SALMON_RUN_HOME } else { Join-Path $HOME '.salmon' }
 }
@@ -42,10 +122,12 @@ $null = New-Item -ItemType Directory -Path $LogDir -Force -ErrorAction SilentlyC
 
 $now = Get-Date
 $cutoff = $now.AddHours(-$HistoryHours)
+$counts = Get-SalmonRunQueueCounts -TaskRoot $TaskRoot
 $report = [ordered]@{
     ts = $now.ToString('o')
     taskRoot = $TaskRoot
-    queueCounts = [ordered]@{}
+    queueCounts = $counts.Active
+    queueAccessoryCounts = $counts.Accessory
     queueDeltas = [ordered]@{}
     working = @()
     staleWorking = 0
@@ -56,14 +138,14 @@ $report = [ordered]@{
     recentLogErrors = @()
     crashCount = 0
     healthy = $true
+    actionRequired = @()
     summary = ''
 }
 
 $ponds = @('Code','Review','Audit','QA','Project','ProjectReview','Complete','Failed','Working','Manual','Intake','Archive','Paused')
 foreach ($p in $ponds) {
-    $dir = Join-Path $TaskRoot "Tasks/$p"
-    $count = if (Test-Path -LiteralPath $dir) { @(Get-ChildItem -LiteralPath $dir -Filter '*.md' -File -ErrorAction SilentlyContinue).Count } else { 0 }
-    $report.queueCounts[$p] = $count
+    if (-not $report.queueCounts.Contains($p)) { $report.queueCounts[$p] = 0 }
+    if (-not $report.queueAccessoryCounts.Contains($p)) { $report.queueAccessoryCounts[$p] = 0 }
 }
 
 $historyPath = Join-Path $LogDir 'health-churn.json'
@@ -144,10 +226,22 @@ if (Test-Path -LiteralPath $workingDir) {
     }
 }
 
+# Actionable plans that need a human or an Investigator
+$actionPonds = @('Intake', 'Failed')
+foreach ($p in $actionPonds) {
+    $dir = Join-Path $TaskRoot "Tasks/$p"
+    if (Test-Path -LiteralPath $dir) {
+        $planNames = @(Get-ChildItem -LiteralPath $dir -Filter '*.md' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' } | Select-Object -ExpandProperty Name)
+        if ($planNames.Count -gt 0) {
+            $report.actionRequired += [pscustomobject]@{ Pond = $p; Count = $planNames.Count; Plans = $planNames }
+        }
+    }
+}
+
 # Failed queue and crash evidence
 $failedDir = Join-Path $TaskRoot 'Tasks/Failed'
 if (Test-Path -LiteralPath $failedDir) {
-    $report.failed = @(Get-ChildItem -LiteralPath $failedDir -Filter '*.md' -File -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name)
+    $report.failed = @(Get-ChildItem -LiteralPath $failedDir -Filter '*.md' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' } | Select-Object -ExpandProperty Name)
 }
 
 # Completions in the lookback period
@@ -192,13 +286,24 @@ if (-not $usefulWork -and $report.working.Count -gt 0 -and ($report.staleWorking
     $report.healthy = $false
 }
 
-$report.summary = "queues=$($report.queueCounts.Complete)/$($report.queueCounts.Code)/$($report.queueCounts.Review)/$($report.queueCounts.Audit)/$($report.queueCounts.QA)/$($report.queueCounts.Failed) working=$($report.working.Count) stale=$($report.staleWorking) completed+${HistoryHours}h=$($report.completedLastPeriod) healthy=$($report.healthy)"
+function Format-QueueCount {
+    param([int]$Active, [int]$Accessory)
+    if ($Accessory -gt 0) { return "$Active($Accessory)" }
+    return [string]$Active
+}
+
+$q = $report.queueCounts
+$qa = $report.queueAccessoryCounts
+$actionCount = 0
+foreach ($a in $report.actionRequired) { $actionCount += $a.Count }
+
+$report.summary = "queues=$(Format-QueueCount -Active $q.Complete -Accessory $qa.Complete)/$(Format-QueueCount -Active $q.Code -Accessory $qa.Code)/$(Format-QueueCount -Active $q.Review -Accessory $qa.Review)/$(Format-QueueCount -Active $q.Audit -Accessory $qa.Audit)/$(Format-QueueCount -Active $q.QA -Accessory $qa.QA)/$(Format-QueueCount -Active $q.Failed -Accessory $qa.Failed) working=$(Format-QueueCount -Active $q.Working -Accessory $qa.Working) stale=$($report.staleWorking) completed+${HistoryHours}h=$($report.completedLastPeriod) actions=$actionCount healthy=$($report.healthy)"
 
 $reportPath = Join-Path $LogDir 'health-churn-report.json'
 $report | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $reportPath -Encoding utf8 -NoNewline
 
 # Persist the raw counts for the next delta calculation.
-$countsOnly = [ordered]@{ queueCounts = $report.queueCounts }
+$countsOnly = [ordered]@{ queueCounts = $report.queueCounts; queueAccessoryCounts = $report.queueAccessoryCounts }
 $countsOnly | ConvertTo-Json -Depth 2 | Set-Content -LiteralPath $historyPath -Encoding utf8 -NoNewline
 
 $report
