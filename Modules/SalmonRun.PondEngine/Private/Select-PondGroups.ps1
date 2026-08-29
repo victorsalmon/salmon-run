@@ -42,7 +42,10 @@ function Select-PondGroups {
     $available = @($Groups | Where-Object { -not $Context.UsedNamespaces.ContainsKey($_.Namespace) })
     if ($available.Count -eq 0) { return @() }
     $writerRole = $Pond.Role -in @('coder','auditor','qa')
-    $selected = [System.Collections.Generic.List[PondGroup]]::new()
+    # Use a non-generic ArrayList so cross-test module reloads that leave a
+    # stale PondGroup type in the session do not cause 'Cannot find an overload
+    # for Add' on a generic List<PondGroup>.
+    $selected = [System.Collections.ArrayList]::new()
     $selectedRepos = @{}
     $busyRepos = if ($Context.BusyNamespaces) { $Context.BusyNamespaces } else { @{} }
     foreach ($group in $available) {
@@ -52,7 +55,7 @@ function Select-PondGroups {
             if ($selectedRepos.ContainsKey($repoKey) -or $busyRepos.ContainsKey($repoKey)) { continue }
             $selectedRepos[$repoKey] = $true
         }
-        $selected.Add($group)
+        $null = $selected.Add($group)
     }
     return $selected.ToArray()
 }
