@@ -3,9 +3,10 @@
 
 BeforeAll {
     $script:RepoRoot = (Get-Item $PSCommandPath).Directory.Parent.FullName
-    $env:PSModulePath = "$(Join-Path $script:RepoRoot 'Modules')$([IO.Path]::PathSeparator)$env:PSModulePath"
+    $moduleRoot = if ($env:PONDENGINE_MUTATION_MODULE_ROOT) { $env:PONDENGINE_MUTATION_MODULE_ROOT } else { Join-Path $script:RepoRoot 'Modules' }
+    $env:PSModulePath = "$moduleRoot$([IO.Path]::PathSeparator)$env:PSModulePath"
     Remove-Module SalmonRun.PondEngine -Force -ErrorAction SilentlyContinue
-    Import-Module (Join-Path $script:RepoRoot 'Modules/SalmonRun.PondEngine/SalmonRun.PondEngine.psd1') -Force
+    Import-Module (Join-Path $moduleRoot 'SalmonRun.PondEngine/SalmonRun.PondEngine.psd1') -Force
 }
 
 Describe 'Project QA batching and completion' -Tag 'PondEngine','Regression-Only' {

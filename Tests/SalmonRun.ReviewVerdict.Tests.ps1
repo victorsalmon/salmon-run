@@ -3,17 +3,18 @@
 
 BeforeAll {
     $script:RepoRoot = (Get-Item $PSCommandPath).Directory.Parent.FullName
-    $script:VerdictHelper = Join-Path $script:RepoRoot 'Modules/SalmonRun.PondEngine/Executors/PondVerdict.ps1'
-    $env:PSModulePath = "$(Join-Path $script:RepoRoot 'Modules')$([IO.Path]::PathSeparator)$env:PSModulePath"
+    $moduleRoot = if ($env:PONDENGINE_MUTATION_MODULE_ROOT) { $env:PONDENGINE_MUTATION_MODULE_ROOT } else { Join-Path $script:RepoRoot 'Modules' }
+    $script:VerdictHelper = Join-Path $moduleRoot 'SalmonRun.PondEngine/Executors/PondVerdict.ps1'
+    $env:PSModulePath = "$moduleRoot$([IO.Path]::PathSeparator)$env:PSModulePath"
     Remove-Module SalmonRun.PondEngine -Force -ErrorAction SilentlyContinue
-    Import-Module (Join-Path $script:RepoRoot 'Modules/SalmonRun.PondEngine/SalmonRun.PondEngine.psd1') -Force
+    Import-Module (Join-Path $moduleRoot 'SalmonRun.PondEngine/SalmonRun.PondEngine.psd1') -Force
 }
 
 Describe 'Executor verdict contract' -Tag 'PondEngine','Regression-Only' {
     It 'ships a shared verdict validator used by every external executor' {
         $script:VerdictHelper | Should -Exist
         foreach ($name in 'Opencode.ps1','Codex.ps1','Devin.ps1','Dsh.ps1') {
-            Get-Content (Join-Path $script:RepoRoot "Modules/SalmonRun.PondEngine/Executors/$name") -Raw |
+            Get-Content (Join-Path (Split-Path $script:VerdictHelper -Parent) $name) -Raw |
                 Should -Match 'Test-PondExecutorVerdict'
         }
     }

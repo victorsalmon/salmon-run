@@ -1,0 +1,11 @@
+{
+  "TotalMutants": 19,
+  "ScoredMutants": 19,
+  "Killed": 19,
+  "Survived": 0,
+  "Equivalent": 0,
+  "MutationScorePct": 100.0,
+  "ThresholdPct": 95,
+  "Passed": true,
+  "BaselineFailed": 0
+}

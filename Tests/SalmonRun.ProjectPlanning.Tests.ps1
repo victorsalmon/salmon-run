@@ -3,14 +3,16 @@
 
 BeforeAll {
     $script:RepoRoot = (Get-Item $PSCommandPath).Directory.Parent.FullName
-    $env:PSModulePath = "$(Join-Path $script:RepoRoot 'Modules')$([IO.Path]::PathSeparator)$env:PSModulePath"
+    $moduleRoot = if ($env:PONDENGINE_MUTATION_MODULE_ROOT) { $env:PONDENGINE_MUTATION_MODULE_ROOT } else { Join-Path $script:RepoRoot 'Modules' }
+    $env:PSModulePath = "$moduleRoot$([IO.Path]::PathSeparator)$env:PSModulePath"
     Remove-Module SalmonRun.PondEngine -Force -ErrorAction SilentlyContinue
-    Import-Module (Join-Path $script:RepoRoot 'Modules/SalmonRun.PondEngine/SalmonRun.PondEngine.psd1') -Force
+    Import-Module (Join-Path $moduleRoot 'SalmonRun.PondEngine/SalmonRun.PondEngine.psd1') -Force
 }
 
 Describe 'Project planning workload contract' -Tag 'PondEngine','Regression-Only' {
     It 'exports a concept-to-project-plan command' {
-        $manifest = Import-PowerShellDataFile (Join-Path $script:RepoRoot 'Modules/SalmonRun.PondEngine/SalmonRun.PondEngine.psd1')
+        $moduleRoot = if ($env:PONDENGINE_MUTATION_MODULE_ROOT) { $env:PONDENGINE_MUTATION_MODULE_ROOT } else { Join-Path $script:RepoRoot 'Modules' }
+        $manifest = Import-PowerShellDataFile (Join-Path $moduleRoot 'SalmonRun.PondEngine/SalmonRun.PondEngine.psd1')
         $manifest.FunctionsToExport | Should -Contain 'New-SalmonProjectPlan'
     }
 
@@ -36,6 +38,7 @@ Describe 'Project planning workload contract' -Tag 'PondEngine','Regression-Only
 **Scope**: invoice importer
 **ProjectId**: invoice-importer
 **Children**: ingest, validate
+**SessionTargetTokens**: 200000
 ## Concept
 Build a reliable invoice importer with validation and operator reporting.
 '@ | Set-Content -LiteralPath (Join-Path $lane '2026-08-28-invoice-importer.md') -NoNewline
