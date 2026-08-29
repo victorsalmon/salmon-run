@@ -42,14 +42,16 @@ Describe 'OpenCode role prompts surface semantic feedback to coders' -Tag 'PondE
     }
 }
 
-Describe 'Failing transitions append structured feedback for the Coder' -Tag 'PondEngine','Feedback','Regression' {
-    It 'moves a failed Review plan back to Code with a Feedback for Coder section' {
+Describe 'Failing transitions create feedback plans in Code and block originals' -Tag 'PondEngine','Feedback','Regression' {
+    It 'blocks a failed Review plan in Review and creates a Code feedback plan' {
         $taskRoot = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'feedback-transition-root') -Force
         $lane = New-Item -ItemType Directory -Path (Join-Path $taskRoot 'Working' 'lane-reviewer-x-1') -Force
         $codeDir = New-Item -ItemType Directory -Path (Join-Path $taskRoot 'Code') -Force
-        $plan = Join-Path $lane 'plan.md'
+        $reviewDir = New-Item -ItemType Directory -Path (Join-Path $taskRoot 'Review') -Force
+        $planName = '2026.08.28-review-fail.md'
+        $plan = Join-Path $lane $planName
 
-        @'
+        @"
 # Test plan
 
 **Status**: ready
@@ -60,7 +62,7 @@ Describe 'Failing transitions append structured feedback for the Coder' -Tag 'Po
 ```json
 []
 ```
-'@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+"@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
 
         $ctx = [PondContext]@{
             TaskRoot     = $taskRoot
@@ -74,31 +76,54 @@ Describe 'Failing transitions append structured feedback for the Coder' -Tag 'Po
 
         & (Get-Module SalmonRun.PondEngine) { param($p,$t,$c) Invoke-PondTaskTransition -Pond $p -Task $t -Context $c } $pond $task $ctx
 
-        $movedPlan = Join-Path $codeDir 'plan.md'
+        $movedPlan = Join-Path $reviewDir $planName
+        $feedbackName = '2026.08.28-review-fail-feedback1.md'
+        $feedbackPlan = Join-Path $codeDir $feedbackName
+
         $movedPlan | Should -Exist
+        $feedbackPlan | Should -Exist
+        Join-Path $codeDir $planName | Should -Not -Exist
 
-        $content = Get-Content -LiteralPath $movedPlan -Raw
-        $content | Should -Match '## Feedback for Coder'
-        $content | Should -Match '\*\*Source\*\*:\s*Review'
-        $content | Should -Match '\*\*Verdict\*\*:\s*failed'
-        $content | Should -Match '\*\*FailedChecks\*\*:'
-        $content | Should -Match '1\. script missing'
-        $content | Should -Match '2\. test failing'
-        $content | Should -Match '3\. docs incomplete'
-        $content | Should -Match '\*\*FixActions\*\*:'
-        $content | Should -Match '\*\*Status\*\*:\s*ready'
+        $reviewContent = Get-Content -LiteralPath $movedPlan -Raw
+        $reviewContent | Should -Match '\*\*Blocked\*\*:\s*true'
+        $reviewContent | Should -Match '\*\*BlockedBy\*\*:\s*Review'
+        $reviewContent | Should -Match '\*\*BlockedReason\*\*:\s*script missing; test failing; docs incomplete'
+        $reviewContent | Should -Match "\*\*WaitingFor\*\*:\s*$([regex]::Escape($feedbackName))"
+        $reviewContent | Should -Match '\*\*Status\*\*:\s*blocked'
 
-        $log = Get-PlanPondLog -PlanPath $movedPlan
-        $log | Where-Object { $_.action -eq 'retry' } | Should -Not -BeNullOrEmpty
+        $feedbackContent = Get-Content -LiteralPath $feedbackPlan -Raw
+        $feedbackContent | Should -Match '# Feedback plan: 2026.08.28-review-fail'
+        $feedbackContent | Should -Match '\*\*Status\*\*:\s*ready'
+        $feedbackContent | Should -Match '\*\*Scope\*\*:\s*Feedback for 2026.08.28-review-fail'
+        $feedbackContent | Should -Match '\*\*PlanType\*\*:\s*feedback'
+        $feedbackContent | Should -Match "\*\*ParentPlan\*\*:\s*$([regex]::Escape($planName))"
+        $feedbackContent | Should -Match '\*\*FailedStage\*\*:\s*Review'
+        $feedbackContent | Should -Match '\*\*Reviewed\*\*:\s*failed by reviewer - script missing; test failing; docs incomplete'
+        $feedbackContent | Should -Match '## Feedback for Coder'
+        $feedbackContent | Should -Match '\*\*Source\*\*:\s*Review'
+        $feedbackContent | Should -Match '\*\*Verdict\*\*:\s*failed'
+        $feedbackContent | Should -Match '\*\*FailedChecks\*\*:'
+        $feedbackContent | Should -Match '1\. script missing'
+        $feedbackContent | Should -Match '2\. test failing'
+        $feedbackContent | Should -Match '3\. docs incomplete'
+        $feedbackContent | Should -Match '\*\*FixActions\*\*:'
+
+        $feedbackLog = Get-PlanPondLog -PlanPath $feedbackPlan
+        $feedbackLog | Where-Object { $_.action -eq 'created' } | Should -Not -BeNullOrEmpty
+
+        $reviewLog = Get-PlanPondLog -PlanPath $movedPlan
+        $reviewLog | Where-Object { $_.action -eq 'feedback' } | Should -Not -BeNullOrEmpty
     }
 
-    It 'does not overwrite an existing Feedback for Coder section' {
+    It 'blocks a failed QA plan in QA and creates a fresh feedback plan in Code' {
         $taskRoot = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'feedback-preserve-root') -Force
         $lane = New-Item -ItemType Directory -Path (Join-Path $taskRoot 'Working' 'lane-qa-x-1') -Force
         $codeDir = New-Item -ItemType Directory -Path (Join-Path $taskRoot 'Code') -Force
-        $plan = Join-Path $lane 'plan.md'
+        $qaDir = New-Item -ItemType Directory -Path (Join-Path $taskRoot 'QA') -Force
+        $planName = '2026.08.28-qa-fail.md'
+        $plan = Join-Path $lane $planName
 
-        @'
+        @"
 # Test plan
 
 **Status**: ready
@@ -118,7 +143,7 @@ Describe 'Failing transitions append structured feedback for the Coder' -Tag 'Po
 ```json
 []
 ```
-'@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+"@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
 
         $ctx = [PondContext]@{
             TaskRoot     = $taskRoot
@@ -132,11 +157,36 @@ Describe 'Failing transitions append structured feedback for the Coder' -Tag 'Po
 
         & (Get-Module SalmonRun.PondEngine) { param($p,$t,$c) Invoke-PondTaskTransition -Pond $p -Task $t -Context $c } $pond $task $ctx
 
-        $movedPlan = Join-Path $codeDir 'plan.md'
-        $movedPlan | Should -Exist
+        $movedPlan = Join-Path $qaDir $planName
+        $feedbackName = '2026.08.28-qa-fail-feedback1.md'
+        $feedbackPlan = Join-Path $codeDir $feedbackName
 
-        $content = Get-Content -LiteralPath $movedPlan -Raw
-        $content | Should -Match '1\. Add property tests for edge cases'
-        ($content | Select-String -Pattern '## Feedback for Coder').Count | Should -Be 1
+        $movedPlan | Should -Exist
+        $feedbackPlan | Should -Exist
+        Join-Path $codeDir $planName | Should -Not -Exist
+
+        $qaContent = Get-Content -LiteralPath $movedPlan -Raw
+        $qaContent | Should -Match '\*\*Blocked\*\*:\s*true'
+        $qaContent | Should -Match '\*\*BlockedBy\*\*:\s*QA'
+        $qaContent | Should -Match '\*\*BlockedReason\*\*:\s*mutation score too low'
+        $qaContent | Should -Match "\*\*WaitingFor\*\*:\s*$([regex]::Escape($feedbackName))"
+        $qaContent | Should -Match '\*\*Status\*\*:\s*blocked'
+        ($qaContent | Select-String -Pattern '## Feedback for Coder').Count | Should -Be 1
+
+        $feedbackContent = Get-Content -LiteralPath $feedbackPlan -Raw
+        $feedbackContent | Should -Match '# Feedback plan: 2026.08.28-qa-fail'
+        $feedbackContent | Should -Match '\*\*Status\*\*:\s*ready'
+        $feedbackContent | Should -Match '\*\*PlanType\*\*:\s*feedback'
+        $feedbackContent | Should -Match '\*\*FailedStage\*\*:\s*QA'
+        $feedbackContent | Should -Match '\*\*QA\*\*:\s*failed by qa - mutation score too low'
+        $feedbackContent | Should -Match '## Feedback for Coder'
+        $feedbackContent | Should -Match '1\. mutation score too low'
+        ($feedbackContent | Select-String -Pattern '## Feedback for Coder').Count | Should -Be 1
+
+        $feedbackLog = Get-PlanPondLog -PlanPath $feedbackPlan
+        $feedbackLog | Where-Object { $_.action -eq 'created' } | Should -Not -BeNullOrEmpty
+
+        $qaLog = Get-PlanPondLog -PlanPath $movedPlan
+        $qaLog | Where-Object { $_.action -eq 'feedback' } | Should -Not -BeNullOrEmpty
     }
 }
