@@ -18,7 +18,7 @@ function Test-PlanDependencySatisfied {
         [PondContext]$Context
     )
 
-    $dep = $Dependency.Trim()
+    $dep = ConvertTo-PondDependencyId -Dependency $Dependency
     if ([string]::IsNullOrWhiteSpace($dep)) { return $true }
 
     $depFile = if ($dep -notlike '*.md') { "$dep.md" } else { $dep }

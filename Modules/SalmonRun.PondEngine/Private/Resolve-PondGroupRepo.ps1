@@ -34,11 +34,14 @@ function Resolve-PondGroupRepo {
                 $nsAlias = $raw
                 # Strip trailing annotations like (existing) or (new).
                 $repoPath = $raw -replace '\s*\([^)]*\)\s*$', ''
-                # If it looks like a namespace alias (no path separators or .git), leave it for mapping.
+                # Bare values are aliases, never cwd-relative paths. Only path-shaped values
+                # may resolve directly; aliases continue through the coordinator namespace map.
                 if ($repoPath -match '[/\\:]' -or $repoPath -match '\.(git|ca|com)$') {
                     if (-not [System.IO.Path]::IsPathRooted($repoPath)) {
                         $repoPath = Join-Path (Get-SalmonRunRepoRoot) $repoPath
                     }
+                } else {
+                    $repoPath = $null
                 }
             }
         }
@@ -70,5 +73,6 @@ function Resolve-PondGroupRepo {
         $repoPath = if ($Context.RepoDir) { $Context.RepoDir } else { Get-SalmonRunRepoRoot }
     }
 
+    $repoPath = [System.IO.Path]::GetFullPath($repoPath)
     $Group.RepoPath = $repoPath
 }

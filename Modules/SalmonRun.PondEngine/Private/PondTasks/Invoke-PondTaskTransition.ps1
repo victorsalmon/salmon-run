@@ -491,10 +491,9 @@ function Invoke-PondTaskTransition {
     if ($Context.Success -and $Pond.Name -eq 'ProjectReview' -and $destFiles.Count -ge 1) {
         $parentDest = $destFiles[0].FullName
         $parentContent = Get-Content -LiteralPath $parentDest -Raw
-        $depMatch = [regex]::Match($parentContent, '(?im)^\*\*DependsOn\*\*:\s*(?<value>[^\r\n]+)')
         $projectIdMatch = [regex]::Match($parentContent, '(?im)^\*\*ProjectId\*\*:\s*(?<value>[^\r\n]+)')
         $projectId = if ($projectIdMatch.Success) { $projectIdMatch.Groups['value'].Value.Trim() } else { $destFiles[0].BaseName }
-        $children = if ($depMatch.Success) { @($depMatch.Groups['value'] -split ',\s*' | ForEach-Object { [IO.Path]::GetFileNameWithoutExtension($_.Trim()) }) } else { @() }
+        $children = @(Get-PondPlanDependencies -Content $parentContent)
         foreach ($child in $children) {
             $oldChild = Join-Path $Context.TaskRoot "Complete/$child.md"
             if (Test-Path -LiteralPath $oldChild) { $sourcePaths += $oldChild }

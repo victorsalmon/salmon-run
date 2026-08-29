@@ -41,7 +41,7 @@ function Select-PondGroups {
     # safety net, but contention is prevented before expensive agent work starts.
     $available = @($Groups | Where-Object { -not $Context.UsedNamespaces.ContainsKey($_.Namespace) })
     if ($available.Count -eq 0) { return @() }
-    $writerRole = $Pond.Role -in @('coder','auditor','qa')
+    $writerRole = $Pond.Role -in @('coder','auditor','qa','investigator')
     # Use a non-generic ArrayList so cross-test module reloads that leave a
     # stale PondGroup type in the session do not cause 'Cannot find an overload
     # for Add' on a generic List<PondGroup>.

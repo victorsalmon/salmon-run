@@ -103,21 +103,14 @@ function Get-PondCandidates {
         # DependencyReady: if the plan declares DependsOn entries, they must
         # exist in a completion pond (Complete, Archive, or ProjectReview).
         if ($Pond.Entry.DependencyReady) {
-            $dependsRe = '(?im)^\*\*DependsOn\*\*:\s*(?<value>[^\r\n]+)'
-            $depMatches = [regex]::Matches($content, $dependsRe)
+            $deps = @(Get-PondPlanDependencies -Content $content)
             $unsatisfied = $false
-            foreach ($m in $depMatches) {
-                $deps = $m.Groups['value'].Value.Trim() -split ',\s*'
-                foreach ($d in $deps) {
-                    $d = $d.Trim()
-                    if ([string]::IsNullOrWhiteSpace($d)) { continue }
-                    if (-not (Test-PlanDependencySatisfied -Dependency $d -Context $Context)) {
-                        Write-Verbose "Get-PondCandidates: skipping plan $($f.Name) with unsatisfied dependency '$d'"
-                        $unsatisfied = $true
-                        break
-                    }
+            foreach ($d in $deps) {
+                if (-not (Test-PlanDependencySatisfied -Dependency $d -Context $Context)) {
+                    Write-Verbose "Get-PondCandidates: skipping plan $($f.Name) with unsatisfied dependency '$d'"
+                    $unsatisfied = $true
+                    break
                 }
-                if ($unsatisfied) { break }
             }
             if ($unsatisfied) { continue }
         }
@@ -184,45 +177,36 @@ function Get-PondCandidates {
                 }
             }
             'children-complete' {
-                $dependsRe = '(?im)^\*\*DependsOn\*\*:\s*(?<value>[^\r\n]+)'
-                $depMatches = [regex]::Matches($content, $dependsRe)
+                $deps = @(Get-PondPlanDependencies -Content $content)
                 $completionDirs = @(
                     (Join-Path $Context.TaskRoot 'Complete'),
                     (Join-Path $Context.TaskRoot 'Archive')
                 )
                 $allComplete = $true
-                foreach ($m in $depMatches) {
-                    $deps = $m.Groups['value'].Value.Trim() -split ',\s*'
-                    foreach ($d in $deps) {
-                        $d = $d.Trim()
-                        if ([string]::IsNullOrWhiteSpace($d)) { continue }
-                        $depFile = if ($d -notlike '*.md') { "$d.md" } else { $d }
-                        $found = $false
-                        $childComplete = $false
-                        foreach ($dir in $completionDirs) {
-                            if (-not (Test-Path -LiteralPath $dir)) { continue }
-                            $depFiles = @(Get-ChildItem -Path "$dir/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq $depFile })
-                            if ($depFiles.Count -gt 0) {
-                                $found = $true
-                                $childLog = @(Get-PlanPondLog -PlanPath $depFiles[0].FullName)
-                                $childComplete = @($childLog | Where-Object { $null -ne $_ -and $_.action -eq 'complete' }).Count -gt 0
-                                if (-not $childComplete) {
-                                    # Backward compatibility: accept legacy plans in
-                                    # Complete/Archive that do not yet have a
-                                    # **PondLog** section.
-                                    $childContent = Get-Content -LiteralPath $depFiles[0].FullName -Raw -ErrorAction SilentlyContinue
-                                    $childComplete = $childContent -notmatch '(?im)^\*\*PondLog\*\*'
-                                }
-                                break
+                foreach ($d in $deps) {
+                    $depFile = "$d.md"
+                    $found = $false
+                    $childComplete = $false
+                    foreach ($dir in $completionDirs) {
+                        if (-not (Test-Path -LiteralPath $dir)) { continue }
+                        $depFiles = @(Get-ChildItem -Path "$dir/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq $depFile })
+                        if ($depFiles.Count -gt 0) {
+                            $found = $true
+                            $childLog = @(Get-PlanPondLog -PlanPath $depFiles[0].FullName)
+                            $childComplete = @($childLog | Where-Object { $null -ne $_ -and $_.action -eq 'complete' }).Count -gt 0
+                            if (-not $childComplete) {
+                                # Backward compatibility for legacy Complete/Archive plans without PondLog.
+                                $childContent = Get-Content -LiteralPath $depFiles[0].FullName -Raw -ErrorAction SilentlyContinue
+                                $childComplete = $childContent -notmatch '(?im)^\*\*PondLog\*\*'
                             }
-                        }
-                        if (-not $found -or -not $childComplete) {
-                            Write-Verbose "Get-PondCandidates: plan $($f.Name) waiting for child '$d'"
-                            $allComplete = $false
                             break
                         }
                     }
-                    if (-not $allComplete) { break }
+                    if (-not $found -or -not $childComplete) {
+                        Write-Verbose "Get-PondCandidates: plan $($f.Name) waiting for child '$d'"
+                        $allComplete = $false
+                        break
+                    }
                 }
                 if (-not $allComplete) { $failedGate = $true }
             }

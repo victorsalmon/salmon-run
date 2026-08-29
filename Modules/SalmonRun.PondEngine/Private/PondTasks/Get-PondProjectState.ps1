@@ -21,12 +21,7 @@ function Get-PondProjectState {
     $children = @()
     if ($parent) {
         $content = Get-Content -LiteralPath $parent.FullName -Raw
-        $match = [regex]::Match($content, '(?im)^\*\*DependsOn\*\*:\s*(?<value>[^\r\n]+)')
-        if ($match.Success) {
-            $children = @($match.Groups['value'].Value -split ',\s*' | ForEach-Object {
-                ([IO.Path]::GetFileNameWithoutExtension($_.Trim()))
-            } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-        }
+        $children = @(Get-PondPlanDependencies -Content $content)
     }
 
     $locations = [ordered]@{}
@@ -93,10 +88,7 @@ function Complete-PondProjectBundle {
     $qaDir = Join-Path $bundle 'qa'
     foreach ($dir in $bundle,$plansDir,$feedbackDir,$qaDir) { $null = New-Item -ItemType Directory -Path $dir -Force }
 
-    $dependsMatch = [regex]::Match($content, '(?im)^\*\*DependsOn\*\*:\s*(?<value>[^\r\n]+)')
-    $children = @(if ($dependsMatch.Success) {
-        @($dependsMatch.Groups['value'].Value -split ',\s*' | ForEach-Object { [IO.Path]::GetFileNameWithoutExtension($_.Trim()) } | Where-Object { $_ })
-    } else { @() })
+    $children = @(Get-PondPlanDependencies -Content $content)
 
     foreach ($child in $children) {
         $source = Join-Path $TaskRoot "Complete/$child.md"

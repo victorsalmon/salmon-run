@@ -22,6 +22,7 @@ function New-PondStream {
             'reviewer'        = 1
             'auditor'         = 1
             'qa'              = 1
+            'investigator'    = 1
             'planner'         = 2
             'project-planner' = 2
             'project-reviewer' = 1
@@ -38,7 +39,7 @@ function New-PondStream {
     $stream.Idle = $true
 
     $laneIndex = 1
-    $roleOrder = @('coder','reviewer','auditor','qa','planner','project-planner','project-reviewer','archiver')
+    $roleOrder = @('coder','reviewer','auditor','qa','investigator','planner','project-planner','project-reviewer','archiver')
     $remainingRoles = $RoleCounts.Keys | Where-Object { $roleOrder -notcontains $_ }
     $roles = @($roleOrder | Where-Object { $RoleCounts.ContainsKey($_) }) + @($remainingRoles)
     foreach ($role in $roles) {

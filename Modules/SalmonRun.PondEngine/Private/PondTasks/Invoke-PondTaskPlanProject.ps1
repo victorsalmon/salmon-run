@@ -104,8 +104,8 @@ $concept
 
         # Update the parent plan with a DependsOn list so ProjectReview can gate.
         $dependsOn = ($parentChildStems | Select-Object -Unique) -join ', '
-        if ($content -match '(?im)^\*\*DependsOn\*\*:\s*[^\r\n]+') {
-            $content = $content -replace '(?im)^\*\*DependsOn\*\*:\s*[^\r\n]+', "**DependsOn**: $dependsOn"
+        if ($content -match '(?im)^\*\*DependsOn\*\*:[ \t]*[^\r\n]*') {
+            $content = $content -replace '(?im)^\*\*DependsOn\*\*:[ \t]*[^\r\n]*', "**DependsOn**: $dependsOn"
         } else {
             $content = $content + "`n`n**DependsOn**: $dependsOn`n"
         }
