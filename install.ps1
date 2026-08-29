@@ -58,7 +58,7 @@ foreach ($rel in $taskDirs) {
 
 # Keep coordinator-owned operational state outside task-repository checkpoints.
 $runtimeIgnorePath = Join-Path $RuntimeHome '.gitignore'
-$requiredRuntimeIgnores = @('/Results/','/State/','/SyncOutbox/')
+$requiredRuntimeIgnores = @('/Results/','/State/','/SyncOutbox/','/Tasks/Working/')
 $existingRuntimeIgnores = if (Test-Path -LiteralPath $runtimeIgnorePath) { @(Get-Content -LiteralPath $runtimeIgnorePath) } else { @() }
 if ((Test-Path -LiteralPath $runtimeIgnorePath) -and (Get-Item -LiteralPath $runtimeIgnorePath).Length -gt 0) {
     $rawRuntimeIgnore = Get-Content -LiteralPath $runtimeIgnorePath -Raw
