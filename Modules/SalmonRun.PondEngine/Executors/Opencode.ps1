@@ -75,6 +75,40 @@ function Resolve-OpencodeCredential {
     return $key
 }
 
+function Resolve-OpencodeWindowsToolPath {
+    <#
+    .SYNOPSIS
+        Returns the path entries that should be prepended to the child process
+        PATH so POSIX shell commands (head, grep, find, cat, etc.) resolve on
+        Windows. Returns null on non-Windows or when Git for Windows is not found.
+    #>
+    $onWindows = $IsWindows -or $env:OS -eq 'Windows_NT'
+    if (-not $onWindows) { return $null }
+
+    $candidates = @()
+
+    # Derive the POSIX tool directory from the installed `git` command.
+    $gitCommand = Get-Command 'git' -ErrorAction SilentlyContinue
+    if ($gitCommand) {
+        $gitRoot = (Get-Item (Join-Path $gitCommand.Source '..' '..')).FullName
+        if ($gitRoot) {
+            $candidates += Join-Path $gitRoot 'usr\bin'
+            $candidates += Join-Path $gitRoot 'bin'
+        }
+    }
+
+    # Common install locations as fallbacks.
+    foreach ($base in @('C:\Program Files\Git', 'C:\Program Files (x86)\Git')) {
+        $candidates += Join-Path $base 'usr\bin'
+        $candidates += Join-Path $base 'bin'
+    }
+
+    $found = @($candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -Unique)
+    if ($found.Count -eq 0) { return $null }
+
+    return ($found -join [System.IO.Path]::PathSeparator)
+}
+
 function Get-OpencodeRolePrompt {
     <#
     .SYNOPSIS
@@ -375,7 +409,16 @@ function Invoke-OpencodeProvider {
         }
     }
 
-    Write-PlanLog -Action 'spawn' -Detail "provider=$Provider model=$Model effort=$Effort cli=$cliPath"
+    # On Windows, prepend the Git for Windows POSIX tool directories so the
+    # child shell can resolve head, grep, find, cat, etc. This is necessary
+    # because opencode agents frequently emit POSIX pipeline commands.
+    $toolPath = Resolve-OpencodeWindowsToolPath
+    if ($toolPath) {
+        $env:PATH = "$toolPath$([System.IO.Path]::PathSeparator)$($env:PATH)"
+        Write-PlanLog -Action 'spawn' -Detail "provider=$Provider model=$Model effort=$Effort cli=$cliPath path-prepended=$toolPath"
+    } else {
+        Write-PlanLog -Action 'spawn' -Detail "provider=$Provider model=$Model effort=$Effort cli=$cliPath"
+    }
 
     $process = $null
     $exitCode = 1
