@@ -8,6 +8,17 @@ BeforeAll {
 }
 
 Describe 'salmon-run installer' -Tag 'Installer', 'Regression-Only' {
+    BeforeAll {
+        $script:SavedInstallerProcessHome = $env:SALMON_RUN_HOME
+        $script:SavedInstallerUserHome = [Environment]::GetEnvironmentVariable('SALMON_RUN_HOME', 'User')
+    }
+
+    AfterAll {
+        if ($null -ne $script:SavedInstallerProcessHome) { $env:SALMON_RUN_HOME = $script:SavedInstallerProcessHome }
+        else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
+        [Environment]::SetEnvironmentVariable('SALMON_RUN_HOME', $script:SavedInstallerUserHome, 'User')
+    }
+
     It 'creates a runtime home with the expected task queues and directories' {
         $tempHome = Join-Path $TestDrive 'salmon-home'
         $tempInstall = Join-Path $TestDrive 'salmon-install'
@@ -105,7 +116,7 @@ Describe 'Start-SalmonRun.ps1 dry run' -Tag 'DryRun', 'Regression-Only' {
             $env:PSModulePath = (Join-Path $__RepoRoot 'Modules') + ';' +
                                (Join-Path $__RepoRoot 'Modules') + ';' + $env:PSModulePath
 
-            $output = & $script:StartScript -DryRun 6>&1
+            $output = & $script:StartScript -DryRun -RuntimeHome $tempHome 6>&1
             ($output -join "`n") | Should -Match 'Salmon Run dry run'
             ($output -join "`n") | Should -Match 'Total queued plans'
         } finally {
@@ -113,4 +124,5 @@ Describe 'Start-SalmonRun.ps1 dry run' -Tag 'DryRun', 'Regression-Only' {
         }
     }
 }
+
 

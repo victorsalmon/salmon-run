@@ -40,6 +40,7 @@ param(
     [int]$MaxIterations = 20,
     [int]$PollIntervalSeconds = 300,
     [int]$SubprocessTimeoutMinutes = 30,
+    [string]$RuntimeHome = '',
     [hashtable]$NamespaceRepoMap = @{},
     [string]$ConfigPath = ''
 )
@@ -49,6 +50,16 @@ $ErrorActionPreference = 'Stop'
 if ($Run -and $DryRun) {
     throw "Cannot use -Run and -DryRun together."
 }
+
+# Runtime identity is an explicit coordinator input. This prevents a long-lived
+# launcher from silently inheriting an abandoned test queue or another instance's home.
+if (-not [string]::IsNullOrWhiteSpace($RuntimeHome)) {
+    $resolvedRuntimeHome = [System.IO.Path]::GetFullPath($RuntimeHome)
+    $env:SALMON_RUN_HOME = $resolvedRuntimeHome
+} elseif ($env:SALMON_RUN_HOME -match '[/\\]Pester_[^/\\]+[/\\]') {
+    throw "Refusing inherited Pester SALMON_RUN_HOME outside an explicit test invocation: $env:SALMON_RUN_HOME. Pass -RuntimeHome explicitly."
+}
+
 
 # Pester test runs can leave stale `Pester_*/Modules` entries in the user PSModulePath.
 # Strip them before any module load so `SalmonRun.PondEngine` resolves to the repo copy.
