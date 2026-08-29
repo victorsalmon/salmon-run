@@ -64,4 +64,5 @@ Property/mutation proof: Not applicable to this environmental PATH-only change. 
 
 Red-gate proof:
 - Test commit: `5eafee6 test: failing repro for OpenCode Windows POSIX tool PATH`
-- Fix commit: `<this-fix-sha>`
+- Fix commit: `33f3b59 fix: prepend Git for Windows POSIX tools to OpenCode PATH on Windows`
+- The test was run before the fix and failed (see Concern section); the same test run after the fix passed with the live OpenCode integration.
