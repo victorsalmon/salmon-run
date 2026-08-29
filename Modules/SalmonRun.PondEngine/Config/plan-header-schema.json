@@ -7,7 +7,7 @@
       "description": "Current pond status. Updated on every transition.",
       "required": true,
       "mutable": true,
-      "allowedValues": ["draft", "proposal", "ready", "claimed", "working", "completed", "failed", "review", "qa", "manual", "archive"]
+      "allowedValues": ["draft", "proposal", "ready", "claimed", "working", "completed", "failed", "blocked", "review", "qa", "manual", "archive"]
     },
     "Scope": {
       "description": "One-line description of the plan's responsibility.",
@@ -68,6 +68,61 @@
       "description": "Plan filename whose implementation was reviewed.",
       "required": false,
       "mutable": false
+    },
+    "Blocked": {
+      "description": "Whether this plan is currently blocked waiting on feedback.",
+      "required": false,
+      "mutable": true,
+      "allowedValues": ["true", "false"]
+    },
+    "BlockedBy": {
+      "description": "Pond that blocked this plan.",
+      "required": false,
+      "mutable": true
+    },
+    "BlockedReason": {
+      "description": "Concise reason this plan is blocked.",
+      "required": false,
+      "mutable": true
+    },
+    "WaitingFor": {
+      "description": "Filename of the feedback plan this blocked plan is waiting on.",
+      "required": false,
+      "mutable": true
+    },
+    "PlanType": {
+      "description": "Kind of plan (main, feedback, etc.).",
+      "required": false,
+      "mutable": false,
+      "allowedValues": ["main", "feedback", "project", "intake"]
+    },
+    "ParentPlan": {
+      "description": "Filename of the parent plan this feedback plan was derived from.",
+      "required": false,
+      "mutable": false
+    },
+    "FailedStage": {
+      "description": "Pond in which the parent plan failed, prompting this feedback.",
+      "required": false,
+      "mutable": false
+    },
+    "DecisionRequired": {
+      "description": "Whether a human decision is required before this plan may proceed.",
+      "required": false,
+      "mutable": true,
+      "allowedValues": ["yes", "true", "required", "no", "false"]
+    },
+    "FailureType": {
+      "description": "Class of failure (transient, permanent, etc.).",
+      "required": false,
+      "mutable": true,
+      "allowedValues": ["transient", "permanent"]
+    },
+    "Retry": {
+      "description": "Current transient-failure retry count.",
+      "required": false,
+      "mutable": true,
+      "minimum": 0
     }
   },
   "pondLogActions": {
@@ -126,6 +181,11 @@
       "requiredFields": ["ts", "pond", "role", "action"],
       "optionalFields": ["detail", "agent"]
     },
+    "external-timeout": {
+      "description": "An external agent executor was stopped because it exceeded its time budget.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
     "complete": {
       "description": "The plan moved to Complete.",
       "requiredFields": ["ts", "pond", "role", "action"],
@@ -138,6 +198,21 @@
     },
     "retry": {
       "description": "The plan was retried and moved back to an earlier pond.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "feedback": {
+      "description": "A non-transient failure created a feedback plan for the Coder.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "decision-required": {
+      "description": "The plan was moved to Intake because a human decision is required.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "created": {
+      "description": "A new feedback plan was created in the Code queue.",
       "requiredFields": ["ts", "pond", "role", "action"],
       "optionalFields": ["detail", "agent"]
     },
