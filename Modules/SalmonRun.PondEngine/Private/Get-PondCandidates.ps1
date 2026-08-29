@@ -189,7 +189,7 @@ function Get-PondCandidates {
                     $childComplete = $false
                     foreach ($dir in $completionDirs) {
                         if (-not (Test-Path -LiteralPath $dir)) { continue }
-                        $depFiles = @(Get-ChildItem -Path "$dir/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq $depFile })
+                        $depFiles = @(Get-ChildItem -LiteralPath $dir -Filter '*.md' -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq $depFile })
                         if ($depFiles.Count -gt 0) {
                             $found = $true
                             $childLog = @(Get-PlanPondLog -PlanPath $depFiles[0].FullName)

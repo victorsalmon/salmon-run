@@ -29,7 +29,7 @@ function Test-PlanDependencySatisfied {
         $pondDir = if ($pondRel -match '^Tasks[/\\](.+)$') { Join-Path $Context.TaskRoot $Matches[1] } else { Join-Path $Context.TaskRoot $pondRel }
         if (-not (Test-Path -LiteralPath $pondDir)) { continue }
 
-        $files = Get-ChildItem -Path "$pondDir/*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' }
+        $files = Get-ChildItem -LiteralPath $pondDir -Filter '*.md' -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' }
         foreach ($file in $files) {
             if ($file.Name -eq $depFile) { return $true }
             $nameNoExt = $file.BaseName
