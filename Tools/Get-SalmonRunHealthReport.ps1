@@ -306,5 +306,6 @@ $report | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $reportPath -Encodi
 $countsOnly = [ordered]@{ queueCounts = $report.queueCounts; queueAccessoryCounts = $report.queueAccessoryCounts }
 $countsOnly | ConvertTo-Json -Depth 2 | Set-Content -LiteralPath $historyPath -Encoding utf8 -NoNewline
 
-$report
+# Emit the report as a single object so callers can pipe it (e.g. | Select-Object summary).
+[pscustomobject]$report
 
