@@ -464,6 +464,7 @@ function Invoke-OpencodeProvider {
 
     $process = $null
     $exitCode = 1
+    $timeoutKilled = $false
     try {
         $process = Start-Process -FilePath $cliPath -ArgumentList $argumentList `
             -WorkingDirectory $RepoDir `
@@ -483,6 +484,7 @@ function Invoke-OpencodeProvider {
         if ($process -and -not $process.HasExited) {
             $null = taskkill /T /F /PID $process.Id 2>&1 | Out-Null
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            $timeoutKilled = $true
             $exitCode = 1
         } else {
             if ($process) {
@@ -514,7 +516,7 @@ function Invoke-OpencodeProvider {
     if ($exitCode -eq 0 -and -not (Test-PondExecutorVerdict -Role $Role -PlanFiles $PlanFiles)) {
         $exitCode = 2
     }
-    $resultAction = if ($exitCode -eq 0) { 'external-complete' } else { 'external-fail' }
+    $resultAction = if ($exitCode -eq 0) { 'external-complete' } elseif ($timeoutKilled) { 'external-timeout' } else { 'external-fail' }
     Write-PlanLog -Action $resultAction -Detail "exit=$exitCode"
 
     $completeFile = Join-Path $LanePath '.complete'
