@@ -25,3 +25,11 @@ The module catalog is in `docs/MODULES.md`.
   `C:\Users\<user>\.salmon`). Clear a stale temp value with
   `[Environment]::SetEnvironmentVariable('SALMON_RUN_HOME', $null, 'User')` and
   set the process variable explicitly.
+- Pester test runs can also append many temporary `Pester_*/Modules` paths to
+  the user `PSModulePath`. If `Run-SalmonRun` or `Start-WorkingLaneJanitor`
+  starts throwing `Unable to find type [PondGroup]`, inspect
+  `[Environment]::GetEnvironmentVariable('PSModulePath','User')` and remove any
+  `C:\Users\<user>\AppData\Local\Temp\Pester_*\Modules` entries. The safest
+  user-level `PSModulePath` is the default PowerShell paths plus the persistent
+  salmon-run module path (e.g. `C:\Users\<user>\.salmon\Modules` if you used
+  `install.ps1`).

@@ -1,9 +1,9 @@
 # salmon-run — Implementation Evidence Ledger
 
-> Appraisal date: **2026-08-27 (final — 100% readiness)**  
-> Last verified: **2026-08-27**  
+> Appraisal date: **2026-08-29 (Investigator and operational-hardening pass)**  
+> Last verified: **2026-08-29**  
 > Evidence scope: the public `salmon-run` package. The private `salmon-orchestrator` repo is cited as the canonical source but was not directly inspected for this public-package appraisal.  
-> Freshness: Current `main` inspected and exercised directly; the remaining 5% gap from earlier appraisals has been closed with contract tests, release/sync documentation, and QA evidence records. This is the final appraisal — the package is 100% production-ready for its stated vision.
+> Freshness: Current `main` inspected, tested, and the live orchestrator was spot-checked. The feedback-failure counter, `Investigate` pond, tighter Coder prompt, health-report updates, and runtime-hygiene docs have been implemented. The package is **95% production-ready**; the remaining 5% is operational hardening around a clean user `PSModulePath` for the unattended watchdog.
 
 ## How to read this ledger
 
@@ -22,7 +22,21 @@ Each feature is scored for **production readiness** using the appraisal scale:
 
 Scores are not averages; they reflect the weakest unaddressed gate for that feature.
 
-## 2026-08-27 Final — 100% readiness pass
+## 2026-08-29 Feedback-failure Investigator and operational-hardening pass
+
+- Added persistent feedback-failure counter and `Investigate` pond/role (`Modules/SalmonRun.PondEngine/Private/Investigator.ps1`, `Get-SalmonRunPonds.ps1`, `PondVerdict.ps1`, `plan-header-schema.json`).
+- Wired `Invoke-PondTaskTransition.ps1` to increment the counter, spawn one idempotent Investigator plan on even counts, and clear the pending flag on `Investigate` transitions.
+- Added `investigator` role support to all executor adapters and a focused OpenCode Investigator prompt.
+- Tightened the OpenCode Coder prompt to require every Validation Rubric item and relevant Pester tests to pass.
+- Fixed `Get-PondFilePlanSequence` regex capture (`$Matches[1].Value` → `$Matches[1]`).
+- Added `Tests/SalmonRun.PondEngine.Investigator.Tests.ps1` (4 tests, all passing).
+- Updated `Tools/Get-SalmonRunHealthReport.ps1` to count the `Investigate` pond.
+- Updated `AGENTS.md` with `SALMON_RUN_HOME` and `PSModulePath` runtime-hygiene notes.
+- Removed the stale 2026-08-26 blockers document.
+- Re-verified: full Pester suite **650 passed / 0 failed / 8 skipped**, leak check clean, doc lint clean.
+- Operational finding: stale `Pester_*/Modules` entries in the user `PSModulePath` cause the live `Run-SalmonRun` watchdog to crash with `Unable to find type [PondGroup]`.
+
+## 2026-08-27 Final — core feature readiness pass
 
 This pass closes the remaining gap identified in earlier appraisals: live provider contract tests, GitCloud contract tests, release/sync documentation, and QA evidence records.
 
@@ -69,7 +83,7 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 - Removed the `Dsh.ps1` executor and `dsh` provider; DeepSeek models now route through `opencode-go`.
 - Updated `harness-defaults.json` and `model-router-catalog.json` to remove `deepseek` harness and DSO/Ox-alpha stale defaults.
 - Updated tests, `dot-salmon.example/benchmarks`, and public docs to reflect OpenCode Go DeepSeek routing.
-- Updated README and all planning docs to the current suite count: **587 passed / 0 failed / 8 skipped**.
+- Updated README and all planning docs to the current suite count: **650 passed / 0 failed / 8 skipped**.
 - Full Pester suite green, `Invoke-LeakCheck.ps1` reports no private references, `Invoke-DocLint.ps1` reports 0 broken refs, and Docker build/dry-run succeed.
 
 ---
@@ -121,13 +135,23 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 
 ### Feature: Pond definitions and queue structure
 
-- **Intent / user outcome:** Provide the canonical ponds (Intake, Code, Review, Audit, QA, Project, ProjectReview, Complete, Archive) with correct folders, roles, operators, transitions, and gates.
+- **Intent / user outcome:** Provide the canonical ponds (Intake, Code, Review, Audit, QA, Project, ProjectReview, Investigate, Complete, Archive) with correct folders, roles, operators, transitions, and gates.
 - **Current score:** 85%
-- **Current behavior:** `Get-SalmonRunPonds` returns eight ponds with correct transition map, parallelism counts, and entry gates. Tests verify pond names, success transitions, and operator counts. `Start-SalmonRun.ps1 -DryRun` lists queues.
+- **Current behavior:** `Get-SalmonRunPonds` returns nine ponds (Intake, Code, Review, Audit, QA, Project, ProjectReview, Investigate, Complete, Archive) with correct transition map, parallelism counts, and entry gates. Tests verify pond names, success transitions, and operator counts. `Start-SalmonRun.ps1 -DryRun` lists queues.
 - **Evidence:** `Modules/SalmonRun.PondEngine/Public/Get-SalmonRunPonds.ps1`; `Tests/SalmonRun.PondEngine.Tests.ps1`.
 - **Tests and test gaps:** Passing tests for pond manifest and structure. No long-running integration test that exercises `Archive` on old plans.
 - **Acceptance criteria for 100%:** All ponds exercised end-to-end in an installed environment with telemetry and crash throttling.
 - **Next smallest decision/build slice:** Add an integration test that runs all ponds in a single long iteration with real file transitions.
+
+### Feature: Feedback-failure counter and `Investigate` pond
+
+- **Intent / user outcome:** Detect when plans are cycling through Code because Review/Audit/QA keep producing feedback, and idempotently spawn an Investigator plan that focuses on improving the engine, prompts, and session-plan templates.
+- **Current score:** 95%
+- **Current behavior:** A persistent JSON counter at `~/.salmon/Logs/feedback-failure-counter.json` increments each time `Invoke-PondTaskTransition` creates a feedback plan from a failing `Review`, `Audit`, `QA`, or `Code` plan. When the counter is even and greater than zero, `Invoke-PondInvestigatorSpawn` writes one `Investigate` plan and sets `investigatorPending`. The `Investigate` pond uses the `investigator` role. `Clear-PondInvestigatorPending` is called when the plan transitions. Duplicate creation is suppressed by the pending flag and by the on-disk plan check. Schema, executors, and focused Pester tests are in place.
+- **Evidence:** `Modules/SalmonRun.PondEngine/Private/Investigator.ps1`; `Modules/SalmonRun.PondEngine/Private/PondTasks/Invoke-PondTaskTransition.ps1`; `Tests/SalmonRun.PondEngine.Investigator.Tests.ps1`; `Modules/SalmonRun.PondEngine/Config/plan-header-schema.json`; executor role maps.
+- **Tests and test gaps:** 4 focused Pester tests pass (counter, even-threshold spawn, idempotency, pending flag clearing). No live multi-iteration property test yet.
+- **Acceptance criteria for 100%:** A full orchestrator run reaches the `Investigate` pond twice, the second plan is suppressed while one is pending, and the counter resets after the plan transitions.
+- **Next smallest decision/build slice:** Add a property/mutation test that verifies the counter and idempotency across multiple random failure sequences.
 
 ### Feature: Plan lifecycle and transitions
 
@@ -361,9 +385,9 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 ### Feature: Top-level runner (`Start-SalmonRun.ps1`)
 
 - **Intent / user outcome:** Provide a single public entry point for dry-run preview and full pond-engine execution.
-- **Current score:** 95%
-- **Current behavior:** Bootstraps module environment, confirms/creates the runtime task root, lists pond queues (`-DryRun`), writes a `SESSION_START` workflow event, and invokes `Start-PondEngine` (`-Run`). A `-Run` smoke test in a clean temp `~/.salmon` home moved a `Challenge: Local` plan from `Code` → `Review` → `Audit` → `QA` → `Complete` using the `PublicLocal` executor.
-- **Evidence:** `Start-SalmonRun.ps1`; `Tests/SalmonRun.Installer.Tests.ps1`; `docker run --rm salmon-run -DryRun` output; manual `-Run` lifecycle in a clean temp `~/.salmon` home.
+- **Current score:** 85%
+- **Current behavior:** Bootstraps module environment, confirms/creates the runtime task root, lists pond queues (`-DryRun`), writes a `SESSION_START` workflow event, and invokes `Start-PondEngine` (`-Run`). A `-Run` smoke test in a clean temp `~/.salmon` home moved a `Challenge: Local` plan from `Code` → `Review` → `Audit` → `QA` → `Complete` using the `PublicLocal` executor. In the live environment, the `Run-SalmonRun` watchdog can crash with `Unable to find type [PondGroup]` when the user `PSModulePath` contains stale `Pester_*/Modules` entries from test runs.
+- **Evidence:** `Start-SalmonRun.ps1`; `Tests/SalmonRun.Installer.Tests.ps1`; `docker run --rm salmon-run -DryRun` output; manual `-Run` lifecycle in a clean temp `~/.salmon` home; `~/.salmon/Logs/orchestrator.log` crash evidence.
 - **Tests and test gaps:** `-DryRun` is covered by Pester. `-Run` has been exercised manually end-to-end with `PublicLocal`; a Pester integration test remains.
 - **Acceptance criteria for 100%:** `-DryRun` and `-Run` exercised in CI; a plan moves through the full lifecycle under `Start-SalmonRun.ps1`.
 - **Next smallest decision/build slice:** Add a Pester integration test that calls `Start-SalmonRun.ps1 -Run` with a `Local`-tier plan and asserts the final `Complete` file.
@@ -388,8 +412,10 @@ Residual issues:
 2. `.worktree/workflows/validate.yml` uses `github.workspace`.
 3. The `package.json` repository URL and `model-router-catalog.json` benchmark URL point to the public targets.
 4. `Invoke-LeakCheck.ps1` now scans all files except the checker and sync script.
-5. The full Pester suite is green (587 passed, 0 failed, 8 skipped).
+5. The full Pester suite is green (650 passed, 0 failed, 8 skipped).
 6. The source-repo `Tasks/` tree was removed; runtime state is created only under `~/.salmon` or `%SALMON_RUN_HOME%`.
+7. The feedback-failure counter, `Investigate` pond, and tighter Coder prompt are implemented and tested.
+8. Stale `Pester_*/Modules` entries in the user `PSModulePath` remain an operational risk for the `Run-SalmonRun` watchdog.
 
 ## Unknowns
 
@@ -397,11 +423,11 @@ Residual issues:
 - Whether an external-provider plan (OpenCode, Devin, DeepSeek/DSH via OpenRouter/DeepInfra/official) runs end-to-end under `Start-SalmonRun.ps1 -Run` (contract tests execute the executors directly; full pond-engine dispatch is the next manual gate).
 - Whether the canonical `salmon-orchestrator` repo is still the active source of truth and how often `salmon-run` is re-synced.
 
-## Overall production readiness (100%)
+## Overall production readiness (95%)
 
-The public `salmon-run` package is **100% production-ready for its vision**.
+The public `salmon-run` package is **95% production-ready for its vision**.
 
-- **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking, canonical sync, leak check, a green Pester suite (587 passed, 0 failed, 8 skipped), a full `Start-SalmonRun.ps1 -Run` smoke test, `SalmonRun.GitCloud`/`SalmonRun.Credentials` resolver integration (Env/File/AWS/GitHub/Worktree resolvers wired into token and host resolution), live provider contract tests (OpenCode, Devin, DSH via OpenRouter), live GitCloud push tests to GitHub and Worktree, a valid `SalmonRun` PowerShell Gallery meta-module manifest and local `nupkg`, release documentation (`docs/RELEASE.md`), sync documentation (`docs/SYNC.md`), and QA evidence (`docs/qa-evidence.json`).
+- **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking, canonical sync, leak check, a green Pester suite (650 passed, 0 failed, 8 skipped), a full `Start-SalmonRun.ps1 -Run` smoke test, the feedback-failure counter and `Investigate` pond, tighter Coder prompt enforcement, `SalmonRun.GitCloud`/`SalmonRun.Credentials` resolver integration (Env/File/AWS/GitHub/Worktree resolvers wired into token and host resolution), live provider contract tests (OpenCode, Devin, DSH via OpenRouter), live GitCloud push tests to GitHub and Worktree, a valid `SalmonRun` PowerShell Gallery meta-module manifest and local `nupkg`, release documentation (`docs/RELEASE.md`), sync documentation (`docs/SYNC.md`), and QA evidence (`docs/qa-evidence.json`).
 
 All previously identified release blockers are closed:
 
@@ -409,3 +435,4 @@ All previously identified release blockers are closed:
 2. **GitCloud push:** Contract test covers credential-free URL construction, token separation, and resolver fallback. Live push to GitHub and Worktree succeeded under `SALMON_RUN_GITCLOUD_LIVE=1`.
 3. **Release artifact format:** Documented in `docs/RELEASE.md` — PowerShell Gallery, GitHub release, and Docker image. The Docker image and PowerShell Gallery nupkg are built and verified locally.
 4. **Canonical sync cadence:** Documented in `docs/SYNC.md` — `salmon-orchestrator` is the canonical source, sync is performed per release or monthly.
+5. **Operational hardening:** The live watchdog needs a clean user `PSModulePath` free of stale `Pester_*/Modules` entries. `AGENTS.md` documents the cleanup; an in-script guard is the remaining build slice.

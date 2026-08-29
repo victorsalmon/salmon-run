@@ -36,6 +36,7 @@ The canonical source-of-truth is the private `salmon-orchestrator` repo. `salmon
 | `Failed` | Plans that failed after retries |
 | `Working` | Plans currently in progress (with lock files) |
 | `Project` / `ProjectReview` | Large plans split into child plans |
+| `Investigate` | Plans that diagnose recurring feedback failures and improve the engine/prompts |
 | `Manual` / `Handoffs` / `Temp` / `Schedules` / `Logs` | Human action stubs, handoffs, drafts, schedules, and runtime logs |
 
 Plan files are markdown with YAML-ish front-matter headers (`Status`, `Scope`, `Challenge`, `DependsOn`, etc.). The engine reads and rewrites these files as it advances them through the pipeline.
@@ -50,7 +51,7 @@ See `docs/PUBLIC_PACKAGE.md` for the full separation between repo paths and the 
 
 Each pond has:
 
-- A **folder** to watch and a **role** to perform (`planner`, `coder`, `reviewer`, `auditor`, `qa`, `project-planner`, `project-reviewer`, `archiver`).
+- A **folder** to watch and a **role** to perform (`planner`, `coder`, `reviewer`, `auditor`, `qa`, `project-planner`, `project-reviewer`, `investigator`, `archiver`).
 - **Operators** that control parallelism (`ParallelCount`, `MinGuarantee`, `MaxNewPerIteration`).
 - An **entry gate** with `EvidenceGate` and `RequiredHeaders` so plans can only enter when they have the right evidence.
 - A **task pipeline**: `Claim → Prepare → ModelRoute → Spawn → Monitor → Transition` (most ponds) or specialized tasks such as `PlanProject` and `Archive`.
@@ -103,7 +104,13 @@ A plan can list `**DependsOn**` headers. `Test-PlanDependencySatisfied` holds th
 
 The `Project` pond runs `Invoke-PondTaskPlanProject` to split a large plan into child `Code` plans plus a `ProjectReview` plan. The `ProjectReview` pond waits until all child plans are `Complete` (`children-complete` gate) before finishing.
 
-See `Modules/SalmonRun.PondEngine/Private/PondTasks/` and `Modules/SalmonRun.PondEngine/Executors/PublicLocal.ps1`.
+### Feedback-failure counter and Investigator
+
+When a plan fails in `Review`, `Audit`, `QA`, or `Code` and is routed back to `Code` as a new feedback plan, a persistent counter stored at `~/.salmon/Logs/feedback-failure-counter.json` is incremented. When the counter reaches an even number greater than zero, the engine idempotently spawns a single `Investigate` plan and sets an `investigatorPending` flag. The `Investigate` pond uses the `investigator` role to inspect recent feedback, tighten the Coder prompt, improve session-plan templates, and clear the pending flag when it transitions.
+
+The Coder prompt now requires every Validation Rubric item to pass and the relevant Pester tests to exit 0 before `**Implementation**: completed` can be appended, reducing the frequency of repeated feedback cycles.
+
+See `Modules/SalmonRun.PondEngine/Private/Investigator.ps1` and `Modules/SalmonRun.PondEngine/Private/PondTasks/Invoke-PondTaskTransition.ps1`.
 
 ---
 

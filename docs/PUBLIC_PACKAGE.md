@@ -37,12 +37,15 @@ The installer (`install.ps1`) creates and owns these directories:
 - `~/.salmon/Tasks/Manual` - human-action instructions
 - `~/.salmon/Tasks/Handoffs` - handoff stubs
 - `~/.salmon/Tasks/Temp` - temporary plan drafts
-- `~/.salmon/Tasks/Logs` - agent and orchestrator logs
+- `~/.salmon/Tasks/Investigate` - meta-level plans that inspect recurring failures
+- `~/.salmon/Tasks/Logs` - agent and orchestrator logs (legacy; current logs live under `~/.salmon/Logs`)
 - `~/.salmon/Tasks/Project` - project plans
 - `~/.salmon/Tasks/ProjectReview` - project review plans
 - `~/.salmon/Tasks/Schedules` - scheduled plan files
 - `~/.salmon/cache` - runtime cache
 - `~/.salmon/secrets` - local secret storage (fallback, never committed)
+- `~/.salmon/Logs` - agent and orchestrator logs
+- `~/.salmon/Logs/feedback-failure-counter.json` - persistent feedback-failure counter and `investigatorPending` flag
 
 ## Copying from the canonical repo
 
