@@ -402,8 +402,49 @@ Describe 'Pond dependency gating' -Tag 'PondEngine', 'Regression-Only' {
             $env:SALMON_RUN_HOME = $saved
         }
     }
-}
+    It 'treats a blank DependsOn header as no dependencies' {
+        $tempDir = Join-Path $TestDrive 'pondengine-depends-blank'
+        foreach ($sub in @('Tasks/Code','Tasks/Complete','Tasks/Archive','Tasks/Working','Tasks/Paused','Tasks/Failed')) {
+            $null = New-Item -ItemType Directory -Path (Join-Path $tempDir $sub) -Force
+        }
+        @"
+# Child Plan
+**Status**: ready
+**Scope**: test
+**Challenge**: Local
+**DependsOn**: 
+**Connascence**: sibling-plan.md
+"@ | Set-Content -LiteralPath (Join-Path $tempDir 'Tasks/Code/2026-08-29-blank-child.md') -Encoding utf8 -NoNewline
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Join-Path $tempDir 'Tasks/Complete/2026-08-29-blank-child.md' | Should -Exist
+        } finally { $env:SALMON_RUN_HOME = $saved }
+    }
 
+    It 'resolves an annotated DependsOn entry by its plan identifier' {
+        $tempDir = Join-Path $TestDrive 'pondengine-depends-annotated'
+        foreach ($sub in @('Tasks/Code','Tasks/Complete','Tasks/Archive','Tasks/Working','Tasks/Paused','Tasks/Failed')) {
+            $null = New-Item -ItemType Directory -Path (Join-Path $tempDir $sub) -Force
+        }
+        '# Parent' | Set-Content -LiteralPath (Join-Path $tempDir 'Tasks/Complete/uh-screening-3.md') -Encoding utf8 -NoNewline
+        @'
+# Child Plan
+**Status**: ready
+**Scope**: test
+**Challenge**: Local
+**DependsOn**: `uh-screening-3` (status: complete)
+'@ | Set-Content -LiteralPath (Join-Path $tempDir 'Tasks/Code/2026-08-29-annotated-child.md') -Encoding utf8 -NoNewline
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            Join-Path $tempDir 'Tasks/Complete/2026-08-29-annotated-child.md' | Should -Exist
+        } finally { $env:SALMON_RUN_HOME = $saved }
+    }
+
+}
 Describe 'Project and ProjectReview pipeline' -Tag 'PondEngine', 'Regression-Only' {
     It 'moves a Project plan through ProjectReview to Complete with Local harness' {
         $tempDir = Join-Path $TestDrive 'pondengine-project'
