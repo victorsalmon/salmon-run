@@ -159,12 +159,20 @@ plan was implemented as specified. If it was, append:
 
 **Reviewed**: passed by opencode-go/hy3
 
-to the plan file and add a `review` action to the **PondLog**. Do not change
+to the plan file and add a ``review`` action to the **PondLog**. Do not change
 code. If the implementation is missing or wrong, append:
 
 **Reviewed**: failed by opencode-go/hy3 - <reason>
 
-and add a `review` action with the failure reason. Leave the plan in the Review
+Also append a `## Feedback for Coder` section at the end of the plan (before the
+**PondLog**) with these fields:
+
+**Source**: Review
+**Verdict**: failed
+**FailedChecks**: A numbered list of each check you performed and the concrete result (e.g. "1. scripts/validate-sitemap.mjs missing -- npm script exits with 'Cannot find module'").
+**FixActions**: A numbered list of specific, actionable steps the Coder must take to resolve every failed check.
+
+and add a ``review`` action with the failure reason. Leave the plan in the Review
 queue; the orchestrator will route the feedback to the previous gate.
 "@
         }
@@ -181,8 +189,16 @@ additional files. After auditing, append:
 
 **Audit**: passed by opencode-go/hy3
 
-and add an `audit` action to the **PondLog**. If you cannot pass, append
-`**Audit**: failed by opencode-go/hy3 - <reason>` instead.
+and add an ``audit`` action to the **PondLog**. If you cannot pass, append:
+
+**Audit**: failed by opencode-go/hy3 - <reason>
+
+Also append a `## Feedback for Coder` section with these fields:
+
+**Source**: Audit
+**Verdict**: failed
+**FailedChecks**: A numbered list of each lint/type/test check that failed.
+**FixActions**: A numbered list of the concrete code-smell fixes the Coder must apply.
 "@
         }
         'qa' {
@@ -197,8 +213,16 @@ changed files. After QA passes, append:
 
 **QA**: passed by opencode-go/hy3
 
-and add a `qa` action to the **PondLog**. If QA cannot pass, append
-`**QA**: failed by opencode-go/hy3 - <reason>` instead.
+and add a ``qa`` action to the **PondLog**. If QA cannot pass, append:
+
+**QA**: failed by opencode-go/hy3 - <reason>
+
+Also append a `## Feedback for Coder` section with these fields:
+
+**Source**: QA
+**Verdict**: failed
+**FailedChecks**: A numbered list of the test/mutation/quality checks that failed, with error messages or score shortfalls.
+**FixActions**: A numbered list of the code changes, test additions, or refactors needed to make each check pass.
 "@
         }
         'planner' {
@@ -206,7 +230,7 @@ and add a `qa` action to the **PondLog**. If QA cannot pass, append
 
 ROLE: Planner
 Decompose the request in the plan file into clear, actionable steps inside the
-target repository. Append a `plan` action to the **PondLog**. You do not need to
+target repository. Append a ``plan`` action to the **PondLog**. You do not need to
 implement.
 "@
         }
@@ -214,13 +238,29 @@ implement.
             @"
 
 ROLE: Coder
-Implement the plan in the target repository. Update the plan's
-**ConnascenceScope** with the exact relative paths of files you create or modify
-(no broad commits). After implementing, append:
+Before implementing, read the attached plan file for prior failure evidence:
+
+1. Look for a `## Feedback for Coder` section. If it exists, read the
+   **FailedChecks** to understand what failed, then treat the **FixActions**
+   list as your primary task list. Address every FixAction explicitly and record
+   evidence in the plan that each item is resolved.
+2. If no feedback section exists, scan for the most recent failed legacy evidence
+   headers such as:
+   - `**Reviewed**: failed by ... - <reason>`
+   - `**QA**: failed by ... - <reason>`
+   - `**Audit**: failed by ... - <reason>`
+   - `**Implementation**: failed by ... - <reason>`
+   Treat the `<reason>` as the highest-priority rework specification.
+3. If no prior failure evidence is present, implement the plan body and the
+   **Validation Rubric** normally.
+
+Update the plan's **ConnascenceScope** with the exact relative paths of files you
+create or modify (no broad commits). After implementing, append:
 
 **Implementation**: completed by opencode-go/hy3
 
-and add an `implement` action to the **PondLog**. If you cannot complete,
+Include a brief summary of what changed, including how any prior feedback was
+resolved. Add an ``implement`` action to the **PondLog**. If you cannot complete,
 append `**Implementation**: failed by opencode-go/hy3 - <reason>` instead and
 stop without writing `.complete`.
 "@
@@ -239,12 +279,14 @@ stop without writing `.complete`.
     $evidenceHeader = $evidenceInfo[0]
     $evidenceAction = $evidenceInfo[1]
     $evidencePond   = $evidenceInfo[2]
+    $passVerb       = if ($Role -eq 'coder' -or $Role -eq 'planner') { 'completed' } else { 'passed' }
 
     $evidence = @"
 
 EVIDENCE FORMAT
-For this $Role gate, append exactly one legacy evidence line and one **PondLog**
-JSON entry at the end of each attached plan file.
+For this $Role gate, append exactly one legacy evidence line, one `## Feedback
+for Coder` section when failing, and one **PondLog** JSON entry at the end of
+each attached plan file.
 "@
 
     if ($evidenceHeader) {
@@ -252,9 +294,9 @@ JSON entry at the end of each attached plan file.
 
 The legacy evidence line must be:
 
-**$evidenceHeader**: completed by opencode-go/hy3
+**$evidenceHeader**: $passVerb by opencode-go/hy3
 
-If you cannot complete, use:
+If the evidence line is not a $passVerb result, use:
 
 **$evidenceHeader**: failed by opencode-go/hy3 - <reason>
 "@
@@ -266,7 +308,7 @@ The **PondLog** entry must be a JSON object on its own line inside the existing
 `PondLog` JSON array (create a `**PondLog**` fenced json block if none exists):
 
 ```json
-{ "ts": "<ISO-8601>", "pond": "$evidencePond", "role": "$Role", "action": "$evidenceAction", "detail": "completed by opencode-go/hy3", "agent": "opencode-go/hy3" }
+{ "ts": "<ISO-8601>", "pond": "$evidencePond", "role": "$Role", "action": "$evidenceAction", "detail": "$passVerb by opencode-go/hy3", "agent": "opencode-go/hy3" }
 ```
 "@
 

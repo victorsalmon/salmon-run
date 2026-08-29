@@ -19,7 +19,10 @@ contain multiple `review` actions with the same failure reason repeated.
 Repro test:
 
 - `Tests/SalmonRun.PondEngine.Feedback.Tests.ps1`
-- Red commit: (pending)
+- Red commit: `ead1a4c`
+- Files:
+  - `Modules/SalmonRun.PondEngine/Executors/Opencode.ps1`
+  - `Modules/SalmonRun.PondEngine/Private/PondTasks/Invoke-PondTaskTransition.ps1`
 
 ## Cause
 

@@ -1,3 +1,76 @@
+function Add-PondReworkFeedback {
+    <#
+    .SYNOPSIS
+        Ensures a `## Feedback for Coder` section exists on a plan file that
+        is being sent back to a work pond.
+    .DESCRIPTION
+        If the plan already contains a `## Feedback for Coder` section, this
+        function is a no-op.  Otherwise it extracts the failure reason from the
+        legacy evidence header (Reviewed/QA/Audit/Implementation) and appends a
+        structured feedback block before the **PondLog** section.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$PondName,
+
+        [Parameter(Mandatory)]
+        [string]$PlanPath
+    )
+
+    $content = Get-Content -LiteralPath $PlanPath -Raw -ErrorAction SilentlyContinue
+    if ([string]::IsNullOrWhiteSpace($content)) { return }
+
+    # If a feedback section already exists, do not overwrite it.
+    if ($content -match '(?im)^## Feedback for Coder\s*$') { return }
+
+    $header = switch ($PondName) {
+        'Review'   { 'Reviewed' }
+        'Audit'    { 'Audit' }
+        'QA'       { 'QA' }
+        'Code'     { 'Implementation' }
+        default    { $PondName }
+    }
+
+    $m = [regex]::Match($content, "(?im)^\*\*$header\*\*:\s*failed by (?<provider>[^\-]+(?:-[^\-]+)*)\s+-\s+(?<reason>[^\r\n]+)")
+    if (-not $m.Success) { return }
+
+    $reason = $m.Groups['reason'].Value.Trim()
+    $checks = @($reason -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' })
+    if ($checks.Count -eq 0) { $checks = @($reason) }
+
+    $failedLines = [System.Text.StringBuilder]::new()
+    for ($i = 0; $i -lt $checks.Count; $i++) {
+        $null = $failedLines.AppendLine("$($i + 1). $($checks[$i])")
+    }
+
+    $feedback = @"
+
+## Feedback for Coder
+
+**Source**: $PondName
+**Verdict**: failed
+**FailedChecks**:
+$($failedLines.ToString().TrimEnd())
+**FixActions**:
+1. Resolve every FailedCheck above.
+2. Re-run the plan's **Validation Rubric** or equivalent quality checks.
+3. Update the **$header** evidence line to a passing result.
+4. Record how each item was resolved in the **PondLog**.
+"@
+
+    # Insert before the **PondLog** block if one exists, otherwise append at the end.
+    $pondLogMatch = [regex]::Match($content, '(?im)^(\*\*PondLog\*\*|```json\s*\[)\s*$')
+    if ($pondLogMatch.Success) {
+        $insertAt = $pondLogMatch.Index
+        $content = $content.Insert($insertAt, $feedback + "`n`n")
+    } else {
+        $content += "`n$feedback`n"
+    }
+
+    $content | Set-Content -LiteralPath $PlanPath -Encoding utf8 -NoNewline
+}
+
 function Invoke-PondTaskTransition {
     [CmdletBinding()]
     param(
@@ -132,6 +205,12 @@ $reason
     }
 
     foreach ($file in $files) {
+        # If a failing plan is being returned to a work pond, ensure it carries a
+        # structured feedback block for the next Coder to read.
+        if (-not $Context.Success -and $finalDest -notin @('Complete','Failed')) {
+            Add-PondReworkFeedback -PondName $Pond.Name -PlanPath $file.FullName
+        }
+
         $dest = Join-Path $destDir $file.Name
         if (Test-Path -LiteralPath $dest) { Remove-Item -LiteralPath $dest -Force }
         Move-Item -LiteralPath $file.FullName -Destination $dest -Force -ErrorAction Stop
