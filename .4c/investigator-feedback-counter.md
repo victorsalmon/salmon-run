@@ -129,3 +129,9 @@ Files changed:
 - `scripts/Invoke-LeakCheck.ps1` reports no private references.
 - New focused tests `SalmonRun.PondEngine.Investigator.Tests.ps1` pass.
 - Existing `SalmonRun.PondEngine.Feedback.Tests.ps1` still passes.
+- Orchestrator spot checks show healthy output with fresh heartbeat and active
+  working lanes:
+
+  ```text
+  queues=17/63(1)/3/0/3/0 working=2 stale=0 completed+24h=15 healthy=True
+  ```
