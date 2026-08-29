@@ -77,6 +77,24 @@ Describe 'salmon-run installer' -Tag 'Installer', 'Regression-Only' {
 }
 
 Describe 'Start-SalmonRun.ps1 dry run' -Tag 'DryRun', 'Regression-Only' {
+    It 'uses an explicit runtime home instead of a stale inherited Pester home' {
+        $explicitHome = Join-Path $TestDrive 'explicit-live-home'
+        $stalePesterHome = Join-Path ([System.IO.Path]::GetTempPath()) 'Pester_stale/salmon-home'
+        $null = New-Item -ItemType Directory -Path $explicitHome -Force
+        $null = New-Item -ItemType Directory -Path $stalePesterHome -Force
+
+        $savedHome = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $stalePesterHome
+            $output = & $script:StartScript -DryRun -RuntimeHome $explicitHome 6>&1
+
+            ($output -join "`n") | Should -Match ([regex]::Escape($explicitHome))
+            $env:SALMON_RUN_HOME | Should -Be $explicitHome
+        } finally {
+            if ($null -ne $savedHome) { $env:SALMON_RUN_HOME = $savedHome }
+            else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
+        }
+    }
     It 'lists ponds and queues without spawning agents' {
         $tempHome = Join-Path $TestDrive 'salmon-dryrun'
         $null = New-Item -ItemType Directory -Path $tempHome -Force
@@ -95,3 +113,4 @@ Describe 'Start-SalmonRun.ps1 dry run' -Tag 'DryRun', 'Regression-Only' {
         }
     }
 }
+
