@@ -42,6 +42,7 @@ function Get-SalmonRunPonds {
             [string]$OnSuccess = '',
             [int]$MaxRetries = 3,
             [string]$OnFailure = 'Failed',
+            [string]$FinalMoveTo = 'Failed',
             [string]$DefaultBranch = 'main'
         )
         $p = [Pond]::new()
@@ -71,7 +72,7 @@ function Get-SalmonRunPonds {
         $p.OnFailure = [PondTransition]::new()
         $p.OnFailure.MoveTo = $OnFailure
         $p.OnFailure.MaxRetries = $MaxRetries
-        $p.OnFailure.FinalMoveTo = $OnFailure
+        $p.OnFailure.FinalMoveTo = $FinalMoveTo
         $p.DefaultBranch = $DefaultBranch
         return $p
     }
