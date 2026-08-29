@@ -89,7 +89,7 @@ Describe 'Get-SalmonRunPonds' -Tag 'PondEngine', 'Regression-Only' {
     It 'includes the expected pond names' {
         $ponds = Get-SalmonRunPonds
         $names = $ponds | ForEach-Object { $_.Name }
-        $expected = @('Intake', 'Code', 'Review', 'Audit', 'QA', 'Project', 'ProjectReview', 'Complete')
+        $expected = @('Intake', 'Code', 'Review', 'Audit', 'QA', 'Project', 'ProjectReview', 'Investigate', 'Complete')
         foreach ($name in $expected) {
             $names | Should -Contain $name
         }
