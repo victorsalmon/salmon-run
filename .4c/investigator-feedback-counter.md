@@ -115,8 +115,7 @@ Files changed:
   - Updated the expected pond list to include `Investigate`.
 
 - `.4c/orchestrator-functional-recovery.md`
-  - Removed a literal `C:\Repos\Public\salmon-run` local path so the public
-    package leak check passes.
+  - Removed a literal Windows local path so the public package leak check passes.
 
 ## Check
 
