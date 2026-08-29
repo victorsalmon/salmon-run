@@ -301,6 +301,7 @@ Describe 'Start-PondEngine end-to-end with local executor' -Tag 'PondEngine', 'R
             Join-Path $tempDir "Tasks/Complete/$planName" | Should -Exist
             Join-Path $tempDir "Tasks/Code/$planName" | Should -Not -Exist
             Join-Path $tempDir "Tasks/Failed/$planName" | Should -Not -Exist
+            Join-Path $tempDir "Tasks/QA/$($planName -replace '\.md$','')-qa.json" | Should -Not -Exist
         } finally {
             $env:SALMON_RUN_HOME = $saved
         }

@@ -85,8 +85,22 @@ Describe 'salmon-run installer' -Tag 'Installer', 'Regression-Only' {
         (Get-Content -LiteralPath $envFile -Raw) | Should -Match 'EXISTING_ENV'
         (Get-Content -LiteralPath $benchFile -Raw) | Should -Match 'seeded'
     }
-}
 
+    It 'preserves custom runtime ignores and adds coordinator state directories' {
+        $tempHome = Join-Path $TestDrive 'salmon-home-ignore'
+        $tempInstall = Join-Path $TestDrive 'salmon-install-ignore'
+        New-Item $tempHome -ItemType Directory -Force | Out-Null
+        'custom-local-entry/' | Set-Content (Join-Path $tempHome '.gitignore') -NoNewline
+        & $script:Installer -InstallPath $tempInstall -RuntimeHome $tempHome
+        $ignore = Get-Content (Join-Path $tempHome '.gitignore') -Raw
+        $ignore | Should -Match 'custom-local-entry/'
+        $ignore | Should -Match '(?m)^/Results/$'
+        $ignore | Should -Match '(?m)^/State/$'
+        $ignore | Should -Match '(?m)^/SyncOutbox/$'
+    }
+
+
+}
 Describe 'Start-SalmonRun.ps1 dry run' -Tag 'DryRun', 'Regression-Only' {
     It 'uses an explicit runtime home instead of a stale inherited Pester home' {
         $explicitHome = Join-Path $TestDrive 'explicit-live-home'
