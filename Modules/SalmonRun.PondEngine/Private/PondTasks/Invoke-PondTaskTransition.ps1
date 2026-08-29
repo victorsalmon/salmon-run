@@ -349,10 +349,11 @@ function Invoke-PondTaskTransition {
     if ($Context.Success -and $Pond.Name -eq 'QA') {
         $projectGroups = $files | Group-Object {
             $qaContent = Get-Content -LiteralPath $_.FullName -Raw
-            $projectMatch = [regex]::Match($qaContent, '(?im)^\*\*ProjectId\*\*:\s*(?<value>[^\r\n]+)')
-            if ($projectMatch.Success) { $projectMatch.Groups['value'].Value.Trim() } else { $_.BaseName }
+            $projectMatch = [regex]::Match($qaContent, '(?im)^\*\*ProjectId\*\*:[ \t]*(?<value>[^\r\n]+)')
+            if ($projectMatch.Success) { $projectMatch.Groups['value'].Value.Trim() } else { '' }
         }
         foreach ($projectGroup in $projectGroups) {
+            if ([string]::IsNullOrWhiteSpace($projectGroup.Name)) { continue }
             $null = Write-PondProjectQaEvidence -TaskRoot $Context.TaskRoot -ProjectId $projectGroup.Name -PlanFiles @($projectGroup.Group)
         }
     }
@@ -533,3 +534,4 @@ function Invoke-PondTaskTransition {
     Write-Verbose "Invoke-PondTaskTransition: moved $($files.Count) plan(s) from '$($Pond.Name)' to '$finalDest' (success=$($Context.Success))"
     return $Context
 }
+

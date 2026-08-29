@@ -94,9 +94,9 @@ Describe 'salmon-run installer' -Tag 'Installer', 'Regression-Only' {
         & $script:Installer -InstallPath $tempInstall -RuntimeHome $tempHome
         $ignore = Get-Content (Join-Path $tempHome '.gitignore') -Raw
         $ignore | Should -Match 'custom-local-entry/'
-        $ignore | Should -Match '(?m)^/Results/$'
-        $ignore | Should -Match '(?m)^/State/$'
-        $ignore | Should -Match '(?m)^/SyncOutbox/$'
+        $ignore | Should -Match '(?m)^/Results/\r?$'
+        $ignore | Should -Match '(?m)^/State/\r?$'
+        $ignore | Should -Match '(?m)^/SyncOutbox/\r?$'
     }
 
 
@@ -138,5 +138,6 @@ Describe 'Start-SalmonRun.ps1 dry run' -Tag 'DryRun', 'Regression-Only' {
         }
     }
 }
+
 
 

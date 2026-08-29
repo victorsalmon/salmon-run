@@ -56,6 +56,19 @@ foreach ($rel in $taskDirs) {
     }
 }
 
+# Keep coordinator-owned operational state outside task-repository checkpoints.
+$runtimeIgnorePath = Join-Path $RuntimeHome '.gitignore'
+$requiredRuntimeIgnores = @('/Results/','/State/','/SyncOutbox/')
+$existingRuntimeIgnores = if (Test-Path -LiteralPath $runtimeIgnorePath) { @(Get-Content -LiteralPath $runtimeIgnorePath) } else { @() }
+if ((Test-Path -LiteralPath $runtimeIgnorePath) -and (Get-Item -LiteralPath $runtimeIgnorePath).Length -gt 0) {
+    $rawRuntimeIgnore = Get-Content -LiteralPath $runtimeIgnorePath -Raw
+    if ($rawRuntimeIgnore -notmatch '\r?\n$') { [IO.File]::AppendAllText($runtimeIgnorePath, [Environment]::NewLine) }
+}
+foreach ($entry in $requiredRuntimeIgnores) {
+    if ($existingRuntimeIgnores -notcontains $entry) { Add-Content -LiteralPath $runtimeIgnorePath -Value $entry -Encoding utf8 }
+}
+
+
 # Seed an .env file for credential redirects if one does not already exist
 $envExample = Join-Path $PSScriptRoot 'dot-salmon.example' '.env.example'
 $envDest = Join-Path $RuntimeHome '.env'
