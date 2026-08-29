@@ -128,4 +128,29 @@ Describe 'PondEngine stream discovery and ProjectId fallback' -Tag 'PondEngine',
             $groups[0].Namespace | Should -Be 'uh-signing' -Because 'the standalone QA plan should group by connascence namespace, not its full filename'
         } -ArgumentList $script:TestTaskRoot, $script:ConfigPath
     }
+
+    It 'canonicalizes an existing relative TargetRepo before constructing a stream' {
+        $relativeRepo = Join-Path $TestDrive 'relative-target'
+        $null = New-Item -ItemType Directory -Path $relativeRepo -Force
+        $null = & git -C $relativeRepo init -q 2>&1
+        $plan = Join-Path $TestDrive 'relative-plan.md'
+        "# Plan`n**TargetRepo**: relative-target`n**Status**: ready`n**Scope**: test" | Set-Content -LiteralPath $plan -Encoding utf8
+
+        Push-Location $TestDrive
+        try {
+            InModuleScope -ModuleName 'SalmonRun.PondEngine' -ScriptBlock {
+                param($Plan, $FallbackRepo, $ExpectedRepo)
+                $group = [PondGroup]::new()
+                $group.Namespace = 'currents-ui'
+                $group.Files = @(Get-Item -LiteralPath $Plan)
+                $context = [PondContext]::new()
+                $context.RepoDir = $FallbackRepo
+                $context.Config = [pscustomobject]@{ NamespaceRepoMap = @{ currents = $ExpectedRepo } }
+                Resolve-PondGroupRepo -Group $group -Context $context
+                [IO.Path]::IsPathRooted($group.RepoPath) | Should -BeTrue
+                $group.RepoPath | Should -Be ([IO.Path]::GetFullPath($ExpectedRepo))
+            } -ArgumentList $plan, $script:FakeSalmonRepo, $relativeRepo
+        } finally { Pop-Location }
+    }
 }
+
