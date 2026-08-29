@@ -79,4 +79,26 @@ Describe 'Pond scheduling safety' -Tag 'PondEngine','Regression-Only' {
         $deadLane | Should -Not -Exist
         Join-Path $liveLane 'code.md' | Should -Exist
     }
+
+    It 'provides default capacity for the Investigator pond' {
+        $stream = New-PondStream -Id 'investigator-capacity' -Branch main -Path $TestDrive
+        @($stream.Lanes.Values | Where-Object Role -eq 'investigator') | Should -HaveCount 1
+    }
+
+    It 'treats Investigator as an exclusive repository writer' {
+        $pond = [Pond]::new()
+        $pond.Name = 'Investigate'
+        $pond.Role = 'investigator'
+        $pond.Operators = [PondOperators]::new()
+        $pond.Operators.ParallelCount = 2
+        $pond.Operators.MaxNewPerIteration = 2
+        $context = [PondContext]::new()
+        $context.Streams = [Collections.ArrayList]::new()
+        $context.UsedNamespaces = @{}
+        $context.BusyNamespaces = @{}
+        1..2 | ForEach-Object { $null = $context.Streams.Add((New-PondStream -Id "i$_" -Branch main -Path $TestDrive -RoleCounts @{ investigator = 1 })) }
+        $groups = 1..2 | ForEach-Object { $g=[PondGroup]::new(); $g.Namespace="investigate-$_"; $g.RepoPath='C:\same-repo'; $g }
+        $selected = & (Get-Module SalmonRun.PondEngine) { param($p,$g,$c) Select-PondGroups -Pond $p -Groups $g -Context $c } $pond $groups $context
+        @($selected) | Should -HaveCount 1
+    }
 }
