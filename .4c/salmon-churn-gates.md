@@ -51,3 +51,5 @@ The control plane lacks a canonical attempt/result and repository-identity bound
 - Full Pester suite: 657 passed, 0 failed, 10 skipped. Two skips are obsolete global-counter tests retained for history and replaced by per-plan persistent-budget tests.
 - PowerShell parser scan: all module, tool, and test scripts parse successfully.
 - Queue recovery and live canary evidence pending.
+### Runtime sibling cause — tracked working claims
+The installer ignored root-level `/Working/`, but the coordinator's actual lease-owned claim directory is `/Tasks/Working/`. This path-contract drift made every claim appear as a tracked source deletion plus an untracked working copy, so Git stayed dirty during legitimate execution and sync/backpressure metrics could misclassify healthy work. The invariant is that ephemeral lease-owned lane state is journaled and ignored, while only stable pond transitions are checkpointed.
