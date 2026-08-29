@@ -132,6 +132,8 @@ function Get-SalmonRunPonds {
         [PondTask]@{ Name = 'Transition'; Type = 'Group'; Function = 'Invoke-PondTaskTransition' }
     ) -OnSuccess 'Complete'
 
+    $ponds += New-Pond -Name 'Investigate' -Folder 'Tasks/Investigate' -Role 'investigator' -Description 'Investigate recurring feedback failures and improve the engine' -ParallelCount 1 -MaxNewPerIteration 1 -EvidenceGate 'ready' -RequiredHeaders @('Status','Scope') -OnInvalid 'Paused' -GroupBy 'Namespace' -Tasks $agentPipeline -OnSuccess 'Complete' -OnFailure 'Intake' -FinalMoveTo 'Intake'
+
     $ponds += New-Pond -Name 'Complete' -Folder 'Tasks/Complete' -Role 'archiver' -Description 'Compress and archive plans older than 7 days' -ParallelCount 1 -MaxNewPerIteration 1 -GroupBy 'None' -Tasks @(
         [PondTask]@{ Name = 'Archive'; Type = 'Local'; Function = 'Invoke-PondTaskArchive'; Arguments = @{ AgeDays = 7; ArchiveFormat = '7z' } }
     ) -OnSuccess ''

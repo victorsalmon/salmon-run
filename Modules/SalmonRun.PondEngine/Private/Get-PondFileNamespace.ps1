@@ -83,7 +83,7 @@ function Get-PondFilePlanSequence {
 
     $base = [System.IO.Path]::GetFileNameWithoutExtension($FileName)
     if ($base -match '-feedback(\d+)$') {
-        return [int]$Matches[1].Value
+        return [int]$Matches[1]
     }
     return 0
 }

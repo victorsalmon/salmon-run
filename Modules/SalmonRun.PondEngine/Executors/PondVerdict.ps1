@@ -19,6 +19,7 @@ function Test-PondExecutorVerdict {
         'auditor'          { @{ Header = 'Audit'; Pass = 'passed|completed'; Decision = 'AuditDecision' } }
         'qa'               { @{ Header = 'QA'; Pass = 'passed|completed'; Decision = 'QADecision' } }
         'project-reviewer' { @{ Header = 'ProjectReview'; Pass = 'passed|completed'; Decision = 'ProjectReviewDecision' } }
+        'investigator'     { @{ Header = 'Investigated'; Pass = 'passed|completed'; Decision = 'InvestigatorDecision' } }
         default            { return $true }
     }
 

@@ -69,6 +69,17 @@
       "required": false,
       "mutable": false
     },
+    "InvestigatorDecision": {
+      "description": "Machine-readable investigator decision.",
+      "required": false,
+      "mutable": true,
+      "allowedValues": ["pass", "fail"]
+    },
+    "Investigated": {
+      "description": "Concise explanation of the investigation result.",
+      "required": false,
+      "mutable": true
+    },
     "Blocked": {
       "description": "Whether this plan is currently blocked waiting on feedback.",
       "required": false,
@@ -91,10 +102,10 @@
       "mutable": true
     },
     "PlanType": {
-      "description": "Kind of plan (main, feedback, etc.).",
+      "description": "Kind of plan (main, feedback, investigation, etc.).",
       "required": false,
       "mutable": false,
-      "allowedValues": ["main", "feedback", "project", "intake"]
+      "allowedValues": ["main", "feedback", "project", "intake", "investigation"]
     },
     "ParentPlan": {
       "description": "Filename of the parent plan this feedback plan was derived from.",
@@ -213,6 +224,11 @@
     },
     "created": {
       "description": "A new feedback plan was created in the Code queue.",
+      "requiredFields": ["ts", "pond", "role", "action"],
+      "optionalFields": ["detail", "agent"]
+    },
+    "investigate": {
+      "description": "The Investigate pond investigated a recurring failure pattern and produced a fix or root-cause summary.",
       "requiredFields": ["ts", "pond", "role", "action"],
       "optionalFields": ["detail", "agent"]
     },

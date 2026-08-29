@@ -419,6 +419,7 @@ function Invoke-PondTaskTransition {
             $reason = if ($reasonMatch.Success) { $reasonMatch.Groups['reason'].Value.Trim() } else { "$($Pond.Name) did not record an explicit passing verdict." }
 
             $feedbackFile = New-PondFeedbackPlan -Pond $Pond -Context $Context -ActiveFile $activeFile -Reason $reason
+            $null = Invoke-PondInvestigatorSpawn -Context $Context
         }
         # d) Non-quality failure (e.g. Failed, Project, Intake): route according to
         #    the pond's configured OnFailure destination.
@@ -560,6 +561,12 @@ function Invoke-PondTaskTransition {
     $laneRemaining = @(Get-ChildItem $lanePath -Force -ErrorAction SilentlyContinue)
     if ($laneRemaining.Count -eq 0) {
         Remove-Item -LiteralPath $lanePath -Force -ErrorAction SilentlyContinue
+    }
+
+    # An Investigator plan completing or failing clears the pending flag so the
+    # next even counter value can spawn a fresh investigation if needed.
+    if ($Pond.Name -eq 'Investigate') {
+        Clear-PondInvestigatorPending -TaskRoot $Context.TaskRoot
     }
 
     # Commit and push the .salmon task repo and the target code repo for every transition.
