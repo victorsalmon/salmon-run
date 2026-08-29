@@ -169,7 +169,7 @@ Final Pester suite (entire `Tests` directory):
 Tests Passed: 646, Failed: 0, Skipped: 8, Inconclusive: 0, NotRun: 0
 ```
 
-Pull-rebase and push completed for `C:\Repos\Public\salmon-run`.
+Pull-rebase and push completed for the public salmon-run repository.
 
 Live orchestrator status after code changes:
 - The public `salmon-run` engine (`Start-SalmonRun.ps1`) is the active orchestrator; legacy `salmon-orchestrator/Invoke-Orchestrate.ps1` was not in use.
