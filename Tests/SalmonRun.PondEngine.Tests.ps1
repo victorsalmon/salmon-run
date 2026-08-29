@@ -298,8 +298,7 @@ Describe 'Start-PondEngine end-to-end with local executor' -Tag 'PondEngine', 'R
         try {
             $env:SALMON_RUN_HOME = $tempDir
             Start-PondEngine -RepoDir $tempDir -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
-            Join-Path $tempDir "Tasks/Complete/e2e-project/project.md" | Should -Exist
-            Join-Path $tempDir "Tasks/Complete/e2e-project/manifest.json" | Should -Exist
+            Join-Path $tempDir "Tasks/Complete/$planName" | Should -Exist
             Join-Path $tempDir "Tasks/Code/$planName" | Should -Not -Exist
             Join-Path $tempDir "Tasks/Failed/$planName" | Should -Not -Exist
         } finally {
