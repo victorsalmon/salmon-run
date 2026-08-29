@@ -14,10 +14,13 @@ function Get-FreePondLane {
         [string]$RepoPath = ''
     )
 
-    # Prefer a lane whose stream path matches the resolved repo/worktree path.
+    # A resolved repository is a hard stream constraint. Worktree paths differ
+    # from base-repository paths, so compare their canonical Git common-directory identity.
     if (-not [string]::IsNullOrWhiteSpace($RepoPath)) {
+        $requestedKey = Get-PondRepositoryKey -RepoPath $RepoPath
         foreach ($stream in $Context.Streams) {
-            if ($stream.Path -ne $RepoPath) { continue }
+            $streamRepo = if ($stream.PSObject.Properties['BaseRepo'] -and -not [string]::IsNullOrWhiteSpace($stream.BaseRepo)) { $stream.BaseRepo } else { $stream.Path }
+            if ((Get-PondRepositoryKey -RepoPath $streamRepo) -ne $requestedKey) { continue }
             foreach ($lane in $stream.Lanes.Values) {
                 if ($lane.Role -eq $Pond.Role -and $lane.Idle) {
                     $lane.Idle = $false
@@ -25,6 +28,7 @@ function Get-FreePondLane {
                 }
             }
         }
+        return $null
     }
 
     foreach ($stream in $Context.Streams) {
