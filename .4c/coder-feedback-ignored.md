@@ -19,7 +19,8 @@ contain multiple `review` actions with the same failure reason repeated.
 Repro test:
 
 - `Tests/SalmonRun.PondEngine.Feedback.Tests.ps1`
-- Red commit: `ead1a4c`
+- Red commit: `ead1a4c` (test fails before the fix)
+- Green commit: `8cabf3e` (test and full suite pass after the fix)
 - Files:
   - `Modules/SalmonRun.PondEngine/Executors/Opencode.ps1`
   - `Modules/SalmonRun.PondEngine/Private/PondTasks/Invoke-PondTaskTransition.ps1`
@@ -67,9 +68,13 @@ Repro test:
 
 ## Check
 
-- Red reproduction: `SalmonRun.PondEngine.Feedback.Tests.ps1` fails before the
-  fix.
+- Red reproduction: `SalmonRun.PondEngine.Feedback.Tests.ps1` failed before the
+  fix (6 failures against the old prompts).
 - Green reproduction: the same test file passes after the prompt/transition
-  changes.
-- Full Pester portfolio: green.
-- Documentation lint and leak check: pass.
+  changes (`passed=6 failed=0`).
+- Full Pester portfolio: **646 passed, 0 failed, 8 skipped**.
+- Documentation lint: **PASS** (12 files, 0 broken refs).
+- Leak check: **No private references found**.
+- Property/mutation: existing `PondEngine.Mutation` contract test passes; the
+  new `SalmonRun.PondEngine.Feedback.Tests.ps1` uses data-driven cases to act as
+  the teeth/property guard.
