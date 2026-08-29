@@ -121,6 +121,14 @@ Describe 'Start-SalmonRun.ps1 dry run' -Tag 'DryRun', 'Regression-Only' {
             else { Remove-Item Env:\SALMON_RUN_HOME -ErrorAction SilentlyContinue }
         }
     }
+    It 'writes a coordinator-owned heartbeat when running the engine directly' {
+        $tempHome = Join-Path $TestDrive 'salmon-heartbeat'
+        $null = New-Item -ItemType Directory -Path $tempHome -Force
+        & $script:StartScript -Run -RuntimeHome $tempHome -MaxIterations 1 -PollIntervalSeconds 0
+        $heartbeat = Get-Content (Join-Path $tempHome 'Logs/orchestrator.heartbeat.json') -Raw | ConvertFrom-Json
+        $heartbeat.pid | Should -Be $PID
+        $heartbeat.state | Should -Be 'running'
+    }
     It 'lists ponds and queues without spawning agents' {
         $tempHome = Join-Path $TestDrive 'salmon-dryrun'
         $null = New-Item -ItemType Directory -Path $tempHome -Force

@@ -52,12 +52,14 @@ Describe 'Failing transitions create feedback plans in Code and block originals'
         $plan = Join-Path $lane $planName
         $planContent = "# Test plan`n**Status**: ready`n**Reviewed**: failed by opencode-go/hy3 - current verification failed`n`n**PondLog**`n``````json`n[{`"ts`":`"2026-08-29T16:00:00Z`",`"pond`":`"Review`",`"role`":`"reviewer`",`"action`":`"spawn`",`"detail`":`"started`",`"agent`":`"test`"},{`"ts`":`"2026-08-29T16:01:00Z`",`"pond`":`"Review`",`"role`":`"reviewer`",`"action`":`"external-fail`",`"detail`":`"exit=2`",`"agent`":`"test`"}]`n``````"
         $planContent | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+        'completed operational log' | Set-Content -LiteralPath (Join-Path $lane 'executor.log') -NoNewline
         $ctx = [PondContext]@{ TaskRoot=$taskRoot; RepoDir=$taskRoot; CurrentGroup=[PondGroup]@{ StreamPath=$lane; Namespace='time'; RepoPath=$taskRoot }; Success=$false; Config=[pscustomobject]@{ TimeoutMinutes=30 } }
         $pond = Get-SalmonRunPonds | Where-Object Name -eq Review
         $task = $pond.Tasks | Where-Object Name -eq Transition | Select-Object -First 1
         { & (Get-Module SalmonRun.PondEngine) { param($p,$t,$c) Invoke-PondTaskTransition -Pond $p -Task $t -Context $c } $pond $task $ctx } | Should -Not -Throw
         Join-Path $taskRoot "Code/$planName" | Should -Exist
         Join-Path $taskRoot "Review/$planName" | Should -Not -Exist
+        $lane.FullName | Should -Not -Exist
     }
 
     It 'links Review feedback to the canonical plan returned to Code' {
