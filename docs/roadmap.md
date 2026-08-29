@@ -3,8 +3,8 @@
 > Appraisal date: **2026-08-29**  
 > Last verified: **2026-08-29**  
 > Evidence scope: the public `salmon-run` package. The canonical source-of-truth remains the private `salmon-orchestrator` implementation; `salmon-run` is the scrubbed, generalized mirror projected via `scripts/Sync-FromCanonical.ps1`.  
-> Freshness: Current `main` was inspected, tested, and the live orchestrator was exercised. The `Investigate` pond, feedback-failure counter, and related runtime-hygiene safeguards have been implemented and are passing tests. The watchdog currently requires a clean user environment to stay up (stale `PSModulePath` entries from test runs can cause module-resolution crashes).  
-> Status: **95% production-ready**. Core engine, quality gates, provider adapters, installer, sync/leak checks, and the new Investigator safeguard are implemented and passing. Residual work is operational hardening: keeping the live orchestrator up across environment restarts and completing a full monitored run.
+> Freshness: Current `main` was inspected, tested, and the live orchestrator was exercised. The `Investigate` pond, feedback-failure counter, and related runtime-hygiene safeguards have been implemented and are passing tests. `Run-SalmonRun.ps1`, `Start-SalmonRun.ps1`, and `Tools/Start-WorkingLaneJanitor.ps1` now strip stale `Pester_*/Modules` entries from the process `PSModulePath` before any module load; the live watchdog is running and healthy.  
+> Status: **98% production-ready**. Core engine, quality gates, provider adapters, installer, sync/leak checks, the new Investigator safeguard, and the `PSModulePath` runtime guard are implemented and passing. The live orchestrator is running and healthy. Residual work is a CI integration test for `Run-SalmonRun.ps1` and a longer monitored run.
 
 ## Vision
 
@@ -62,10 +62,10 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 | Docker/Swarm orchestration packaging | 95% | Dockerfile, `docker-compose.yml`, `docker-compose.swarm.yml`, and `deploy.ps1` exist; `docker build -t salmon-run:0.1.6` succeeds and `docker run --rm salmon-run:0.1.6 -DryRun` lists queues. Swarm deploy not exercised live. |
 | CI / validation | 100% | `.github/workflows/test.yml` (Pester suite + leak check + release archive) and `.github/workflows/docker.yml` (GHCR image build/push) both pass on `main` and on the `v0.1.6` tag. The `v0.1.6` release was created with `.tar.gz` and `.zip` archives, and `ghcr.io/victorsalmon/salmon-run:0.1.6` and `:latest` were pushed by CI. |
 
-| Top-level runner (`Start-SalmonRun.ps1`) | 90% | Bootstraps module environment, lists queues in `-DryRun`, writes session event, and can invoke `Start-PondEngine`. `-DryRun` is covered by Pester; a `Local`-tier plan moves through `Code` → `Review` → `Audit` → `QA` → `Complete` under `-Run` in a clean temp home. Live `-Run` requires a clean user `PSModulePath`; stale temp entries from Pester test runs can cause module-resolution crashes (`Unable to find type [PondGroup]`). |
+| Top-level runner (`Start-SalmonRun.ps1`) | 95% | Bootstraps module environment, lists queues in `-DryRun`, writes session event, and can invoke `Start-PondEngine`. `-DryRun` is covered by Pester; a `Local`-tier plan moves through `Code` → `Review` → `Audit` → `QA` → `Complete` under `-Run` in a clean temp home. `Run-SalmonRun`, `Start-SalmonRun`, and `Start-WorkingLaneJanitor` now sanitize the process `PSModulePath` so stale `Pester_*` entries do not override the repo module.
 | Feedback-failure counter and `Investigate` pond | 95% | Persistent counter at `~/.salmon/Logs/feedback-failure-counter.json`; spawns one `Investigate` plan on every even failure count from `Review`/`Audit`/`QA`/`Code`; suppresses duplicates via `investigatorPending` and on-disk plan check. Schema, role prompts, executor support, and focused Pester tests added. |
 | Coder prompt rubric enforcement | 90% | OpenCode Coder prompt now requires every Validation Rubric item to pass and the relevant Pester tests to exit 0 before `**Implementation**: completed` is appended. Prevents feedback cycles caused by skipped rubrics. |
-| Health report and runtime hygiene | 85% | `Tools/Get-SalmonRunHealthReport.ps1` now counts the `Investigate` pond. `AGENTS.md` documents `SALMON_RUN_HOME` and `PSModulePath` hygiene. `install.ps1` and the watchdog need to guard against stale test-run entries in the user environment. |
+| Health report and runtime hygiene | 95% | `Tools/Get-SalmonRunHealthReport.ps1` now counts the `Investigate` pond. `AGENTS.md` documents `SALMON_RUN_HOME` and `PSModulePath` hygiene. `Run-SalmonRun.ps1`, `Start-SalmonRun.ps1`, and `Tools/Start-WorkingLaneJanitor.ps1` strip stale `Pester_*/Modules` entries from the process `PSModulePath` before any module load.
 
 ## 2026-08-27 DeepSeek/DSH executor redesign
 
@@ -91,7 +91,7 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 - Updated `Tools/Get-SalmonRunHealthReport.ps1` to count the `Investigate` pond.
 - Updated `AGENTS.md` with `SALMON_RUN_HOME` and `PSModulePath` runtime-hygiene notes.
 - Re-verified: full Pester suite **650 passed / 0 failed / 8 skipped**, leak check clean, doc lint clean.
-- Operational note: the live `Run-SalmonRun` watchdog crashed 10 times with `Unable to find type [PondGroup]` because the user `PSModulePath` was polluted with stale temp `Pester_*` module paths. Cleaning the environment and restarting the watchdog is the remaining step to restore unattended operation.
+- Operational note: the live `Run-SalmonRun` watchdog previously crashed 10 times with `Unable to find type [PondGroup]` because the user `PSModulePath` was polluted with stale temp `Pester_*` module paths. A process-level guard was added to `Run-SalmonRun.ps1`, `Start-SalmonRun.ps1`, and `Tools/Start-WorkingLaneJanitor.ps1` to strip those entries before any module load, and the watchdog was restarted successfully.
 
 ## Highest-confidence release blockers
 

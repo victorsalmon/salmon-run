@@ -385,8 +385,8 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 ### Feature: Top-level runner (`Start-SalmonRun.ps1`)
 
 - **Intent / user outcome:** Provide a single public entry point for dry-run preview and full pond-engine execution.
-- **Current score:** 85%
-- **Current behavior:** Bootstraps module environment, confirms/creates the runtime task root, lists pond queues (`-DryRun`), writes a `SESSION_START` workflow event, and invokes `Start-PondEngine` (`-Run`). A `-Run` smoke test in a clean temp `~/.salmon` home moved a `Challenge: Local` plan from `Code` → `Review` → `Audit` → `QA` → `Complete` using the `PublicLocal` executor. In the live environment, the `Run-SalmonRun` watchdog can crash with `Unable to find type [PondGroup]` when the user `PSModulePath` contains stale `Pester_*/Modules` entries from test runs.
+- **Current score:** 95%
+- **Current behavior:** Bootstraps module environment, confirms/creates the runtime task root, lists pond queues (`-DryRun`), writes a `SESSION_START` workflow event, and invokes `Start-PondEngine` (`-Run`). A `-Run` smoke test in a clean temp `~/.salmon` home moved a `Challenge: Local` plan from `Code` → `Review` → `Audit` → `QA` → `Complete` using the `PublicLocal` executor. `Run-SalmonRun.ps1`, `Start-SalmonRun.ps1`, and `Tools/Start-WorkingLaneJanitor.ps1` now strip stale `Pester_*/Modules` entries from the process `PSModulePath` before any module load, and the live watchdog is running and healthy.
 - **Evidence:** `Start-SalmonRun.ps1`; `Tests/SalmonRun.Installer.Tests.ps1`; `docker run --rm salmon-run -DryRun` output; manual `-Run` lifecycle in a clean temp `~/.salmon` home; `~/.salmon/Logs/orchestrator.log` crash evidence.
 - **Tests and test gaps:** `-DryRun` is covered by Pester. `-Run` has been exercised manually end-to-end with `PublicLocal`; a Pester integration test remains.
 - **Acceptance criteria for 100%:** `-DryRun` and `-Run` exercised in CI; a plan moves through the full lifecycle under `Start-SalmonRun.ps1`.
@@ -423,9 +423,9 @@ Residual issues:
 - Whether an external-provider plan (OpenCode, Devin, DeepSeek/DSH via OpenRouter/DeepInfra/official) runs end-to-end under `Start-SalmonRun.ps1 -Run` (contract tests execute the executors directly; full pond-engine dispatch is the next manual gate).
 - Whether the canonical `salmon-orchestrator` repo is still the active source of truth and how often `salmon-run` is re-synced.
 
-## Overall production readiness (95%)
+## Overall production readiness (98%)
 
-The public `salmon-run` package is **95% production-ready for its vision**.
+The public `salmon-run` package is **98% production-ready for its vision**.
 
 - **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking, canonical sync, leak check, a green Pester suite (650 passed, 0 failed, 8 skipped), a full `Start-SalmonRun.ps1 -Run` smoke test, the feedback-failure counter and `Investigate` pond, tighter Coder prompt enforcement, `SalmonRun.GitCloud`/`SalmonRun.Credentials` resolver integration (Env/File/AWS/GitHub/Worktree resolvers wired into token and host resolution), live provider contract tests (OpenCode, Devin, DSH via OpenRouter), live GitCloud push tests to GitHub and Worktree, a valid `SalmonRun` PowerShell Gallery meta-module manifest and local `nupkg`, release documentation (`docs/RELEASE.md`), sync documentation (`docs/SYNC.md`), and QA evidence (`docs/qa-evidence.json`).
 
@@ -435,4 +435,4 @@ All previously identified release blockers are closed:
 2. **GitCloud push:** Contract test covers credential-free URL construction, token separation, and resolver fallback. Live push to GitHub and Worktree succeeded under `SALMON_RUN_GITCLOUD_LIVE=1`.
 3. **Release artifact format:** Documented in `docs/RELEASE.md` — PowerShell Gallery, GitHub release, and Docker image. The Docker image and PowerShell Gallery nupkg are built and verified locally.
 4. **Canonical sync cadence:** Documented in `docs/SYNC.md` — `salmon-orchestrator` is the canonical source, sync is performed per release or monthly.
-5. **Operational hardening:** The live watchdog needs a clean user `PSModulePath` free of stale `Pester_*/Modules` entries. `AGENTS.md` documents the cleanup; an in-script guard is the remaining build slice.
+5. **Operational hardening:** `Run-SalmonRun.ps1`, `Start-SalmonRun.ps1`, and `Tools/Start-WorkingLaneJanitor.ps1` now sanitize the process `PSModulePath` before any module load. The live watchdog is running and healthy.
