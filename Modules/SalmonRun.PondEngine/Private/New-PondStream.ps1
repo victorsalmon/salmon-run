@@ -38,7 +38,10 @@ function New-PondStream {
     $stream.Idle = $true
 
     $laneIndex = 1
-    foreach ($role in $RoleCounts.Keys) {
+    $roleOrder = @('coder','reviewer','auditor','qa','planner','project-planner','project-reviewer','archiver')
+    $remainingRoles = $RoleCounts.Keys | Where-Object { $roleOrder -notcontains $_ }
+    $roles = @($roleOrder | Where-Object { $RoleCounts.ContainsKey($_) }) + @($remainingRoles)
+    foreach ($role in $roles) {
         $count = $RoleCounts[$role]
         for ($i = 1; $i -le $count; $i++) {
             $lane = [PondLane]::new()

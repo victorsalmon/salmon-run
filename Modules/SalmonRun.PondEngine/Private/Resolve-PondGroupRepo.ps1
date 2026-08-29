@@ -50,8 +50,13 @@ function Resolve-PondGroupRepo {
         $map = $Context.Config.NamespaceRepoMap
     }
     if ([string]::IsNullOrWhiteSpace($repoPath) -or -not (Test-Path -LiteralPath (Join-Path $repoPath '.git') -ErrorAction SilentlyContinue)) {
-        # Prefer the explicit TargetRepo alias, then the group namespace.
-        $keys = @($nsAlias, $Group.Namespace) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        # Prefer the explicit TargetRepo alias, then the full group namespace,
+        # then the first hyphenated segment of the namespace.
+        $nsFirstSegment = ''
+        if ($Group.Namespace -match '^([^-]+)') {
+            $nsFirstSegment = $Matches[1]
+        }
+        $keys = @($nsAlias, $Group.Namespace, $nsFirstSegment) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
         foreach ($key in $keys) {
             if ($map -and $map.ContainsKey($key)) {
                 $repoPath = $map[$key]
