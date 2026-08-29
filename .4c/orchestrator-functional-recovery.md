@@ -160,3 +160,21 @@ Live orchestrator status:
 - Heartbeat is fresh, state `running`, detail `engine monitor`.
 - Health reports show `healthy=True` with `queues=10/26/41/0/1/0 working=1` and no stale lanes.
 - One-hour monitoring with 12 five-minute checks completed with no new engine crashes (`orchestrator-child.err` remained empty).
+
+## Check (2026-08-29)
+
+Final Pester suite (entire `Tests` directory):
+
+```text
+Tests Passed: 646, Failed: 0, Skipped: 8, Inconclusive: 0, NotRun: 0
+```
+
+Pull-rebase and push completed for `C:\Repos\Public\salmon-run`.
+
+Live orchestrator status after code changes:
+- The public `salmon-run` engine (`Start-SalmonRun.ps1`) is the active orchestrator; legacy `salmon-orchestrator/Invoke-Orchestrate.ps1` was not in use.
+- Heartbeat fresh at `2026-08-29T02:57:33`, age 15 seconds, state `running`.
+- Health report: `healthy=True`, `working=3(1)`, `stale=0`, `completed+24h=15`, `crashCount=0`.
+- One-hour monitoring (12 five-minute checks, 02:02–02:57) shows the engine completed at least one plan (Complete 16 → 17), moved active work through Working (7 → 4), and produced feedback descendants (Code count 63/64 with 1 accessory).
+- Active agent processes were observed across `lane-coder-*` and `lane-qa-*`; no `Failed/` plans appeared and no crash evidence directories were created.
+- Legacy `LocalOrchestrator.ps1` in `salmon-orchestrator` is still missing its canonical `Skills/Orchestrator/LocalOrchestrator.ps1` target; a fix was applied to `Resolve-OrchestratorRepoRoot.ps1` so it can locate the `Tasks` folder in `%SALMON_RUN_HOME%` (`~/.salmon`) while the orchestrator code lives in the repo.
