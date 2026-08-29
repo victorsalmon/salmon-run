@@ -207,8 +207,11 @@ function Get-PondWorktreeStreams {
         }
     }
 
+    # Streams are needed for every agentic pond, not just Code/Review/Audit/QA.
+    # Intake, ProjectReview, and QA plans also need a target worktree stream
+    # before Start-PondEngine can spawn a lane for them.
     $planFiles = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
-    foreach ($queue in @('Code', 'Review', 'Audit', 'QA')) {
+    foreach ($queue in @('Code', 'Review', 'Audit', 'QA', 'Intake', 'ProjectReview')) {
         $queuePath = Join-Path $TaskRoot $queue
         if (-not (Test-Path -LiteralPath $queuePath)) { continue }
         $files = @(Get-ChildItem -Path "$queuePath/*.md" -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne '.gitkeep' })

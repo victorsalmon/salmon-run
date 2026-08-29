@@ -68,7 +68,14 @@ function Group-PondFiles {
         $grouped = $Files | Group-Object {
             $c = Get-Content $_.FullName -Raw -ErrorAction SilentlyContinue
             $m = [regex]::Match($c, '(?im)^\*\*ProjectId\*\*:\s*(?<value>[^\r\n]+)')
-            if ($m.Success) { $m.Groups['value'].Value.Trim() } else { $_.BaseName }
+            if ($m.Success) {
+                $m.Groups['value'].Value.Trim()
+            } else {
+                # Standalone QA/planner plans that do not belong to a project must
+                # still group by their connascence namespace so Get-StreamForGroup
+                # can find a matching worktree stream.
+                Get-PondFileNamespace -FileName $_.Name
+            }
         }
         $groups = foreach ($grp in $grouped) {
             New-ChunkedGroups -Namespace $grp.Name -Role $Pond.Role -Items @($grp.Group)
