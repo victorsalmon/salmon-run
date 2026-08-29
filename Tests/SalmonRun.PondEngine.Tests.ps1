@@ -306,8 +306,28 @@ Describe 'Start-PondEngine end-to-end with local executor' -Tag 'PondEngine', 'R
             $env:SALMON_RUN_HOME = $saved
         }
     }
-}
 
+    It 'checkpoints each queue transition as a Git move rather than copies' {
+        $tempDir = Join-Path $TestDrive 'pondengine-git-move'
+        foreach ($sub in @('Tasks/Code','Tasks/Review','Tasks/Audit','Tasks/QA','Tasks/Complete','Tasks/Archive','Tasks/Working','Tasks/Paused','Tasks/Failed')) { New-Item (Join-Path $tempDir $sub) -ItemType Directory -Force | Out-Null }
+        $planName = '2026-08-29-git-move-local.md'
+        "# Plan`n**Status**: ready`n**Scope**: test`n**Challenge**: Local" | Set-Content (Join-Path $tempDir "Tasks/Code/$planName") -NoNewline
+        $null = git init -b main $tempDir
+        $null = git -C $tempDir config user.email 'salmon-run-tests@example.invalid'
+        $null = git -C $tempDir config user.name 'Salmon Run Tests'
+        $null = git -C $tempDir add .
+        $null = git -C $tempDir commit -m seed
+        $saved = $env:SALMON_RUN_HOME
+        try {
+            $env:SALMON_RUN_HOME = $tempDir
+            Start-PondEngine -RepoDir $tempDir -TaskRoot (Join-Path $tempDir 'Tasks') -MaxIterations 1 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
+            $tracked = @(git -C $tempDir ls-files "*$planName")
+            $tracked | Should -Be @("Tasks/Complete/$planName")
+        } finally { $env:SALMON_RUN_HOME = $saved }
+    }
+
+
+}
 Describe 'Pond dependency gating' -Tag 'PondEngine', 'Regression-Only' {
     It 'holds a Code plan until its DependsOn plan reaches Complete' {
         $tempDir = Join-Path $TestDrive 'pondengine-depends'
