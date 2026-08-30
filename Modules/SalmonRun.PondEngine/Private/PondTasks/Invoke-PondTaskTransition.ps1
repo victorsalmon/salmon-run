@@ -516,6 +516,29 @@ function Invoke-PondTaskTransition {
         $destFiles.Clear()
         foreach ($bundleFile in Get-ChildItem -LiteralPath $bundle -File -Recurse) { $destFiles.Add($bundleFile) }
         $finalDest = "Complete/$projectId"
+        # The bundle renames and reorganizes files inside Complete/<projectId>.
+        # Update destDir so the following safety check inspects the right location.
+        $destDir = Join-Path $Context.TaskRoot $finalDest
+    }
+
+    # Defensive check: every plan file must now be in the destination queue and no
+    # longer in the lane. Do not delete the lane if the move did not complete.
+    # ProjectReview bundles rename the parent plan to project.md, so we accept
+    # that as a valid destination for the original project file.
+    $projectMd = if ($Pond.Name -eq 'ProjectReview') { Join-Path $destDir 'project.md' } else { '' }
+    $missingDests = @($files | Where-Object {
+        $fileName = if ($_.PSObject.Properties['Name']) { $_.Name } elseif ($_.PSObject.Properties['FullName']) { Split-Path -Leaf $_.FullName } else { [string]$_ }
+        if ([string]::IsNullOrWhiteSpace($fileName)) { return $true }
+        $expected = Join-Path $destDir $fileName
+        if (Test-Path -LiteralPath $expected) { return $false }
+        if ($projectMd -and (Test-Path -LiteralPath $projectMd)) { return $false }
+        return $true
+    })
+    $stillInLane = @(Get-ChildItem -LiteralPath $lanePath -Filter '*.md' -File -ErrorAction SilentlyContinue)
+    if ($missingDests.Count -gt 0 -or $stillInLane.Count -gt 0) {
+        $missingNames = @($missingDests | ForEach-Object { if ($_.PSObject.Properties['Name']) { $_.Name } else { [string]$_ } })
+        $stillNames = @($stillInLane | ForEach-Object { if ($_.PSObject.Properties['Name']) { $_.Name } else { [string]$_ } })
+        throw "Pond transition did not fully persist plan files; missing in $finalDest = $($missingNames -join ', '), still in lane = $($stillNames -join ', ')"
     }
 
     # The lane is an ephemeral lease envelope. Semantic results are already durable.
