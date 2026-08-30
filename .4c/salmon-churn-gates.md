@@ -57,3 +57,30 @@ The installer ignored root-level `/Working/`, but the coordinator's actual lease
 `Run-SalmonRun.ps1` wrote a supervisor heartbeat, but the supported direct `Start-SalmonRun.ps1 -Run` path did not, splitting liveness ownership across entry points. Separately, transition cleanup deleted only dot-sentinels and then attempted a non-recursive directory removal, leaving `executor.log`; the health reporter treated every `lane-*` directory as active work without requiring a plan or lease. Thus dead historical scaffolding overrode live coordinator/process truth. The coordinator must publish its own PID heartbeat, transitions must remove completed lane envelopes recursively, and health must recognize only plan- or lease-bearing lanes.
 ### Runtime sibling cause — acknowledged sync requests
 The serialized outbox evaluated retry backoff before checking whether the queued commit was already reachable from the remote branch. A successful out-of-band/manual push therefore left an obsolete high-attempt request circuit-open, suppressing dispatch even though synchronization had completed. Idempotent replay must acknowledge remote containment first, independent of retry timing and the current working-tree state.
+
+## Final verification
+
+- Full Pester suite: **684 total, 674 passed, 0 failed, 10 skipped, 0 not run**.
+- Mutation-tagged selection: **37 passed, 0 failed**.
+- Property suites: **77 passed, 0 failed**.
+- PowerShell parser scan: **0 errors** across `.ps1` and `.psm1` files.
+- PSScriptAnalyzer on the changed control-plane surfaces: automatic-variable and empty-catch findings removed; remaining warnings are established public naming/host-output conventions.
+- Documentation lint: **11 files scanned, 0 broken references**.
+- Public leak check: **no private references found**.
+- Final local canary `2026.08.29-sr-final-canary-3-control-plane.md`: Code -> Review -> Audit -> QA -> Complete with exactly **4 forward transitions**, **0 backward transitions**, **0 cycles**, **0 transition errors**, **0 stale lanes**, **0 sync backlog/failures**, useful-run ratio **1.0**, one tracked Complete artifact, and clean/synchronized source and task repositories.
+- Queue recovery: damaged external retry copies are preserved under `Tasks/Archive/PostCanary-20260829-195847`; complete uncertain artifacts remain in Paused and were not redispatched.
+
+## Additional countermeasures found by the live canary
+
+- Explicit runtime-root selection prevents inherited Pester homes from redirecting the coordinator.
+- Shared dependency parsing handles blank, annotated, and bundled child dependencies.
+- Repository-bound lane allocation rejects cross-repository fallback and includes Investigator in writer exclusion.
+- Generation-scoped leases prevent recovery until PID, heartbeat, generation, and result checks all agree.
+- `Tasks/Working`, results, state, and outbox data are excluded from task-repository checkpoints.
+- Completed lane envelopes are removed recursively before checkpoint work, closing the lease-removal/recovery race.
+- Coordinator-owned heartbeats and active-lane predicates make health reflect live control-plane state.
+- Already-synchronized commits are acknowledged before outbox backoff, making replay idempotent.
+
+## Result
+
+The churn defect class is closed by typed attempt results, coordinator-owned state transitions, canonical repository locks, fail-closed recovery, bounded retry/cycle budgets, serialized Git synchronization, and progress-based health. The public documentation now describes the same stream/pond architecture enforced by the implementation.
