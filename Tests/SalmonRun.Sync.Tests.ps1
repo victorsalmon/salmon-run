@@ -1,52 +1,43 @@
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
 
-Describe 'Sync-FromCanonical.ps1' {
-    It 'requires a canonical repo parameter or env var' {
-        $script = Join-Path $PSScriptRoot '..' 'scripts' 'Sync-FromCanonical.ps1'
-        { & $script -WhatIf } | Should -Throw '*Provide -CanonicalRepo or set SALMON_CANONICAL_REPO*'
+Describe 'public-to-private canonical synchronization' -Tag 'Sync', 'Regression-Only' {
+    BeforeEach {
+        $script:Fixture = New-Item -ItemType Directory -Path (Join-Path $TestDrive "sync-$(Get-Random)") -Force
+        $script:Public = New-Item -ItemType Directory -Path (Join-Path $script:Fixture 'public') -Force
+        $script:Private = New-Item -ItemType Directory -Path (Join-Path $script:Fixture 'private') -Force
+        $null = New-Item -ItemType Directory -Path (Join-Path $script:Public 'Modules/Core') -Force
+        'canonical' | Set-Content -LiteralPath (Join-Path $script:Public 'Modules/Core/core.ps1') -NoNewline
+        'private extension' | Set-Content -LiteralPath (Join-Path $script:Private 'deployment-extension.ps1') -NoNewline
+        $script:Manifest = Join-Path $script:Fixture 'manifest.json'
+        @{ schemaVersion=1; direction='public-to-private'; entries=@(@{source='Modules/Core';target='Orchestrator/Modules/Core'}); protectedPrivatePaths=@('Tasks','docs','Plugins','.env') } |
+            ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $script:Manifest -NoNewline
+        $script:Sync = Join-Path $PSScriptRoot '..' 'scripts' 'Sync-ToPrivate.ps1'
+        $script:Parity = Join-Path $PSScriptRoot '..' 'scripts' 'Test-PrivateParity.ps1'
     }
 
-    It 'copies and scrubs a canonical tree' {
-        $tmp = New-Item -ItemType Directory -Path (Join-Path $TestDrive "sync-$(Get-Random)") -Force
-        $canonical = Join-Path $tmp 'canonical'
-        $public = Join-Path $tmp 'public'
-        $srcModules = Join-Path $canonical 'Modules/SalmonRun.Test'
-        $srcSkills = Join-Path $canonical 'Skills/SalmonRun.TestSkill'
-        $null = New-Item -ItemType Directory -Path $srcModules -Force
-        $null = New-Item -ItemType Directory -Path $srcSkills -Force
-
-        $profilePath = $env:USERPROFILE
-        "Write-Host `"private $profilePath path`"" | Set-Content -LiteralPath (Join-Path $srcModules 'Test.ps1') -Encoding utf8
-        'api_key=abc123' | Set-Content -LiteralPath (Join-Path $srcSkills 'config.json') -Encoding utf8
-
-        $script = Join-Path $PSScriptRoot '..' 'scripts' 'Sync-FromCanonical.ps1'
-        & $script -CanonicalRepo $canonical -PublicRepo $public -SkipLeakCheck
-
-        $dstModules = Join-Path $public 'Modules/SalmonRun.Test'
-        $dstSkills = Join-Path $public 'Skills/SalmonRun.TestSkill'
-        $dstModules | Should -Exist
-        $dstSkills | Should -Exist
-
-        $ps1 = Get-Content -LiteralPath (Join-Path $dstModules 'Test.ps1') -Raw
-        $ps1 | Should -Not -Match 'C:\\\+Users\\\\+'
-        $ps1 | Should -Match '{{REDACTED}}'
-
-        $json = Get-Content -LiteralPath (Join-Path $dstSkills 'config.json') -Raw
-        $json | Should -Not -Match 'abc123'
-        $json | Should -Match '{{REDACTED}}'
+    It 'retires the private-to-public projection contract' {
+        $legacy = Join-Path $PSScriptRoot '..' 'scripts' 'Sync-FromCanonical.ps1'
+        { & $legacy } | Should -Throw '*Public salmon-run is canonical*'
     }
 
-    It 'supports -WhatIf without writing files' {
-        $tmp = New-Item -ItemType Directory -Path (Join-Path $TestDrive "sync-whatif-$(Get-Random)") -Force
-        $canonical = Join-Path $tmp 'canonical'
-        $public = Join-Path $tmp 'public'
-        $srcModules = Join-Path $canonical 'Modules/SalmonRun.Test'
-        $null = New-Item -ItemType Directory -Path $srcModules -Force
-        '1' | Set-Content -LiteralPath (Join-Path $srcModules 'Test.ps1') -Encoding utf8
+    It 'copies only manifest entries and preserves deployment-specific private files' {
+        $output = & $script:Sync -PublicRepo $script:Public -PrivateRepo $script:Private -ManifestPath $script:Manifest -Verify
+        (Join-Path $script:Private 'Orchestrator/Modules/Core/core.ps1') | Should -Exist
+        (Get-Content (Join-Path $script:Private 'Orchestrator/Modules/Core/core.ps1') -Raw) | Should -Be 'canonical'
+        (Join-Path $script:Private 'deployment-extension.ps1') | Should -Exist
+        $output | Should -Contain 'SALMON_PRIVATE_PARITY_PASS'
+        $output | Should -Contain 'SALMON_PUBLIC_TO_PRIVATE_SYNC_PASS'
+    }
 
-        $script = Join-Path $PSScriptRoot '..' 'scripts' 'Sync-FromCanonical.ps1'
-        & $script -CanonicalRepo $canonical -PublicRepo $public -SkipLeakCheck -WhatIf
+    It 'fails parity when a private copy drifts' {
+        & $script:Sync -PublicRepo $script:Public -PrivateRepo $script:Private -ManifestPath $script:Manifest | Out-Null
+        'drifted' | Set-Content -LiteralPath (Join-Path $script:Private 'Orchestrator/Modules/Core/core.ps1') -NoNewline
+        { & $script:Parity -PublicRepo $script:Public -PrivateRepo $script:Private -ManifestPath $script:Manifest } | Should -Throw '*drift*'
+    }
 
-        $public | Should -Not -Exist
+    It 'rejects manifest targets in protected private paths' {
+        @{ schemaVersion=1; direction='public-to-private'; entries=@(@{source='Modules/Core';target='Tasks/Core'}); protectedPrivatePaths=@('Tasks') } |
+            ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $script:Manifest -NoNewline
+        { & $script:Sync -PublicRepo $script:Public -PrivateRepo $script:Private -ManifestPath $script:Manifest } | Should -Throw '*protected private state*'
     }
 }

@@ -16,7 +16,7 @@ Describe 'Concept to complete project' -Tag 'PondEngine','E2E' {
         foreach ($queue in 'Intake','Code','Review','Audit','QA','Complete','Archive','Failed','Working','Project','ProjectReview','Paused','Feedback','Logs') {
             New-Item -ItemType Directory -Path (Join-Path $taskRoot $queue) -Force | Out-Null
         }
-        $projectPath = New-SalmonProjectPlan -Concept 'Build a deterministic example feature with focused tests.' -ProjectId 'acceptance-example' -Sessions @('implementation') -TaskRoot $taskRoot
+        $projectPath = New-SalmonProjectPlan -Concept 'Build a deterministic example feature with focused tests.' -ProjectId 'acceptance-example' -Sessions @('implementation') -AcceptanceCriteria @('The deterministic fixture completes its lifecycle.') -ValidationCommands @('pwsh -NoProfile -Command "exit 0"') -BehaviorRisks @('Queue state and typed attempt binding remain invariant.') -MutationCommand 'PublicLocal deterministic mutation canary' -EnvironmentPrerequisites @('PowerShell 7 and Pester 6') -TaskRoot $taskRoot
         Add-Content -LiteralPath $projectPath -Value "`n**Challenge**: Local"
         Start-PondEngine -RepoDir $runtimeRoot -TaskRoot $taskRoot -MaxIterations 8 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 1
 
@@ -30,4 +30,3 @@ Describe 'Concept to complete project' -Tag 'PondEngine','E2E' {
         $manifest.milestones.projectReviewPassed | Should -BeTrue
     }
 }
-

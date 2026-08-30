@@ -9,6 +9,7 @@ $testFiles = @(
     (Join-Path $RepoRoot 'Tests/SalmonRun.ReviewVerdict.Tests.ps1'),
     (Join-Path $RepoRoot 'Tests/SalmonRun.ProjectLifecycle.Tests.ps1'),
     (Join-Path $RepoRoot 'Tests/SalmonRun.PondScheduling.Tests.ps1')
+    (Join-Path $RepoRoot 'Tests/SalmonRun.PublicMvp.Tests.ps1')
 )
 $mutants = @(
     @{ Id='Planning-OverBudget'; File='SalmonRun.PondEngine/Private/PondTasks/Invoke-PondTaskPlanProject.ps1'; From='$targetTokens = [math]::Min([math]::Max($targetTokens, 1), 100000)'; To='$targetTokens = [math]::Min([math]::Max($targetTokens, 1), 100001)' },
@@ -16,7 +17,14 @@ $mutants = @(
     @{ Id='QA-BatchBypass'; File='SalmonRun.PondEngine/Public/Get-SalmonRunPonds.ps1'; From="-EvidenceGate 'project-qa-ready'"; To="-EvidenceGate 'qa-ready'" },
     @{ Id='QA-MembershipInverted'; File='SalmonRun.PondEngine/Private/PondTasks/Get-PondProjectState.ps1'; From='$locations[$_] -ne ''QA'''; To='$locations[$_] -eq ''QA''' },
     @{ Id='ParallelCount-Bypass'; File='SalmonRun.PondEngine/Private/Select-PondGroups.ps1'; From='$limit = [math]::Min($limit, $Pond.Operators.ParallelCount)'; To='$limit = $limit' },
-    @{ Id='Bundle-ProjectName'; File='SalmonRun.PondEngine/Private/PondTasks/Get-PondProjectState.ps1'; From='$projectDest = Join-Path $bundle ''project.md'''; To='$projectDest = Join-Path $bundle ''project-mutant.md''' }
+    @{ Id='Bundle-ProjectName'; File='SalmonRun.PondEngine/Private/PondTasks/Get-PondProjectState.ps1'; From='$projectDest = Join-Path $bundle ''project.md'''; To='$projectDest = Join-Path $bundle ''project-mutant.md''' },
+    @{ Id='Override-Confirmation-Bypass'; File='SalmonRun.PondEngine/Private/Executor/PondExecutionSettings.ps1'; From='if ($overrides.Values.Count -gt 0 -and -not $overrides.Confirmed) {'; To='if ($overrides.Values.Count -gt 0 -and $overrides.Confirmed) {' },
+    @{ Id='Cost-Ceiling-Inverted'; File='SalmonRun.PondEngine/Private/Executor/PondExecutionSettings.ps1'; From='if ($ceiling -gt 0 -and $profile.CostWithThinking -gt $ceiling) {'; To='if ($ceiling -gt 0 -and $profile.CostWithThinking -lt $ceiling) {' },
+    @{ Id='Mutation-Threshold-Lowered'; File='SalmonRun.PondEngine/Private/PondQAEvidence.ps1'; From='if ($rawScore -lt 95.0 -or [double]$mutation.score -lt 95.0'; To='if ($rawScore -lt 94.0 -or [double]$mutation.score -lt 94.0' },
+    @{ Id='Mutation-Survivor-Bypass'; File='SalmonRun.PondEngine/Private/PondQAEvidence.ps1'; From='if ($unresolved -ne 0) {'; To='if ($unresolved -lt 0) {' },
+    @{ Id='Mutation-Waiver-Bypass'; File='SalmonRun.PondEngine/Private/PondQAEvidence.ps1'; From='if (@($evidence.waivers).Count -ne 0) {'; To='if (@($evidence.waivers).Count -lt 0) {' },
+    @{ Id='Evidence-Path-Containment-Inverted'; File='SalmonRun.PondEngine/Private/PondQAEvidence.ps1'; From='if (-not ($evidencePath.StartsWith("$root$([IO.Path]::DirectorySeparatorChar)", [StringComparison]::OrdinalIgnoreCase))) {'; To='if ($evidencePath.StartsWith("$root$([IO.Path]::DirectorySeparatorChar)", [StringComparison]::OrdinalIgnoreCase)) {' },
+    @{ Id='Commit-Binding-Bypass'; File='SalmonRun.PondEngine/Private/PondQAEvidence.ps1'; From='if ([string]$evidence.commit -ne $currentCommit.Trim()) {'; To='if ($false -and [string]$evidence.commit -ne $currentCommit.Trim()) {' }
 )
 
 function Invoke-MutationOracle {
