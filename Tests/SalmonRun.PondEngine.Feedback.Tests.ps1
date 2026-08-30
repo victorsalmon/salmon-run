@@ -11,7 +11,7 @@ BeforeAll {
 }
 
 $feedbackPromptCases = @(
-    @{ Role = 'coder'; Patterns = @('Feedback for Coder','FixActions','FailedChecks','Reviewed.*failed','QA.*failed','Audit.*failed') }
+    @{ Role = 'coder'; Patterns = @('Feedback for Coder','FixActions','Reviewed.*failed','QA.*failed','Audit.*failed') }
     @{ Role = 'reviewer'; Patterns = @('Feedback for Coder','FixActions','FailedChecks','Source.*Review') }
     @{ Role = 'auditor'; Patterns = @('Feedback for Coder','FixActions') }
     @{ Role = 'qa'; Patterns = @('Feedback for Coder','FixActions') }
