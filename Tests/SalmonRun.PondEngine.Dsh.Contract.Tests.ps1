@@ -170,7 +170,7 @@ Describe "DSH provider contract" -Tag "Contract", "Regression" {
             $argList | Should -Contain '--patch'
             $pIdx = [array]::IndexOf($argList, '--patch')
             $argList[$pIdx + 1] | Should -BeLike '*.yml'
-            $argList[-1] | Should -Match 'Implement the following salmon-run plan'
+            $argList[-1] | Should -Match 'You are a Salmon Run pond agent'
             $script:captured.FilePath | Should -Match 'pwsh|dsh'
         }
 
