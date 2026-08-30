@@ -71,6 +71,13 @@ function Resolve-PondExecutionProfileForPlan {
         TimeoutMinutes = $Pond.Execution.TimeoutMinutes
         CostCeiling = $Pond.Execution.CostCeiling
     }
+
+    # The plan header may declare its original challenge; let per-pond and
+    # explicit user overrides take precedence over that default.
+    if ($Content -match '(?im)^\*\*Challenge\*\*:\s*(?<value>[^\r\n]+)') {
+        $values.Challenge = $Matches.value.Trim()
+    }
+
     foreach ($source in @($global, $pondConfig)) {
         if ($null -eq $source) { continue }
         foreach ($field in @($values.Keys)) {
@@ -81,9 +88,6 @@ function Resolve-PondExecutionProfileForPlan {
         }
     }
 
-    if ($Content -match '(?im)^\*\*Challenge\*\*:\s*(?<value>[^\r\n]+)') {
-        $values.Challenge = $Matches.value.Trim()
-    }
     foreach ($field in @($values.Keys)) {
         $key = "$($Pond.Name).$field"
         if ($overrides.Values.ContainsKey($key)) { $values[$field] = $overrides.Values[$key] }
