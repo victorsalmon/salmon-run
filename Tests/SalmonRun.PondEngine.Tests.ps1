@@ -779,6 +779,7 @@ Describe 'OpenCode executor adapter' -Tag 'PondEngine', 'Regression-Only' {
         $plan = Join-Path $td 'plan.md'
         @'
 # Test plan
+**Implementation**: completed by test
 
 **PondLog**
 
@@ -819,7 +820,8 @@ Describe 'OpenCode executor adapter' -Tag 'PondEngine', 'Regression-Only' {
             $script:OpencodeArgs | Should -Contain $plan
 
             $log = Get-PlanPondLog -PlanPath $plan
-            $log | Should -HaveCount 1
+            $log | Should -HaveCount 2
+            $log.action | Should -Contain 'implement'
             $log.action | Should -Contain 'external-complete'
         } finally {
             $env:SALMON_RUN_HOME = $savedSalmonHome
@@ -834,6 +836,7 @@ Describe 'OpenCode executor adapter' -Tag 'PondEngine', 'Regression-Only' {
         $plan = Join-Path $td 'plan.md'
         @'
 # Test plan
+**Implementation**: completed by test
 
 **PondLog**
 
@@ -1011,6 +1014,7 @@ Describe 'External executor adapter mocks' -Tag 'PondEngine', 'Regression-Only' 
         $plan = Join-Path $td 'plan.md'
         @'
 # Test plan
+**Implementation**: completed by test
 
 **PondLog**
 
@@ -1048,7 +1052,8 @@ Describe 'External executor adapter mocks' -Tag 'PondEngine', 'Regression-Only' 
             $script:ExtArgs | Should -Contain 'swe-1-7'
 
             $log = Get-PlanPondLog -PlanPath $plan
-            $log | Should -HaveCount 1
+            $log | Should -HaveCount 2
+            $log.action | Should -Contain 'implement'
             $log.action | Should -Contain 'external-complete'
         } finally {
             $env:SALMON_RUN_HOME = $savedSalmonHome
@@ -1086,6 +1091,7 @@ Describe 'External executor adapter mocks' -Tag 'PondEngine', 'Regression-Only' 
         $plan = Join-Path $td 'plan.md'
         @'
 # Test plan
+**Implementation**: completed by test
 
 **PondLog**
 
@@ -1123,7 +1129,8 @@ Describe 'External executor adapter mocks' -Tag 'PondEngine', 'Regression-Only' 
             $script:ExtArgs | Should -Contain '--patch'
 
             $log = Get-PlanPondLog -PlanPath $plan
-            $log | Should -HaveCount 1
+            $log | Should -HaveCount 2
+            $log.action | Should -Contain 'implement'
             $log.action | Should -Contain 'external-complete'
         } finally {
             $env:SALMON_RUN_HOME = $savedSalmonHome
