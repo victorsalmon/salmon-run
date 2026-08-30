@@ -17,6 +17,22 @@ function Add-PondSyncRequest {
     return $path
 }
 
+function Test-PondSyncRequestAcknowledged {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$RepoPath,
+        [Parameter(Mandatory)][string]$Branch,
+        [Parameter(Mandatory)][string]$CommitSha
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Branch) -or [string]::IsNullOrWhiteSpace($CommitSha)) { return $false }
+    & git -C $RepoPath rev-parse --verify --quiet "$CommitSha^{commit}" 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { return $false }
+    & git -C $RepoPath rev-parse --verify --quiet "refs/remotes/origin/$Branch" 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { return $false }
+    & git -C $RepoPath merge-base --is-ancestor $CommitSha "origin/$Branch" 2>$null
+    return $LASTEXITCODE -eq 0
+}
 function Invoke-PondSyncOutbox {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$TaskRoot,[int]$MaxFailures=3,[int]$AheadThreshold=100)
@@ -28,6 +44,13 @@ function Invoke-PondSyncOutbox {
     foreach($file in $files | Sort-Object Name){
         $request=Get-Content $file.FullName -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
         if(-not $request){$result.Failed++;$result.CircuitOpen=$true;$result.Reasons+='malformed-request';continue}
+        if (Test-PondSyncRequestAcknowledged -RepoPath ([string]$request.repoPath) -Branch ([string]$request.branch) -CommitSha ([string]$request.commitSha)) {
+            Remove-Item -LiteralPath $file.FullName -Force
+            $result.Processed++
+            $result.Succeeded++
+            $result.Backlog--
+            continue
+        }
         $next=[datetimeoffset]::MinValue
         if(-not [datetimeoffset]::TryParse([string]$request.nextAttemptAt,[ref]$next)){$next=[datetimeoffset]::MinValue}
         if($next -gt [datetimeoffset]::UtcNow){if([int]$request.attempts -ge $MaxFailures){$result.CircuitOpen=$true};continue}
