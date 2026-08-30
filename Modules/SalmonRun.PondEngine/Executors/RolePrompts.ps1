@@ -94,14 +94,15 @@ after you finish.
 EVIDENCE RULES
 - Preserve the entire existing plan (title, headers, scope, body, and any
   existing **PondLog**). Append evidence only at the end.
-- If a **PondLog** fenced json block already exists, add your JSON object as a
-  new line inside the existing `[]` array. Do not create a second PondLog block.
-- Put the legacy evidence line (e.g. `**Reviewed**: ...`) AFTER the closing
-  ``` fence, never inside it.
-- Do not leave stray characters after the closing ``` fence.
+- Do not create, modify, or append to any **PondLog** section. The Salmon Run
+  executor records the canonical PondLog action automatically from your exit
+  code and the legacy evidence header.
+- Append only the correct legacy evidence line (e.g. `**Reviewed**: ...`) at
+  the very end of the plan. Put it after any `## Feedback for Coder` section,
+  never inside a ` ```json ` fence.
 
 After completing the work, the very last thing you do is append the correct
-legacy evidence header and a `**PondLog**` JSON entry to each attached plan file.
+legacy evidence header to each attached plan file.
 "@
 
     $taskInstructions = switch ($Role) {
@@ -114,21 +115,17 @@ plan was implemented as specified. If it was, append:
 
 **Reviewed**: passed by $agentTag
 
-to the plan file and add a ``review`` action to the **PondLog**. Do not change
+to the plan file. Do not change
 code. If the implementation is missing or wrong, append:
 
 **Reviewed**: failed by $agentTag - <reason>
 
-Also append a `## Feedback for Coder` section at the end of the plan (before the
-**PondLog**) with these fields:
+Also append a `## Feedback for Coder` section at the end of the plan with these fields:
 
 **Source**: Review
 **Verdict**: failed
 **FailedChecks**: A numbered list of each check you performed and the concrete result (e.g. "1. scripts/validate-sitemap.mjs missing -- npm script exits with 'Cannot find module'").
-**FixActions**: A numbered list of specific, actionable steps the Coder must take to resolve every failed check.
-
-and add a ``review`` action with the failure reason. Leave the plan in the Review
-queue; the orchestrator will route the feedback to the previous gate.
+**FixActions**: A numbered list of specific, actionable steps the Coder must take to resolve every failed check. Leave the plan in the Review queue; the orchestrator will route the feedback to the previous gate.
 "@
         }
         'auditor' {
@@ -144,7 +141,7 @@ additional files. After auditing, append:
 
 **Audit**: passed by $agentTag
 
-and add an ``audit`` action to the **PondLog**. If you cannot pass, append:
+If you cannot pass, append:
 
 **Audit**: failed by $agentTag - <reason>
 
@@ -168,7 +165,7 @@ changed files. After QA passes, append:
 
 **QA**: passed by $agentTag
 
-and add a ``qa`` action to the **PondLog**. If QA cannot pass, append:
+If QA cannot pass, append:
 
 **QA**: failed by $agentTag - <reason>
 
@@ -185,8 +182,7 @@ Also append a `## Feedback for Coder` section with these fields:
 
 ROLE: Planner
 Decompose the request in the plan file into clear, actionable steps inside the
-target repository. Append a ``plan`` action to the **PondLog**. You do not need to
-implement.
+target repository. You do not need to implement.
 "@
         }
         'project' {
@@ -194,8 +190,7 @@ implement.
 
 ROLE: Project Manager
 Track the attached project plan and its child work items. Update the plan with
-progress notes and append a ``plan`` action to the **PondLog**. You do not need to
-implement directly.
+progress notes. You do not need to implement directly.
 "@
         }
         'project-planner' {
@@ -203,7 +198,7 @@ implement directly.
 
 ROLE: Project Planner
 Decompose the project request into child work items and a parent project plan.
-Append a ``plan`` action to the **PondLog**. You do not need to implement.
+You do not need to implement.
 "@
         }
         'project-reviewer' {
@@ -218,8 +213,7 @@ project works as a whole, append:
 **ProjectReviewDecision**: pass
 **ProjectReview**: passed by $agentTag
 
-and add a ``review`` action to the **PondLog**. If the project does not work as a
-whole, append:
+If the project does not work as a whole, append:
 
 **ProjectReviewDecision**: rework
 **ProjectReview**: failed by $agentTag - <reason>
@@ -269,8 +263,7 @@ or, if you could not fix it:
 **InvestigatorDecision**: fail
 **Investigated**: failed by $agentTag - <reason>
 
-Also append an `investigate` action to the **PondLog**. If the fix succeeded,
-the orchestrator will move this plan to Complete. If it failed, the plan will
+If the fix succeeded, the orchestrator will move this plan to Complete. If it failed, the plan will
 move to Intake for a human.
 "@
         }
@@ -305,8 +298,7 @@ create or modify (no broad commits). After implementing, append:
 **Implementation**: completed by $agentTag
 
 Include a brief summary of what changed, including how any prior feedback was
-resolved. Add an ``implement`` action to the **PondLog**. If you cannot complete,
-append `**Implementation**: failed by $agentTag - <reason>` instead and stop
+resolved. If you cannot complete, append `**Implementation**: failed by $agentTag - <reason>` instead and stop
 without writing `.complete`.
 "@
         }
@@ -315,9 +307,10 @@ without writing `.complete`.
     $evidence = @"
 
 EVIDENCE FORMAT
-For this $Role gate, append exactly one legacy evidence line, one `## Feedback
-for Coder` section when failing, and one **PondLog** JSON entry at the end of
-each attached plan file.
+For this $Role gate, append exactly one legacy evidence line and, when failing,
+one `## Feedback for Coder` section at the end of each attached plan file. Do
+not create or modify any **PondLog** section; the executor records the canonical
+PondLog action.
 "@
 
     if ($evidenceHeader) {
@@ -346,16 +339,6 @@ If the decision is not a pass, use:
 **$decisionHeader**: rework
 "@
     }
-
-    $evidence += @"
-
-The **PondLog** entry must be a JSON object on its own line inside the existing
-`PondLog` JSON array (create a `**PondLog**` fenced json block if none exists):
-
-```json
-{ "ts": "<ISO-8601>", "pond": "$evidencePond", "role": "$Role", "action": "$evidenceAction", "detail": "$passVerb by $agentTag", "agent": "$agentTag" }
-```
-"@
 
     return "$common`n$taskInstructions`n$evidence"
 }
