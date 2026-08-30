@@ -111,6 +111,10 @@ try {
         $hasOldAudit          = $content -match '(?im)^\*\*Audit\*\*:'
         $hasOldQA             = $content -match '(?im)^\*\*QA\*\*:'
 
+        if ($Role -eq 'planner' -and $content -match '(?i)decision-required') {
+            throw "Plan '$planName' still contains unresolved human decisions and must remain in Intake"
+        }
+
         # Coder role records an implementation note.
         if ($Role -eq 'coder' -and -not $hasOldImplementation) {
             $content = $content + "`n**Implementation**: completed by public local executor`n"
@@ -153,6 +157,40 @@ try {
             }
             if (-not $hasOldQA) {
                 $content = $content + "`n**QA**: passed by public local qa`n"
+            }
+            # PublicLocal is a deterministic lifecycle canary, so it emits a
+            # small but schema-valid typed proof artifact. It does not claim to
+            # replace a real repository's QA commands or mutation runner.
+            $reportDir = Join-Path $RepoDir 'reports/salmon-run'
+            $null = New-Item -ItemType Directory -Path $reportDir -Force
+            $planBase = [IO.Path]::GetFileNameWithoutExtension($planName)
+            $reportName = "qa-evidence-$planBase.json"
+            $reportPath = Join-Path $reportDir $reportName
+            $qaCommit = 'public-local-canary'
+            if (Test-Path -LiteralPath (Join-Path $RepoDir '.git')) {
+                $head = (& git -C $RepoDir rev-parse HEAD 2>$null) -as [string]
+                if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($head)) { $qaCommit = $head }
+            }
+            $qaEvidence = [ordered]@{
+                schemaVersion = 1
+                decision = 'pass'
+                repository = (Split-Path -Leaf $RepoDir)
+                commit = $qaCommit
+                behaviorInventory = @{ total=1; mapped=1; critical=1; unmapped=@() }
+                commands = @(
+                    @{ name='audit-checks'; command='PublicLocal deterministic audit canary'; exitCode=0 },
+                    @{ name='full-regression'; command='PublicLocal deterministic regression canary'; exitCode=0 },
+                    @{ name='mutation'; command='PublicLocal deterministic mutation canary'; exitCode=0 }
+                )
+                mutation = @{ scope='PublicLocal canary'; killed=1; survived=0; noCoverage=0; timeout=0; compileError=0; equivalent=0; score=100.0; equivalentDispositions=@() }
+                waivers = @()
+            }
+            $qaEvidence | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $reportPath -Encoding utf8 -NoNewline
+            $relativeEvidence = "reports/salmon-run/$reportName"
+            if ($content -match '(?im)^\*\*QAEvidence\*\*:') {
+                $content = [regex]::Replace($content, '(?im)^\*\*QAEvidence\*\*:[^\r\n]+', "**QAEvidence**: $relativeEvidence", 1)
+            } else {
+                $content = $content + "`n**QAEvidence**: $relativeEvidence`n"
             }
         }
 

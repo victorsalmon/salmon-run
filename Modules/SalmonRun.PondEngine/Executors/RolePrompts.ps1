@@ -134,12 +134,9 @@ Also append a `## Feedback for Coder` section at the end of the plan with these 
             @"
 
 ROLE: Auditor
-Run the lint / fix-code-smell stage on the target repository. Address
-readability, naming, and safe refactor opportunities that improve testability
-without changing behavior or outputs. You may run fast syntax/type checks, but
-do NOT run the full test suite, do NOT start servers, and do NOT run long-lived
-watch/build processes. Update the plan's **ConnascenceScope** if you touch
-additional files. The expected upstream evidence header is `**Reviewed**: passed by <agent>`.
+Run the plan's deterministic Audit commands in this exact order: secret checks, documentation checks, lint and static analysis, build, the existing focused regression suite, then AQE risk/blast-radius/proof assessment. Stop on the first failing gate and record its exact command and output. Do not start servers or long-lived watch processes.
+
+Audit may repair safe readability and code-smell issues. Invoke the 4C workflow only after Audit discovers an actual defect: preserve Concern red-test, Cause, Countermeasure, and Check evidence. If Audit or 4C changes production code, report rework on this attempt so the coordinator returns the canonical plan through Code, read-only Review, and Audit; never pass changed production code directly to QA. Do not invoke 4C for style-only findings. Update the plan's **ConnascenceScope** if you touch additional files. The expected upstream evidence header is `**Reviewed**: passed by <agent>`.
 After auditing, append:
 
 **Audit**: passed by $agentTag
@@ -160,13 +157,11 @@ Also append a `## Feedback for Coder` section with these fields:
             @"
 
 ROLE: QA
-Run the focused tests or verification commands described in the **Validation
-Rubric** and confirm they exit 0. If the rubric asks for property-based tests or
-mutation testing, run those and fix any failing tests. Otherwise, do not spend
-time building new test suites or running full mutation analysis.
-Behavior-preserving refactoring is allowed if it improves testability. Update
-**ConnascenceScope** with any new or changed files. The expected upstream evidence
-header is `**Audit**: passed by <agent>`. After QA passes, append:
+Build or strengthen the complete test pipeline from the plan's behavior and invariant inventory. Add applicable example, property/stateful, integration, and E2E tests. You may modify tests, QA configuration, and production source, but any production-source change must return through Review and Audit before completion.
+
+Before passing, rerun the deterministic Audit checks, the full regression suite, every applicable property/stateful/integration/E2E layer, and changed-code mutation testing. The raw changed-code mutation score must be at least 95%, with every survivor, no-coverage result, timeout, and compile error resolved or proved equivalent. Mutation waivers and coverage-only substitutes are prohibited. If mutation tooling is unavailable, append `**MutationTooling**: unavailable`, set `**QADecision**: decision-required`, and let the coordinator route the plan to Intake.
+
+Write a versioned JSON evidence artifact in the target repository using the public QA evidence schema. Set its `commit` to the exact current `git rev-parse HEAD`, then append `**QAEvidence**: <repository-relative-path>`. The typed evidence artifact—not this Markdown claim—is the completion gate. Update **ConnascenceScope** with every changed file. If QA changes production source, report rework so the plan returns through Review and Audit; do not pass on that attempt. The expected upstream evidence header is `**Audit**: passed by <agent>`. After QA passes, append:
 
 **QA**: passed by $agentTag
 

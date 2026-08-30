@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clocklobster.github.io/salmon-run/schemas/qa-evidence.schema.json",
+  "title": "Salmon Run QA Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "decision", "repository", "commit", "behaviorInventory", "commands", "mutation", "waivers"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "decision": { "const": "pass" },
+    "repository": { "type": "string", "minLength": 1 },
+    "commit": { "type": "string", "minLength": 1 },
+    "behaviorInventory": {
+      "type": "object",
+      "required": ["total", "mapped", "critical", "unmapped"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 1 },
+        "mapped": { "type": "integer", "minimum": 1 },
+        "critical": { "type": "integer", "minimum": 0 },
+        "unmapped": { "type": "array", "maxItems": 0 }
+      }
+    },
+    "commands": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["name", "exitCode"],
+        "properties": {
+          "name": { "enum": ["audit-checks", "full-regression", "mutation", "property", "stateful", "integration", "e2e"] },
+          "command": { "type": "string" },
+          "exitCode": { "const": 0 }
+        }
+      }
+    },
+    "mutation": {
+      "type": "object",
+      "required": ["scope", "killed", "survived", "noCoverage", "timeout", "compileError", "equivalent", "score", "equivalentDispositions"],
+      "properties": {
+        "scope": { "type": "string", "minLength": 1 },
+        "killed": { "type": "integer", "minimum": 0 },
+        "survived": { "const": 0 },
+        "noCoverage": { "const": 0 },
+        "timeout": { "const": 0 },
+        "compileError": { "const": 0 },
+        "equivalent": { "type": "integer", "minimum": 0 },
+        "score": { "type": "number", "minimum": 95, "maximum": 100 },
+        "equivalentDispositions": { "type": "array" }
+      }
+    },
+    "waivers": { "type": "array", "maxItems": 0 }
+  }
+}

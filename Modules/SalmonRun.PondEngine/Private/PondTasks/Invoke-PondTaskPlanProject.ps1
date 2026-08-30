@@ -31,12 +31,16 @@ function Invoke-PondTaskPlanProject {
     $files = @(Get-ChildItem "$lanePath/*.md" -ErrorAction SilentlyContinue)
     if ($files.Count -eq 0) { $Context.Success = $false; return $Context }
 
-    $codeDir = Join-Path $Context.TaskRoot 'Code'
-    $null = New-Item -ItemType Directory -Path $codeDir -Force -ErrorAction SilentlyContinue
-
     foreach ($file in $files) {
         $content = Get-Content -LiteralPath $file.FullName -Raw -ErrorAction SilentlyContinue
         if ([string]::IsNullOrWhiteSpace($content)) { continue }
+
+        # Concept-only prints deliberately carry decision-required markers.
+        # Keep those children interactive until Intake supplies exact commands,
+        # risks, mutation tooling, prerequisites, and any human choices.
+        $destinationPond = if ($content -match '(?i)decision-required') { 'Intake' } else { 'Code' }
+        $childDir = Join-Path $Context.TaskRoot $destinationPond
+        $null = New-Item -ItemType Directory -Path $childDir -Force -ErrorAction SilentlyContinue
 
         $parentChildStems = [System.Collections.Generic.List[string]]::new()
 
@@ -67,7 +71,7 @@ function Invoke-PondTaskPlanProject {
             $childSlug = ($child.ToLowerInvariant() -replace '[^a-z0-9-]+','-' -replace '-{2,}','-').Trim('-')
             if ([string]::IsNullOrWhiteSpace($childSlug)) { $childSlug = "session-$childIndex" }
             $childStem = "$parentBase-$childSlug-$childIndex"
-            $childPath = Join-Path $codeDir "$childStem.md"
+            $childPath = Join-Path $childDir "$childStem.md"
 
             $childContent = @"
 # Session Plan: $child
@@ -77,6 +81,7 @@ function Invoke-PondTaskPlanProject {
 **ProjectId**: $projectId
 **ParentPlan**: $parentBase
 **EstimatedImplementationTokens**: $targetTokens
+**ResolvedExecutionProfiles**: inherited from parent and resolved at dispatch
 
 ## Outcome
 
@@ -93,9 +98,32 @@ $concept
 
 ## Verification
 
-- Run the repository's focused tests for the changed behavior.
-- Record exact commands and results in the plan evidence.
-- Leave full property and mutation testing for the batched project QA gate.
+- Intake must replace any decision-required parent fields with exact repository commands before this plan enters Code.
+- Code runs focused regression tests for implementation safety.
+- Audit reruns deterministic secret/docs/lint/static/build/focused-regression checks and AQE.
+- QA runs the full regression and applicable property/stateful/integration/E2E layers.
+
+## Behavior and Invariant Risks
+
+- Inherit the parent inventory and narrow it to this work package before Code dispatch.
+
+## Required Test Layers
+
+- Code: focused regression and acceptance tests.
+- QA: complete behavior inventory, full regression, property/stateful/integration/E2E as applicable.
+
+## Mutation Contract
+
+- Run the parent's changed-code mutation command over production code changed by this work package.
+- Require a raw score of at least 95% with no unresolved outcomes or waivers.
+
+## Environment Prerequisites
+
+- Inherit and verify the parent prerequisites before dispatch.
+
+## Dependencies
+
+- Parent: $parentBase
 "@
 
             $childContent | Set-Content -LiteralPath $childPath -Encoding utf8 -NoNewline

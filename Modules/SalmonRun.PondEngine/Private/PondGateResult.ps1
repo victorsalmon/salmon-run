@@ -30,7 +30,7 @@ function Initialize-PondGateAttempt {
     return [pscustomobject]@{PlanId=$planId;AttemptId=$attemptId;GateAttempt=$n;RelativePath=$relative;Path=(Join-Path (Split-Path $TaskRoot -Parent) $relative)}
 }
 function Write-PondGateResult {
-    param([string]$PlanPath,[string]$Gate,[string]$TaskRoot,[bool]$ProviderSucceeded)
+    param([string]$PlanPath,[string]$Gate,[string]$TaskRoot,[bool]$ProviderSucceeded,[string]$RepoDir)
     $content=Get-Content $PlanPath -Raw; $planId=Get-PondPlanHeader $content 'PlanId'; $attemptId=Get-PondPlanHeader $content 'AttemptId'; $gateAttempt=0
     [void][int]::TryParse((Get-PondPlanHeader $content 'GateAttempt'),[ref]$gateAttempt)
     if(-not $planId -or -not $attemptId){
@@ -39,12 +39,29 @@ function Write-PondGateResult {
     }
     $contract=switch($Gate){'Review'{@{Decision='ReviewDecision';Evidence='Reviewed'}};'Audit'{@{Decision='AuditDecision';Evidence='Audit'}};'QA'{@{Decision='QADecision';Evidence='QA'}};'ProjectReview'{@{Decision='ProjectReviewDecision';Evidence='ProjectReview'}};'Code'{@{Decision=$null;Evidence='Implementation'}};'Investigate'{@{Decision='InvestigatorDecision';Evidence='Investigated'}};default{@{Decision=$null;Evidence=$Gate}}}
     $verdict=Get-PondGateVerdict -Content $content -DecisionHeader $contract.Decision -EvidenceHeader $contract.Evidence
+    $qaEvidence = $null
+    $requiresQAEvidenceValidation = $Gate -eq 'QA' -and ($content -match '(?im)^\*\*MutationTooling\*\*:\s*unavailable\s*$' -or ($ProviderSucceeded -and $verdict.Passed))
+    if ($requiresQAEvidenceValidation) {
+        if ([string]::IsNullOrWhiteSpace($RepoDir)) {
+            $qaEvidence = New-PondQAEvidenceResult $false $false 'QA evidence cannot be validated without the target repository path.'
+        } else {
+            $qaEvidence = Test-PondQAEvidence -PlanPath $PlanPath -RepoDir $RepoDir
+        }
+        if ($qaEvidence.DecisionRequired) {
+            Set-PondPlanHeader -Path $PlanPath -Name 'DecisionRequired' -Value 'yes'
+            Set-PondPlanHeader -Path $PlanPath -Name 'DecisionReason' -Value $qaEvidence.Error
+            $content = Get-Content $PlanPath -Raw
+        }
+    }
     $implicitSuccess = $ProviderSucceeded -and (-not $verdict.Found) -and $Gate -in @('Code','Project','Intake','Archive')
     $decisionValue = if ($contract.Decision) { Get-PondPlanHeader $content $contract.Decision } else { '' }
-    $failureKind=if($ProviderSucceeded -and ($verdict.Passed -or $implicitSuccess)){'success'}elseif($decisionValue -match '(?i)decision.required|manual'){ 'decision-required' }elseif($content -match '(?i)timeout|timed out'){ 'timeout' }elseif($verdict.Failed){'semantic-failure'}elseif(-not $ProviderSucceeded){'transport-failure'}else{'engine-error'}
-    $value=if($verdict.Found){$verdict.Value}else{'missing explicit verdict'}
+    $explicitDecision = Get-PondPlanHeader $content 'DecisionRequired'
+    $qaPassed = $Gate -ne 'QA' -or -not $requiresQAEvidenceValidation -or ($qaEvidence -and $qaEvidence.Passed)
+    $failureKind=if($ProviderSucceeded -and ($verdict.Passed -or $implicitSuccess) -and $qaPassed){'success'}elseif($explicitDecision -match '(?i)yes|true|required' -or $decisionValue -match '(?i)decision.required|manual'){ 'decision-required' }elseif($content -match '(?i)timeout|timed out'){ 'timeout' }elseif($verdict.Failed -or ($Gate -eq 'QA' -and -not $qaPassed)){'semantic-failure'}elseif(-not $ProviderSucceeded){'transport-failure'}else{'engine-error'}
+    $value=if($Gate -eq 'QA' -and $qaEvidence -and -not $qaEvidence.Passed){$qaEvidence.Error}elseif($verdict.Found){$verdict.Value}else{'missing explicit verdict'}
     $signature=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes("$Gate|$failureKind|$value"))).Substring(0,16).ToLowerInvariant()
     $result=[ordered]@{planId=$planId;gate=$Gate;attemptId=$attemptId;gateAttempt=$gateAttempt;verdict=if($failureKind -eq 'success'){'pass'}else{'fail'};failureKind=$failureKind;startedAt='';completedAt=[datetimeoffset]::UtcNow.ToString('o');evidenceSummary=$value;failedChecks=@();fixActions=@();changedFileScope=@();failureSignature=$signature}
+    if ($qaEvidence) { $result.qaEvidence = @{ path=$qaEvidence.Path; sha256=$qaEvidence.Sha256; passed=$qaEvidence.Passed } }
     $relative=Get-PondPlanHeader $content 'GateResult'; $path=Join-Path (Split-Path $TaskRoot -Parent) $relative; $null=New-Item (Split-Path $path) -ItemType Directory -Force
     $tmp="$path.tmp-$PID"; $result|ConvertTo-Json -Depth 6|Set-Content $tmp -Encoding utf8 -NoNewline; Move-Item $tmp $path -Force
     $current=Join-Path (Split-Path $path) 'current.json'; Copy-Item $path "$current.tmp-$PID" -Force; Move-Item "$current.tmp-$PID" $current -Force

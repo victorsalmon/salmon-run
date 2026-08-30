@@ -65,6 +65,7 @@ class PondExecutionProfile {
     [string]$CostRule
     [double]$ApiCostPer1KTokens
     [double]$EffectiveCostPer1KTokens
+    [double]$CostCeiling
 
     # Benchmark-enriched fields (optional; loaded from ~/.salmon/benchmarks)
     [hashtable]$Benchmarks
@@ -76,6 +77,16 @@ class PondExecutionProfile {
     [double]$CostWithThinking
     [hashtable]$ProviderPricing
     [string[]]$References
+}
+
+class PondExecutionDefaults {
+    [string]$Challenge
+    [string]$Harness
+    [string]$Provider
+    [string]$Model
+    [string]$Effort
+    [int]$TimeoutMinutes
+    [double]$CostCeiling
 }
 
 class Pond {
@@ -90,6 +101,7 @@ class Pond {
     [PondTransition]$OnFailure
     [string]$Description
     [string]$DefaultBranch     # branch this pond uses when not in a multi-stream setup
+    [PondExecutionDefaults]$Execution
 }
 
 class PondGroup {

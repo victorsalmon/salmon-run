@@ -3,6 +3,8 @@
     "Tasks": {
         "Code": "~/.salmon/Tasks/Code",
         "Review": "~/.salmon/Tasks/Review",
+        "Audit": "~/.salmon/Tasks/Audit",
+        "QA": "~/.salmon/Tasks/QA",
         "Working": "~/.salmon/Tasks/Working",
         "Complete": "~/.salmon/Tasks/Complete",
         "Failed": "~/.salmon/Tasks/Failed",
@@ -14,5 +16,20 @@
     "Plugins": {
         "InstallFrom": "Skills"
     },
-    "LogLevel": "INFO"
+    "LogLevel": "INFO",
+    "execution": {
+        "defaults": {
+            "challenge": "Daily",
+            "harness": "opencode",
+            "provider": "opencode-go",
+            "effort": "max",
+            "timeoutMinutes": 30,
+            "costCeiling": 25.0
+        },
+        "ponds": {
+            "Code": { "timeoutMinutes": 60 },
+            "Audit": { "challenge": "Complex", "timeoutMinutes": 60 },
+            "QA": { "challenge": "Complex", "timeoutMinutes": 120 }
+        }
+    }
 }

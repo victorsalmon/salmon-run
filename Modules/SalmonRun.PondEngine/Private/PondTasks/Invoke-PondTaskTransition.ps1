@@ -366,7 +366,8 @@ function Invoke-PondTaskTransition {
     # owns this record and routing never consults stale results from another attempt.
     $gateResult = Get-PondValidatedGateResult -PlanPath $activeFile.FullName -Gate $Pond.Name -TaskRoot $Context.TaskRoot
     if (-not $gateResult) {
-        $gateResult = Write-PondGateResult -PlanPath $activeFile.FullName -Gate $Pond.Name -TaskRoot $Context.TaskRoot -ProviderSucceeded $Context.Success
+        $targetRepo = if ($group.RepoPath) { $group.RepoPath } else { $Context.RepoDir }
+        $gateResult = Write-PondGateResult -PlanPath $activeFile.FullName -Gate $Pond.Name -TaskRoot $Context.TaskRoot -ProviderSucceeded $Context.Success -RepoDir $targetRepo
     }
     $Context.Success = ($gateResult.verdict -eq 'pass' -and $gateResult.failureKind -eq 'success')
 

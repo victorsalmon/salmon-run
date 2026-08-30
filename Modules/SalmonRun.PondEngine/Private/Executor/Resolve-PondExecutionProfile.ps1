@@ -13,7 +13,15 @@ function Resolve-PondExecutionProfile {
 
         [string]$Harness,
 
+        [string]$Provider,
+
         [string]$Model,
+
+        [string]$Effort,
+
+        [int]$TimeoutMinutes = 0,
+
+        [double]$CostCeiling = 0.0,
 
         [string[]]$PlanFiles
     )
@@ -39,6 +47,13 @@ function Resolve-PondExecutionProfile {
         }
     }
 
+    if (-not [string]::IsNullOrWhiteSpace($Provider)) {
+        $candidates = @($candidates | Where-Object { $_.provider -eq $Provider })
+        if ($candidates.Count -eq 0 -and [string]::IsNullOrWhiteSpace($Model)) {
+            throw "Resolve-PondExecutionProfile: no model found for tier '$Tier' and provider '$Provider'."
+        }
+    }
+
     # If a specific model is requested, pin to it (case-insensitive) instead of
     # tier/capability scoring. This keeps the default resolution (highest
     # capability score) intact while allowing tests and callers to target a
@@ -60,6 +75,13 @@ function Resolve-PondExecutionProfile {
         throw "Resolve-PondExecutionProfile: no model found for tier '$Tier'."
     }
 
+    if (-not [string]::IsNullOrWhiteSpace($Harness) -and $selected.harness -ne $Harness) {
+        throw "Resolve-PondExecutionProfile: model '$Model' does not use harness '$Harness'."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Provider) -and $selected.provider -ne $Provider) {
+        throw "Resolve-PondExecutionProfile: model '$Model' does not use provider '$Provider'."
+    }
+
     # Validate and normalize against harness-defaults.json.
     $harnessName = $selected.harness
     if (-not $harnessDefaults['harnesses'].ContainsKey($harnessName)) {
@@ -77,10 +99,13 @@ function Resolve-PondExecutionProfile {
         throw "Resolve-PondExecutionProfile: unknown model '$model' for provider '$provider'."
     }
 
-    $effort = $selected.effort
-    if ($providerCfg['acceptedEfforts'] -and $effort -notin $providerCfg['acceptedEfforts']) {
-        Write-Verbose "Resolve-PondExecutionProfile: effort '$effort' not accepted for provider '$provider'; using '$($providerCfg['defaultEffort'])'"
-        $effort = $providerCfg['defaultEffort']
+    $resolvedEffort = if ([string]::IsNullOrWhiteSpace($Effort)) { $selected.effort } else { $Effort }
+    if ($providerCfg['acceptedEfforts'] -and $resolvedEffort -notin $providerCfg['acceptedEfforts']) {
+        if (-not [string]::IsNullOrWhiteSpace($Effort)) {
+            throw "Resolve-PondExecutionProfile: effort '$Effort' is not accepted for provider '$provider'."
+        }
+        Write-Verbose "Resolve-PondExecutionProfile: effort '$resolvedEffort' not accepted for provider '$provider'; using '$($providerCfg['defaultEffort'])'"
+        $resolvedEffort = $providerCfg['defaultEffort']
     }
 
     $costRule = if ($selected.ContainsKey('costRule')) { $selected['costRule'] } else { 'normal' }
@@ -149,14 +174,15 @@ function Resolve-PondExecutionProfile {
     $srExecProfile.Harness      = $harnessName
     $srExecProfile.Provider     = $provider
     $srExecProfile.Model        = $model
-    $srExecProfile.Effort       = $effort
+    $srExecProfile.Effort       = $resolvedEffort
     $srExecProfile.Cli          = $providerCfg['cli']
     $srExecProfile.ExecutorFile = $providerCfg['executorFile']
-    $srExecProfile.TimeoutMinutes = if ($providerCfg['defaultTimeoutMinutes']) { $providerCfg['defaultTimeoutMinutes'] } else { 30 }
+    $srExecProfile.TimeoutMinutes = if ($TimeoutMinutes -gt 0) { $TimeoutMinutes } elseif ($providerCfg['defaultTimeoutMinutes']) { $providerCfg['defaultTimeoutMinutes'] } else { 30 }
     $srExecProfile.Credentials  = [string[]](@($providerCfg['credentials'] | Where-Object { $null -ne $_ }))
     $srExecProfile.CostRule     = $costRule
     $srExecProfile.ApiCostPer1KTokens = $apiCost
     $srExecProfile.EffectiveCostPer1KTokens = $effectiveCost
+    $srExecProfile.CostCeiling = $CostCeiling
     $srExecProfile.CostWithThinking = $costWithThinking
 
     if ($benchmarkData) {

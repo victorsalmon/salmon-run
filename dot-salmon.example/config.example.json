@@ -9,5 +9,23 @@
     "QA",
     "Complete",
     "Archive"
-  ]
+  ],
+  "execution": {
+    "defaults": {
+      "challenge": "Daily",
+      "harness": "opencode",
+      "provider": "opencode-go",
+      "effort": "max",
+      "timeoutMinutes": 30,
+      "costCeiling": 25.0
+    },
+    "ponds": {
+      "Intake": { "challenge": "Complex", "timeoutMinutes": 45 },
+      "Code": { "challenge": "Daily", "timeoutMinutes": 60 },
+      "Review": { "challenge": "Daily", "timeoutMinutes": 30 },
+      "Audit": { "challenge": "Complex", "timeoutMinutes": 60 },
+      "QA": { "challenge": "Complex", "effort": "max", "timeoutMinutes": 120 },
+      "Investigate": { "challenge": "Frontier", "effort": "max", "timeoutMinutes": 90 }
+    }
+  }
 }

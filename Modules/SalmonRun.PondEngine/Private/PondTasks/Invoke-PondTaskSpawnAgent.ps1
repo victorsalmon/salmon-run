@@ -11,6 +11,10 @@ function Invoke-PondTaskSpawnAgent {
 
     $group = $Context.CurrentGroup
     if (-not $group) { $Context.Continue = $false; return $Context }
+    if ($Context.Config -and $Context.Config.PSObject.Properties['DecisionRequired'] -and $Context.Config.DecisionRequired) {
+        $Context.Success = $false
+        return $Context
+    }
 
     $lanePath = $group.StreamPath
     if ([string]::IsNullOrWhiteSpace($lanePath)) {

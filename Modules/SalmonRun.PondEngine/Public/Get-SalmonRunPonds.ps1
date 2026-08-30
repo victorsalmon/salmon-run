@@ -74,6 +74,14 @@ function Get-SalmonRunPonds {
         $p.OnFailure.MaxRetries = $MaxRetries
         $p.OnFailure.FinalMoveTo = $FinalMoveTo
         $p.DefaultBranch = $DefaultBranch
+        $p.Execution = [PondExecutionDefaults]::new()
+        $p.Execution.Challenge = ''
+        $p.Execution.Harness = ''
+        $p.Execution.Provider = ''
+        $p.Execution.Model = ''
+        $p.Execution.Effort = ''
+        $p.Execution.TimeoutMinutes = 30
+        $p.Execution.CostCeiling = 0.0
         return $p
     }
 
