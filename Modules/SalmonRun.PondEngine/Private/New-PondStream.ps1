@@ -3,8 +3,8 @@
     Creates a new PondStream (worktree branch) with the default lane layout.
 .DESCRIPTION
     A PondStream is a worktree branch that can run one or more roles in parallel.
-    The default Salmon-Run template creates one stream with 3 coders, 1 reviewer,
-    1 auditor, and 1 qa lane.
+    The default template creates role-specific lanes for every configured pond.
+    Writer exclusivity is enforced separately by canonical repository identity.
 #>
 function New-PondStream {
     [CmdletBinding()]

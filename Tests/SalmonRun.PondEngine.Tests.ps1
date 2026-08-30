@@ -194,7 +194,7 @@ Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
     It 'can construct a PondStream with default lanes' {
         $stream = New-PondStream -Id 'stream-1' -Branch 'main' -Path 'C:\temp\repo'
         $stream | Should -Not -BeNullOrEmpty
-        $stream.Lanes.Count | Should -Be 12
+        $stream.Lanes.Count | Should -Be 13
     }
 
     It 'has the expected role lane counts' {
@@ -204,6 +204,7 @@ Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
         $reviewer = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'reviewer' }).Count
         $auditor = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'auditor' }).Count
         $qa = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'qa' }).Count
+        $investigator = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'investigator' }).Count
         $planner = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'planner' }).Count
         $projectPlanner = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'project-planner' }).Count
         $projectReviewer = ($stream.Lanes.Values | Where-Object { $_.Role -eq 'project-reviewer' }).Count
@@ -212,6 +213,7 @@ Describe 'Pond classes' -Tag 'PondEngine', 'Regression-Only' {
         $reviewer | Should -Be 1
         $auditor | Should -Be 1
         $qa | Should -Be 1
+        $investigator | Should -Be 1
         $planner | Should -Be 2
         $projectPlanner | Should -Be 2
         $projectReviewer | Should -Be 1
