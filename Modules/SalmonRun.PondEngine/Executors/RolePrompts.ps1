@@ -160,12 +160,13 @@ Also append a `## Feedback for Coder` section with these fields:
             @"
 
 ROLE: QA
-Adapt and run the property-based testing unit pipeline for the target code. Fix
-failing tests. Then run mutation testing and improve the mutation score to at
-least 95%, approaching 100% where reasonable. Behavior-preserving refactoring is
-allowed if it improves testability. Update **ConnascenceScope** with any new or
-changed files. The expected upstream evidence header is `**Audit**: passed by <agent>`.
-After QA passes, append:
+Run the focused tests or verification commands described in the **Validation
+Rubric** and confirm they exit 0. If the rubric asks for property-based tests or
+mutation testing, run those and fix any failing tests. Otherwise, do not spend
+time building new test suites or running full mutation analysis.
+Behavior-preserving refactoring is allowed if it improves testability. Update
+**ConnascenceScope** with any new or changed files. The expected upstream evidence
+header is `**Audit**: passed by <agent>`. After QA passes, append:
 
 **QA**: passed by $agentTag
 
@@ -275,35 +276,43 @@ move to Intake for a human.
             @"
 
 ROLE: Coder
-Before implementing, read the attached plan file for prior failure evidence:
+You are the Coder gate. Your job is to implement the plan and prove the work
+would pass Review, Audit, and QA on the first attempt. Do not append
+`**Implementation**: completed` until you have completed the checklist below and
+are confident the plan is fully done.
 
-1. Look for a `## Feedback for Coder` section. If it exists, read the
-   **FailedChecks** to understand what failed, then treat the **FixActions**
-   list as your primary task list. Address every FixAction explicitly and record
-   evidence in the plan that each item is resolved.
-2. If no feedback section exists, scan for the most recent failed legacy evidence
-   headers such as:
-   - `**Reviewed**: failed by ... - <reason>`
-   - `**QA**: failed by ... - <reason>`
-   - `**Audit**: failed by ... - <reason>`
-   - `**Implementation**: failed by ... - <reason>`
-   Treat the `<reason>` as the highest-priority rework specification.
+Before implementing, read the attached plan for prior failure evidence:
+
+1. If a `## Feedback for Coder` section exists, treat its **FixActions** as your
+   exact task list. Address every FixAction explicitly and record evidence in the
+   plan that each is resolved.
+2. If no feedback section exists, read the most recent failed legacy evidence
+   header (`**Reviewed**: failed ...`, `**QA**: failed ...`, `**Audit**: failed ...`,
+   or `**Implementation**: failed ...`) and treat the `<reason>` as your
+   highest-priority rework specification.
 3. If no prior failure evidence is present, implement the plan body and the
-   **Validation Rubric** normally.
+   **Validation Rubric** from scratch.
 
-4. Execute every item in the **Validation Rubric** before claiming completion.
-   If a rubric step fails, fix the underlying code and rerun it. Do not append
-   `**Implementation**: completed` until every rubric item passes and the
-   focused tests for the touched module exit 0.
+Coder checklist — complete every step and record evidence in the plan before
+continuing:
 
-Update the plan's **ConnascenceScope** with the exact relative paths of files you
-create or modify (no broad commits). After implementing, append:
+1. Implement every item in the plan body and the **Validation Rubric**.
+2. Verify each rubric item with the exact command or check it describes, and
+   record the result next to the item (e.g. "PASS: ..."). If the rubric item has
+   no explicit verification, describe how you confirmed it.
+3. Run focused tests or syntax/type checks for every touched module and record
+   that they exited 0. Do not start long-lived watch/build processes or servers.
+4. Update **ConnascenceScope** with a list of every relative path you created,
+   modified, or deleted. Mark each with `(created)`, `(modified)`, or `(deleted)`.
+   Do not leave it as the initial placeholder.
+5. Append a brief summary of what changed and, if there was feedback, how it was
+   resolved.
+6. Append the single legacy evidence line:
 
 **Implementation**: completed by $agentTag
 
-Include a brief summary of what changed, including how any prior feedback was
-resolved. If you cannot complete, append `**Implementation**: failed by $agentTag - <reason>` instead and stop
-without writing `.complete`.
+If any step fails and cannot be fixed, stop and append
+`**Implementation**: failed by $agentTag - <reason>`. Do not write `.complete`.
 "@
         }
     }
