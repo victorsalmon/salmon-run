@@ -16,7 +16,7 @@ At its heart, `salmon-run` is a **queue-driven workflow engine** that uses the f
 - The engine routes a plan to a **model/provider** based on its `Challenge` tier and the configurable model catalog.
 - All mutable state — queues, logs, cache, secrets — lives in `~/.salmon` (or `%SALMON_RUN_HOME%`). The repo itself contains only code, docs, and tooling.
 
-The canonical source-of-truth is the private `salmon-orchestrator` repo. `salmon-run` is the scrubbed, generalized mirror, and `scripts/Sync-FromCanonical.ps1` is used to copy new code into it while `scripts/Invoke-LeakCheck.ps1` checks for private references.
+This repository is the public source of truth for the packaged engine. Projection tooling and `scripts/Invoke-LeakCheck.ps1` keep runtime-specific paths, hosts, and credentials out of distributable code.
 
 ---
 
@@ -59,17 +59,17 @@ Each pond has:
 
 The engine performs one loop per pond:
 
-1. **Rescue** stale files from `Working` and `Failed` back into `Code`.
+1. **Recover** only lease-proven orphaned lanes; engine errors fail closed to `Paused`.
 2. **Get candidates** that satisfy the pond's entry gate.
 3. **Group** candidates by namespace or file name.
 4. **Select** groups within capacity limits.
 5. **Assign a free lane** (a per-stream work directory).
 6. **Run the pond's task pipeline**.
-7. **Transition** the plan to the next pond or `Failed`.
+7. **Validate and transition** the plan atomically, then enqueue Git synchronization.
 
 Key engine behaviors:
 
-- **Rescue / crash throttling**: `Invoke-PondRescue` returns stuck `Working` and cooled `Failed` plans to `Code`. `Get-PondCapacity` throttles new work when recent crashes exceed a threshold.
+- **Lease recovery / crash throttling**: recovery requires a dead PID, stale heartbeat, unchanged lease generation, and no completed result. `Get-PondCapacity` throttles new work after recent crashes.
 - **Capacity and lanes**: `Get-FreePondLane` and `Select-PondGroups` enforce per-pond and per-stream limits.
 - **Archive**: `Invoke-PondTaskArchive` compresses completed plans older than 7 days.
 
@@ -83,7 +83,7 @@ A plan advances through the default pipeline:
 
 `Intake → Code → Review → Audit → QA → Complete → Archive`
 
-Each step writes evidence back to the plan:
+Each step emits a structured gate result. For compatibility and human inspection, the coordinator maintains bounded current evidence on the plan:
 
 - `Code` adds an `**Implementation**:` header and a `PondLog` `implement` event.
 - `Review` checks for implementation evidence and adds `**Reviewed**:`.
@@ -104,13 +104,13 @@ A plan can list `**DependsOn**` headers. `Test-PlanDependencySatisfied` holds th
 
 The `Project` pond runs `Invoke-PondTaskPlanProject` to split a large plan into child `Code` plans plus a `ProjectReview` plan. The `ProjectReview` pond waits until all child plans are `Complete` (`children-complete` gate) before finishing.
 
-### Feedback-failure counter and Investigator
+### Bounded rework and Investigator
 
-When a plan fails in `Review`, `Audit`, `QA`, or `Code` and is routed back to `Code` as a new feedback plan, a persistent counter stored at `~/.salmon/Logs/feedback-failure-counter.json` is incremented. When the counter reaches an even number greater than zero, the engine idempotently spawns a single `Investigate` plan and sets an `investigatorPending` flag. The `Investigate` pond uses the `investigator` role to inspect recent feedback, tighten the Coder prompt, improve session-plan templates, and clear the pending flag when it transitions.
+Retry state is stored per plan and gate, so restarts cannot reset the budget. Transport and semantic failures have separate bounded attempts. A repeated identical failure signature trips the circuit breaker on its second occurrence; six transitions without forward progress in 30 minutes pause the family. Feedback is an attempt-linked sidecar on the canonical plan rather than a second circulating plan family.
 
-The Coder prompt now requires every Validation Rubric item to pass and the relevant Pester tests to exit 0 before `**Implementation**: completed` can be appended, reducing the frequency of repeated feedback cycles.
+When repeated semantic failure requires diagnosis, the plan escalates to the `Investigate` pond. Investigator is a writer role and therefore shares the same canonical-repository exclusion as Code, Audit, and QA.
 
-See `Modules/SalmonRun.PondEngine/Private/Investigator.ps1` and `Modules/SalmonRun.PondEngine/Private/PondTasks/Invoke-PondTaskTransition.ps1`.
+See `Modules/SalmonRun.PondEngine/Private/PondAttemptState.ps1`, `PondFeedbackSidecar.ps1`, and `PondTasks/Invoke-PondTaskTransition.ps1`.
 
 ---
 
