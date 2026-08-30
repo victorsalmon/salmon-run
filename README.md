@@ -47,7 +47,7 @@ Most agentic workflow tools either lock you into a vendor, hide state in a datab
 | **Bounded rework and Investigator** | Transport and semantic retry budgets persist across restarts; repeated signatures and no-progress cycles escalate to `Investigate` or `Paused`. |
 | **Audit and credentials** | `SalmonRun.Audit` writes hash-chain JSONL logs with redaction; `SalmonRun.Credentials` resolves redirects from `~/.salmon/.env` and `~/.salmon/git/` and is wired into `SalmonRun.GitCloud` token/host resolution. |
 | **Mermaid chunking** | `SalmonRun.Mermaid` extracts Mermaid diagrams from markdown and splits them into model-ingestible chunks. |
-| **AQE / testing** | `SalmonRun.AQE` runs Pester, documentation lint, property tests, and mutation-focused suites. The current flattened suite has **674 passing, 0 failed, 10 skipped**. |
+| **AQE / testing** | `SalmonRun.AQE` runs Pester, documentation lint, property tests, and mutation-focused suites. The current flattened suite has **676 passing, 0 failed, 10 skipped**. |
 | **Docker & Swarm packaging** | `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, and `deploy.ps1` support local container and Swarm deploys. |
 | **Projection and leak checks** | Repository projection tooling scrubs runtime-specific data, while `scripts/Invoke-LeakCheck.ps1` prevents private paths, hosts, and credentials from entering commits. |
 
@@ -177,7 +177,7 @@ You can hand the following prompts to an agent (Devin, Codex, OpenCode, Claude, 
 
 ### Run the test suite
 
-> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the flattened `Tests/` suite (`Invoke-Pester -Path 'Tests'`) and report the pass/fail summary. The latest run is 674 passed, 0 failed, 10 skipped. If any tests fail, identify the root cause and propose a fix.
+> Run the `salmon-run` test suite. If Pester is not installed, install it. Run the flattened `Tests/` suite (`Invoke-Pester -Path 'Tests'`) and report the pass/fail summary. The latest run is 676 passed, 0 failed, 10 skipped. If any tests fail, identify the root cause and propose a fix.
 
 ---
 

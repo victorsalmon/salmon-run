@@ -60,7 +60,7 @@ The serialized outbox evaluated retry backoff before checking whether the queued
 
 ## Final verification
 
-- Full Pester suite: **684 total, 674 passed, 0 failed, 10 skipped, 0 not run**.
+- Full Pester suite: **684 total, 676 passed, 0 failed, 10 skipped, 0 not run**.
 - Mutation-tagged selection: **37 passed, 0 failed**.
 - Property suites: **77 passed, 0 failed**.
 - PowerShell parser scan: **0 errors** across `.ps1` and `.psm1` files.
@@ -103,3 +103,9 @@ The restored queue contained eligible QA plans, the coordinator heartbeat advanc
 ### Sibling search
 
 The same ordering affects every non-local agentic pond (`Code`, `Review`, `Audit`, `QA`, `Intake`, `ProjectReview`, and `Investigate`) when its namespace worktree has not been created. Existing canary worktrees masked the defect. The correction belongs in the shared lane allocator so every pond receives the same bootstrap behavior while canonical Git identity remains the writer-exclusion mechanism once a repository exists.
+### Final bootstrap and performance verification
+
+- Repository identity is memoized only after a successful Git common-directory resolution; planned paths remain safe to re-evaluate.
+- Exact configured stream paths can reserve their role lane before the worktree exists, breaking the initialization deadlock without weakening repository-wide writer exclusion.
+- Focused scheduling suite: **13 passed, 0 failed**.
+- Final flattened Pester suite: **686 total, 676 passed, 0 failed, 10 skipped, 0 not run** in 4m 53.54s.
