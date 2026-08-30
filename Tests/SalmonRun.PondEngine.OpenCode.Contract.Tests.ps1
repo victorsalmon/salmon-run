@@ -71,7 +71,10 @@ Describe "OpenCode provider contract" -Tag "Contract", "Regression" {
             $lane = New-Item -ItemType Directory -Path (Join-Path $TestDrive "lane-$(New-Guid)") -Force
             $repo = New-Item -ItemType Directory -Path (Join-Path $TestDrive "repo-$(New-Guid)") -Force
             $plan = Join-Path $TestDrive "plan-$(New-Guid).md"
-            '# Test plan' | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+            @'
+# Test plan
+**Implementation**: completed by opencode
+'@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
 
             $captured = @{ FilePath = $null; ArgumentList = $null }
             Mock Start-Process -MockWith {
@@ -104,7 +107,10 @@ Describe "OpenCode provider contract" -Tag "Contract", "Regression" {
             $lane = New-Item -ItemType Directory -Path (Join-Path $TestDrive "lane-$(New-Guid)") -Force
             $repo = New-Item -ItemType Directory -Path (Join-Path $TestDrive "repo-$(New-Guid)") -Force
             $plan = Join-Path $TestDrive "plan-$(New-Guid).md"
-            '# Test plan' | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+            @'
+# Test plan
+**Implementation**: completed by opencode
+'@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
 
             $script:captured = @{ FilePath = $null; ArgumentList = $null }
             Mock Start-Process -MockWith {
@@ -189,7 +195,10 @@ Describe "OpenCode provider contract" -Tag "Contract", "Regression" {
             $lane = New-Item -ItemType Directory -Path (Join-Path $TestDrive "lane-$(New-Guid)") -Force
             $repo = New-Item -ItemType Directory -Path (Join-Path $TestDrive "repo-$(New-Guid)") -Force
             $plan = Join-Path $TestDrive "plan-$(New-Guid).md"
-            '# Test plan' | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+            @'
+# Test plan
+**Implementation**: completed by opencode
+'@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
 
             Mock Add-PlanPondLog -MockWith { } -ParameterFilter { $true }
 

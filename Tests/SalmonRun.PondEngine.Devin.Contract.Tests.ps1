@@ -76,7 +76,10 @@ Describe "Devin provider contract" -Tag "Contract", "Regression" {
             $lane = New-Item -ItemType Directory -Path (Join-Path $TestDrive "lane-$(New-Guid)") -Force
             $repo = New-Item -ItemType Directory -Path (Join-Path $TestDrive "repo-$(New-Guid)") -Force
             $plan = Join-Path $TestDrive "plan-$(New-Guid).md"
-            '# Test plan' | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+            @'
+# Test plan
+**Implementation**: completed by devin
+'@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
 
             $script:captured = @{ FilePath = $null; ArgumentList = $null }
             Mock Start-Process -MockWith {
@@ -143,7 +146,10 @@ Describe "Devin provider contract" -Tag "Contract", "Regression" {
             $lane = New-Item -ItemType Directory -Path (Join-Path $TestDrive "lane-$(New-Guid)") -Force
             $repo = New-Item -ItemType Directory -Path (Join-Path $TestDrive "repo-$(New-Guid)") -Force
             $plan = Join-Path $TestDrive "plan-$(New-Guid).md"
-            '# Test plan' | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+            @'
+# Test plan
+**Implementation**: completed by devin
+'@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
 
             Mock Add-PlanPondLog -MockWith { } -ParameterFilter { $true }
 
@@ -185,7 +191,10 @@ Describe "Devin provider contract" -Tag "Contract", "Regression" {
             $lane = New-Item -ItemType Directory -Path (Join-Path $TestDrive "lane-$(New-Guid)") -Force
             $repo = New-Item -ItemType Directory -Path (Join-Path $TestDrive "repo-$(New-Guid)") -Force
             $plan = Join-Path $TestDrive "plan-$(New-Guid).md"
-            '# Test plan' | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
+            @'
+# Test plan
+**Implementation**: completed by devin
+'@ | Set-Content -LiteralPath $plan -Encoding utf8 -NoNewline
 
             Mock Start-Process -MockWith {
                 param($FilePath, $ArgumentList, $WorkingDirectory, $RedirectStandardOutput, $RedirectStandardError, $NoNewWindow, $PassThru, $ErrorAction)
