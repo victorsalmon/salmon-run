@@ -80,6 +80,15 @@ function Invoke-PondTaskMonitorStream {
 
     if (-not $Context.Success -and -not (Test-Path -LiteralPath $completeFile)) {
         Write-Verbose "Invoke-PondTaskMonitorStream: group '$($group.Namespace)' timed out or failed"
+        # Force-kill the tracked child and its descendants so a long-running agent
+        # cannot continue modifying files or hold locks after the pond deadline.
+        if ($processId) {
+            $null = taskkill /T /F /PID $processId 2>&1 | Out-Null
+            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+        }
+        if (-not (Test-Path -LiteralPath $failedFile)) {
+            '1' | Set-Content -LiteralPath $failedFile -Encoding utf8 -NoNewline
+        }
     }
 
     return $Context
