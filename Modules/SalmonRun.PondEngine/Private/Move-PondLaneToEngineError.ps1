@@ -38,8 +38,24 @@ function Move-PondLaneToEngineError {
             $dest = Join-Path $pausedDir "$($file.BaseName)-engine-error-$counter$($file.Extension)"
             $counter++
         }
-        Move-Item -LiteralPath $file.FullName -Destination $dest
-        $moved.Add($dest)
+        $saved = $false
+        for ($i = 0; $i -lt 3; $i++) {
+            try {
+                if ($i -gt 0) { Start-Sleep -Seconds 1 }
+                Move-Item -LiteralPath $file.FullName -Destination $dest -Force -ErrorAction Stop
+                $saved = $true
+                break
+            } catch {
+                # If the file is still locked by a child process, copy the contents
+                # and leave the original for the caller to clean up.
+                if ($i -eq 2) {
+                    Copy-Item -LiteralPath $file.FullName -Destination $dest -Force -ErrorAction SilentlyContinue
+                }
+            }
+        }
+        if ($saved -or (Test-Path -LiteralPath $dest)) {
+            $moved.Add($dest)
+        }
     }
     return [pscustomobject]@{ Moved=$moved.Count; Files=$moved.ToArray(); Pond=$PondName; Reason=$Reason }
 }

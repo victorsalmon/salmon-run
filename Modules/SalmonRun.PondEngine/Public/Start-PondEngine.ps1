@@ -181,11 +181,19 @@ function Start-PondEngine {
                     $paused = Move-PondLaneToEngineError -LanePath $lanePath -TaskRoot $Workdir -PondName $Pond.Name -Reason $reason
                     if ($paused.Moved -gt 0) { $didReapWork = $true }
                 }
-                if (Test-Path -LiteralPath $lanePath) {
+                $stillRemaining = @(Get-ChildItem -LiteralPath $lanePath -Filter '*.md' -File -ErrorAction SilentlyContinue)
+                if (Test-Path -LiteralPath $lanePath -and $stillRemaining.Count -eq 0) {
                     Remove-Item -LiteralPath $lanePath -Recurse -Force -ErrorAction SilentlyContinue
+                } elseif ($stillRemaining.Count -gt 0) {
+                    Write-Warning "PondEngine: lane $($Lane.Id) still contains plan files; leaving lane intact for manual rescue: $($stillRemaining.Name -join ', ')"
                 }
             } else {
-                Remove-Item -LiteralPath $lanePath -Recurse -Force -ErrorAction SilentlyContinue
+                $stillRemaining = @(Get-ChildItem -LiteralPath $lanePath -Filter '*.md' -File -ErrorAction SilentlyContinue)
+                if ($stillRemaining.Count -eq 0) {
+                    Remove-Item -LiteralPath $lanePath -Recurse -Force -ErrorAction SilentlyContinue
+                } else {
+                    Write-Warning "PondEngine: lane $($Lane.Id) still contains plan files; leaving lane intact for manual rescue: $($stillRemaining.Name -join ', ')"
+                }
             }
         }
 
