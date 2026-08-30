@@ -180,4 +180,15 @@ Describe 'Pond scheduling safety' -Tag 'PondEngine','Regression-Only' {
         $lease.processId | Should -Be $PID
         ([datetimeoffset]$lease.heartbeatAt) -ge ([datetimeoffset]$before.heartbeatAt) | Should -BeTrue
     }
-}
+
+    It 'memoizes canonical repository identity for repeated scheduling checks' {
+        $repo = Join-Path $TestDrive 'identity-cache-repo'
+        New-Item (Join-Path $repo '.git') -ItemType Directory -Force | Out-Null
+        & (Get-Module SalmonRun.PondEngine) { $script:PondRepositoryKeyCache = @{} }
+        Mock git { $global:LASTEXITCODE = 0; '.git' } -ModuleName SalmonRun.PondEngine
+
+        $keys = & (Get-Module SalmonRun.PondEngine) { param($path) @((Get-PondRepositoryKey $path),(Get-PondRepositoryKey $path)) } $repo
+
+        $keys[1] | Should -Be $keys[0]
+        Should -Invoke git -ModuleName SalmonRun.PondEngine -Times 1 -Exactly
+    }}
