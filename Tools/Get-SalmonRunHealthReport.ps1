@@ -112,6 +112,28 @@ function Get-SalmonRunQueueCounts {
     return [pscustomobject]@{ Active = $active; Accessory = $accessory }
 }
 
+function Get-RecentWorkflowEvent {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][datetimeoffset]$Cutoff
+    )
+
+    $recentEvents = [System.Collections.Generic.List[psobject]]::new()
+    if (-not (Test-Path -LiteralPath $Path)) { return $recentEvents }
+
+    foreach ($line in Get-Content -LiteralPath $Path -ErrorAction SilentlyContinue) {
+        try {
+            $workflowEvent = $line | ConvertFrom-Json -ErrorAction Stop
+            $eventTimestamp = [datetimeoffset]::MinValue
+            if ([datetimeoffset]::TryParse([string]$workflowEvent.ts, [ref]$eventTimestamp) -and $eventTimestamp -ge $Cutoff) {
+                $recentEvents.Add($workflowEvent)
+            }
+        } catch {
+            Write-Verbose "Ignored malformed workflow event: $($_.Exception.Message)"
+        }
+    }
+    return $recentEvents
+}
 if ([string]::IsNullOrWhiteSpace($TaskRoot)) {
     $TaskRoot = if ($env:SALMON_RUN_HOME) { $env:SALMON_RUN_HOME } else { Join-Path $HOME '.salmon' }
 }
@@ -276,8 +298,8 @@ foreach ($f in $completedFiles) {
 }
 
 # Meaningful progress comes only from validated attempt transitions.
-$eventPath = Join-Path $LogDir 'workflow-events.jsonl'; $recentEvents = @()
-if (Test-Path $eventPath) { foreach ($line in Get-Content $eventPath -ErrorAction SilentlyContinue) { try { $event=$line|ConvertFrom-Json -ErrorAction Stop; $eventTs=[datetimeoffset]::MinValue; if([datetimeoffset]::TryParse([string]$event.ts,[ref]$eventTs) -and $eventTs -ge [datetimeoffset]::Now.AddMinutes(-30)){$recentEvents += $event} } catch {} } }
+$eventPath = Join-Path $LogDir 'workflow-events.jsonl'
+$recentEvents = @(Get-RecentWorkflowEvent -Path $eventPath -Cutoff ([datetimeoffset]::Now.AddMinutes(-30)))
 $transitions=@($recentEvents|Where-Object action -eq 'transition');$forward=@($transitions|Where-Object failureKind -eq 'success');$backward=@($transitions|Where-Object { $_.failureKind -ne 'success' })
 $report.forwardTransitions=$forward.Count;$report.backwardTransitions=$backward.Count;$report.uniqueCompletions=@($forward|Where-Object pond -in @('QA','ProjectReview','Complete')|Select-Object -ExpandProperty planId -Unique).Count;$report.transitionErrors=@($transitions|Where-Object failureKind -eq 'engine-error').Count
 $cycleGroups=@($transitions|Group-Object planId|Where-Object { $_.Count -ge 6 -and @($_.Group|Where-Object failureKind -eq 'success').Count -eq 0 });$report.cycleCount=$cycleGroups.Count;$report.usefulAgentRunRatio=if($transitions.Count -gt 0){[math]::Round($forward.Count/$transitions.Count,3)}else{0.0}

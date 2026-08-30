@@ -8,9 +8,9 @@ function Get-LatestPondHeaderMatch {
     $names = @($Headers | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object { [regex]::Escape($_) })
     if ($names.Count -eq 0 -or [string]::IsNullOrWhiteSpace($Content)) { return $null }
     $pattern = "(?im)^\*\*(?<header>$($names -join '|'))\*\*:\s*(?<value>[^\r\n]+)"
-    $matches = [regex]::Matches($Content, $pattern)
-    if ($matches.Count -eq 0) { return $null }
-    return $matches[$matches.Count - 1]
+    $headerMatches = [regex]::Matches($Content, $pattern)
+    if ($headerMatches.Count -eq 0) { return $null }
+    return $headerMatches[$headerMatches.Count - 1]
 }
 
 function Get-PondGateVerdict {
