@@ -518,12 +518,8 @@ function Invoke-PondTaskTransition {
         $finalDest = "Complete/$projectId"
     }
 
-    # Clean up sentinel files and empty lane directory.
-    Remove-Item -Path "$lanePath/.*" -Force -ErrorAction SilentlyContinue
-    $laneRemaining = @(Get-ChildItem $lanePath -Force -ErrorAction SilentlyContinue)
-    if ($laneRemaining.Count -eq 0) {
-        Remove-Item -LiteralPath $lanePath -Force -ErrorAction SilentlyContinue
-    }
+    # The lane is an ephemeral lease envelope. Semantic results are already durable.
+    Remove-Item -LiteralPath $lanePath -Recurse -Force -ErrorAction SilentlyContinue
 
     # An Investigator plan completing or failing clears the pending flag so the
     # next even counter value can spawn a fresh investigation if needed.

@@ -206,7 +206,12 @@ if (Test-Path -LiteralPath $heartbeatPath) {
 # Working lanes: which are alive, which are stale, last output age
 $workingDir = Join-Path $TaskRoot 'Tasks/Working'
 if (Test-Path -LiteralPath $workingDir) {
-    $laneDirs = Get-ChildItem -LiteralPath $workingDir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'lane-*' }
+    $laneDirs = Get-ChildItem -LiteralPath $workingDir -Directory -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -like 'lane-*' -and (
+            (Test-Path -LiteralPath (Join-Path $_.FullName '.lease.json') -PathType Leaf) -or
+            @(Get-ChildItem -LiteralPath $_.FullName -Filter '*.md' -File -ErrorAction SilentlyContinue).Count -gt 0
+        )
+    }
     foreach ($lane in $laneDirs) {
         $pidFile = Join-Path $lane.FullName '.pid'
         $lanePid = $null

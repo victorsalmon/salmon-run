@@ -192,8 +192,25 @@ function Start-PondEngine {
         return $didReapWork
     }
 
+    $runtimeRoot = Split-Path -Parent $TaskRoot
+    $coordinatorLogDir = Join-Path $runtimeRoot 'Logs'
+    $coordinatorHeartbeatPath = Join-Path $coordinatorLogDir 'orchestrator.heartbeat.json'
+    function Write-PondCoordinatorHeartbeat {
+        $null = New-Item -ItemType Directory -Path $coordinatorLogDir -Force
+        $heartbeat = [ordered]@{
+            ts = [datetimeoffset]::Now.ToString('o')
+            pid = $PID
+            state = 'running'
+            detail = 'pond coordinator'
+            iteration = $context.Iteration
+        }
+        $temporaryPath = "$coordinatorHeartbeatPath.$PID.tmp"
+        $heartbeat | ConvertTo-Json -Compress | Set-Content -LiteralPath $temporaryPath -Encoding utf8 -NoNewline
+        Move-Item -LiteralPath $temporaryPath -Destination $coordinatorHeartbeatPath -Force
+    }
     $iterationLimit = if ($MaxIterations -le 0) { [int]::MaxValue } else { $MaxIterations }
     for ($context.Iteration = 1; $context.Iteration -le $iterationLimit; $context.Iteration++) {
+        Write-PondCoordinatorHeartbeat
         $didWork = $false
 
         # Refresh worktree streams periodically so new namespaces get a lane.
