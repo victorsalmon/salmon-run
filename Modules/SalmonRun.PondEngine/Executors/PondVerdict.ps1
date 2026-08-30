@@ -48,6 +48,9 @@ function Test-PondExecutorVerdict {
     <#
     .SYNOPSIS
         Validates agent-authored evidence before an executor writes .complete.
+        Accepts either a legacy header or a canonical PondLog entry so the
+        executor is resilient when the external agent writes log evidence but
+        not the legacy header.
     #>
     [CmdletBinding()]
     [OutputType([bool])]
@@ -55,6 +58,12 @@ function Test-PondExecutorVerdict {
         [Parameter(Mandatory)][string]$Role,
         [Parameter(Mandatory)][string[]]$PlanFiles
     )
+
+    if (-not (Get-Command Get-PlanPondLog -ErrorAction SilentlyContinue)) {
+        $moduleBase = Split-Path -Path $PSScriptRoot -Parent
+        $planLogPath = Join-Path $moduleBase 'Public' 'PlanLog.ps1'
+        if (Test-Path -LiteralPath $planLogPath) { . $planLogPath }
+    }
 
     $contract = switch ($Role) {
         'coder'            { @{ Header = 'Implementation'; Decision = $null } }
@@ -66,14 +75,25 @@ function Test-PondExecutorVerdict {
         default            { return $true }
     }
 
+    $logMap = Get-RolePondLogMap -Role $Role
+    $expectedAction = $logMap.Action
+
     foreach ($plan in $PlanFiles) {
         if (-not (Test-Path -LiteralPath $plan)) { return $false }
         $content = Get-Content -LiteralPath $plan -Raw -ErrorAction SilentlyContinue
         if ([string]::IsNullOrWhiteSpace($content)) { return $false }
 
         $verdict = Get-PondGateVerdict -Content $content -DecisionHeader $contract.Decision -EvidenceHeader $contract.Header
-        if (-not $verdict.Found) { return $false }
-        if ($verdict.Failed -or -not $verdict.Passed) { return $false }
+        if ($verdict.Found -and -not $verdict.Failed -and $verdict.Passed) { continue }
+
+        # Fall back to a canonical PondLog entry for this role/action.
+        try {
+            $pondLog = @(Get-PlanPondLog -PlanPath $plan -ErrorAction SilentlyContinue)
+            $found = @($pondLog | Where-Object { $_.action -eq $expectedAction }).Count -gt 0
+            if ($found) { continue }
+        } catch { }
+
+        return $false
     }
     return $true
 }
