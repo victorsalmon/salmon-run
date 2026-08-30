@@ -192,20 +192,33 @@ function Get-PondWorktreeStreams {
 
         [string]$ConfigPath = (Join-Path (Get-SalmonHome) 'orchestrator.config.json'),
 
+        [hashtable]$NamespaceRepoMap = @{},
+
         [switch]$Create
     )
 
-    $namespaceRepoMap = @{}
+    $fileMap = @{}
     if ($ConfigPath -and (Test-Path -LiteralPath $ConfigPath)) {
         try {
             $cfg = Get-Content -LiteralPath $ConfigPath -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue
             if ($cfg -and $cfg['namespaceRepoMap']) {
-                $namespaceRepoMap = $cfg['namespaceRepoMap']
+                $fileMap = $cfg['namespaceRepoMap']
             }
         } catch {
             Write-Verbose "Get-PondWorktreeStreams: could not parse config $ConfigPath : $_"
         }
     }
+
+    # Runtime-supplied map wins over the config file, and any key present in
+    # either source is included so callers can augment the file without editing it.
+    $resolvedMap = [hashtable]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($k in $fileMap.Keys) { $resolvedMap[$k] = $fileMap[$k] }
+    if ($NamespaceRepoMap -and $NamespaceRepoMap.Count -gt 0) {
+        foreach ($k in $NamespaceRepoMap.Keys) {
+            $resolvedMap[$k] = $NamespaceRepoMap[$k]
+        }
+    }
+    $targetRepoMap = $resolvedMap
 
     # Streams are needed for every agentic pond, not just Code/Review/Audit/QA.
     # Intake, ProjectReview, and QA plans also need a target worktree stream
@@ -233,7 +246,7 @@ function Get-PondWorktreeStreams {
 
         $tempContext = [PondContext]::new()
         $tempContext.RepoDir = $RepoDir
-        $tempContext.Config = [PSCustomObject]@{ NamespaceRepoMap = $namespaceRepoMap }
+        $tempContext.Config = [PSCustomObject]@{ NamespaceRepoMap = $targetRepoMap }
 
         Resolve-PondGroupRepo -Group $tempGroup -Context $tempContext
 

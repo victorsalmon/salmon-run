@@ -72,7 +72,8 @@ function Start-PondEngine {
         param([PondContext]$Ctx, [string]$Workdir, [string]$Repo, [string]$Cfg)
         $newStreams = @()
         try {
-            $newStreams = @(Get-PondWorktreeStreams -TaskRoot $Workdir -RepoDir $Repo -ConfigPath $Cfg)
+            $map = if ($Ctx -and $Ctx.Config) { $Ctx.Config.NamespaceRepoMap } else { $null }
+            $newStreams = @(Get-PondWorktreeStreams -TaskRoot $Workdir -RepoDir $Repo -ConfigPath $Cfg -NamespaceRepoMap $map)
         } catch {
             Write-Verbose "PondEngine: Get-PondWorktreeStreams failed: $_"
         }

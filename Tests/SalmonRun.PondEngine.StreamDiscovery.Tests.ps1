@@ -93,6 +93,9 @@ This file is only present so Get-PondWorktreeStreams sees the uh-signing namespa
     Set-Content -LiteralPath (Join-Path $script:TestTaskRoot 'ProjectReview' '2026-08-26-upscale-havens-100.md')                -Value $planHeader['ProjectReview'] -Encoding utf8
     Set-Content -LiteralPath (Join-Path $script:TestTaskRoot 'QA'            '2026.08.26-uh-signing-1-pkcs7-tamper-evidence.md') -Value $planHeader['QA']            -Encoding utf8
     Set-Content -LiteralPath (Join-Path $script:TestTaskRoot 'Code'          '2026.08.26-uh-signing-2-retry-repair-flow.md')      -Value $planHeader['Code']          -Encoding utf8
+
+    $runtimeOnlyPlan = Join-Path $script:TestTaskRoot 'Code' '2026-08-26-runtime-only-1.md'
+    "# Runtime-only plan`n**Status**: ready`n**Scope**: verify runtime NamespaceRepoMap merge" | Set-Content -LiteralPath $runtimeOnlyPlan -Encoding utf8
 }
 
 AfterAll {
@@ -109,6 +112,17 @@ Describe 'PondEngine stream discovery and ProjectId fallback' -Tag 'PondEngine',
             $ids | Should -Contain 'upscale-havens' -Because 'ProjectReview plans need a stream to spawn'
             $ids | Should -Contain 'uh-signing' -Because 'QA and Code plans sharing a namespace produce one stream'
         } -ArgumentList $script:TestTaskRoot, $script:FakeSalmonRepo, $script:ConfigPath
+    }
+
+    It 'merges runtime NamespaceRepoMap with the file-based config' {
+        InModuleScope -ModuleName 'SalmonRun.PondEngine' -ScriptBlock {
+            param($TaskRoot, $RepoDir, $ConfigPath, $RuntimeNs, $RuntimeRepo)
+            $runtimeMap = @{ $RuntimeNs = $RuntimeRepo }
+            $streams = @(Get-PondWorktreeStreams -TaskRoot $TaskRoot -RepoDir $RepoDir -ConfigPath $ConfigPath -NamespaceRepoMap $runtimeMap)
+            $runtimeStream = $streams | Where-Object { $_.Id -eq $RuntimeNs } | Select-Object -First 1
+            $runtimeStream | Should -Not -BeNullOrEmpty
+            $runtimeStream.BaseRepo | Should -Be $RuntimeRepo
+        } -ArgumentList $script:TestTaskRoot, $script:FakeSalmonRepo, $script:ConfigPath, 'runtime-only', $script:FakeUpscaleRepo
     }
 
     It 'falls back to the connascence namespace when a QA plan has no ProjectId' {
