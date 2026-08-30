@@ -376,6 +376,8 @@ function Invoke-DshProvider {
 
         if ($exitCode -eq 0 -and -not (Test-PondExecutorVerdict -Role $Role -PlanFiles $PlanFiles)) {
             $exitCode = 2
+        } elseif ($exitCode -eq 0) {
+            Write-RolePondLogEntry -Role $Role -PlanFiles $PlanFiles -Provider $Provider -Model $Model
         }
         $resultAction = if ($exitCode -eq 0) { 'external-complete' } else { 'external-fail' }
         Write-PlanLog -Action $resultAction -Detail "exit=$exitCode"
