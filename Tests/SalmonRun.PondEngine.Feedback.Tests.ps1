@@ -56,10 +56,13 @@ Describe 'Failing transitions create feedback plans in Code and block originals'
         $ctx = [PondContext]@{ TaskRoot=$taskRoot; RepoDir=$taskRoot; CurrentGroup=[PondGroup]@{ StreamPath=$lane; Namespace='time'; RepoPath=$taskRoot }; Success=$false; Config=[pscustomobject]@{ TimeoutMinutes=30 } }
         $pond = Get-SalmonRunPonds | Where-Object Name -eq Review
         $task = $pond.Tasks | Where-Object Name -eq Transition | Select-Object -First 1
+        $script:lanePresentAtCheckpoint = $null
+        Mock Push-PondRepos { $script:lanePresentAtCheckpoint = Test-Path -LiteralPath $Context.CurrentGroup.StreamPath } -ModuleName SalmonRun.PondEngine
         { & (Get-Module SalmonRun.PondEngine) { param($p,$t,$c) Invoke-PondTaskTransition -Pond $p -Task $t -Context $c } $pond $task $ctx } | Should -Not -Throw
         Join-Path $taskRoot "Code/$planName" | Should -Exist
         Join-Path $taskRoot "Review/$planName" | Should -Not -Exist
         $lane.FullName | Should -Not -Exist
+        $script:lanePresentAtCheckpoint | Should -BeFalse
     }
 
     It 'links Review feedback to the canonical plan returned to Code' {
