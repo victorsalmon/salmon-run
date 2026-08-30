@@ -104,7 +104,8 @@ Describe "GitCloud push contract" -Tag "Contract", "Regression" {
                 $env:SALMON_RUN_HOME = (Join-Path $HOME '.salmon')
 
                 # Make sure the disposable branch exists at the current HEAD.
-                # The push functions take a branch name and push that ref.
+                # The push functions take a branch name and push that ref from the repo root.
+                Set-Location -LiteralPath $repoRoot
                 $null = git branch -f $script:TestBranch 2>&1
             }
         }
