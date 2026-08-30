@@ -111,7 +111,9 @@ legacy evidence header to each attached plan file.
 
 ROLE: Reviewer
 This is a review confirmation gate, NOT an implementation phase. Confirm that the
-plan was implemented as specified. If it was, append:
+plan was implemented as specified. The coder's evidence header is `**Implementation**:
+completed by <agent>`. Do not look for `**Implemented**`. If the implementation
+meets the Validation Rubric, append:
 
 **Reviewed**: passed by $agentTag
 
@@ -137,7 +139,8 @@ readability, naming, and safe refactor opportunities that improve testability
 without changing behavior or outputs. You may run fast syntax/type checks, but
 do NOT run the full test suite, do NOT start servers, and do NOT run long-lived
 watch/build processes. Update the plan's **ConnascenceScope** if you touch
-additional files. After auditing, append:
+additional files. The expected upstream evidence header is `**Reviewed**: passed by <agent>`.
+After auditing, append:
 
 **Audit**: passed by $agentTag
 
@@ -161,7 +164,8 @@ Adapt and run the property-based testing unit pipeline for the target code. Fix
 failing tests. Then run mutation testing and improve the mutation score to at
 least 95%, approaching 100% where reasonable. Behavior-preserving refactoring is
 allowed if it improves testability. Update **ConnascenceScope** with any new or
-changed files. After QA passes, append:
+changed files. The expected upstream evidence header is `**Audit**: passed by <agent>`.
+After QA passes, append:
 
 **QA**: passed by $agentTag
 
