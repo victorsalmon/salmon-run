@@ -12,7 +12,7 @@ $testFiles = @(
 )
 $mutants = @(
     @{ Id='Planning-OverBudget'; File='SalmonRun.PondEngine/Private/PondTasks/Invoke-PondTaskPlanProject.ps1'; From='$targetTokens = [math]::Min([math]::Max($targetTokens, 1), 100000)'; To='$targetTokens = [math]::Min([math]::Max($targetTokens, 1), 100001)' },
-    @{ Id='Review-FailedAccepted'; File='SalmonRun.PondEngine/Executors/PondVerdict.ps1'; From='if ($value -match ''^(failed|rework|rejected|blocked)\b'') { return $false }'; To='if ($value -match ''^(failed|rework|rejected|blocked)\b'') { return $true }' },
+    @{ Id='Review-FailedAccepted'; File='SalmonRun.PondEngine/Executors/PondVerdict.ps1'; From='if ($verdict.Failed -or -not $verdict.Passed) { return $false }'; To='if ($verdict.Failed -or -not $verdict.Passed) { return $true }' },
     @{ Id='QA-BatchBypass'; File='SalmonRun.PondEngine/Public/Get-SalmonRunPonds.ps1'; From="-EvidenceGate 'project-qa-ready'"; To="-EvidenceGate 'qa-ready'" },
     @{ Id='QA-MembershipInverted'; File='SalmonRun.PondEngine/Private/PondTasks/Get-PondProjectState.ps1'; From='$locations[$_] -ne ''QA'''; To='$locations[$_] -eq ''QA''' },
     @{ Id='ParallelCount-Bypass'; File='SalmonRun.PondEngine/Private/Select-PondGroups.ps1'; From='$limit = [math]::Min($limit, $Pond.Operators.ParallelCount)'; To='$limit = $limit' },
