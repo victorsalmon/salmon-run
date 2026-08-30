@@ -109,8 +109,16 @@ function Initialize-PondWorktree {
     }
 
     if (Test-Path -LiteralPath $worktreePath) {
-        Write-Warning "Initialize-PondWorktree: path $worktreePath exists but is not a valid worktree for $($Stream.Id); skipping"
-        return $false
+        # A stale, unregistered directory is usually left behind when a previous
+        # worktree add was interrupted or a partial run created the path. Remove
+        # it so the fresh worktree can be created. If it cannot be removed,
+        # report and skip this stream rather than looping forever.
+        Write-Warning "Initialize-PondWorktree: path $worktreePath exists but is not a valid worktree for $($Stream.Id); removing and re-adding"
+        Remove-Item -LiteralPath $worktreePath -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $worktreePath) {
+            Write-Warning "Initialize-PondWorktree: could not remove stale path $worktreePath for $($Stream.Id); skipping"
+            return $false
+        }
     }
 
     $currentBranch = & git -C $BaseRepo rev-parse --abbrev-ref HEAD 2>&1
