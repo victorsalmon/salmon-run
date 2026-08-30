@@ -4,6 +4,7 @@
 BeforeAll {
     $__RepoRoot = (Get-Item $PSCommandPath).Directory.Parent.FullName
     $__ModulesDir = Join-Path $__RepoRoot 'Modules'
+    $env:PSModulePath = "$__ModulesDir$([IO.Path]::PathSeparator)$env:PSModulePath"
 
     function Get-SalmonRunRepoRoot { return $__RepoRoot }
 
