@@ -86,3 +86,20 @@ The serialized outbox evaluated retry backoff before checking whether the queued
 The churn defect class is closed by typed attempt results, coordinator-owned state transitions, canonical repository locks, fail-closed recovery, bounded retry/cycle budgets, serialized Git synchronization, and progress-based health. The public documentation now describes the same stream/pond architecture enforced by the implementation.
 ### Performance sibling cause — repeated Git identity probes
 Normal-concurrency startup resolved the same existing base repositories and worktrees repeatedly while grouping and assigning dozens of namespaces. `Get-PondRepositoryKey` spawned `git rev-parse --git-common-dir` on every comparison, so scheduling cost scaled with groups times lanes instead of unique repository paths. Existing paths have stable common-directory identity for the lifetime of one coordinator and can be memoized; nonexistent future worktree paths must remain uncached until creation.
+## Planned-worktree bootstrap deadlock (2026-08-29)
+
+### Concern
+
+The restored queue contained eligible QA plans, the coordinator heartbeat advanced, and no writer was active, yet no lane could be claimed. `reserves a lane for a stream whose planned worktree does not exist yet` reproduces the failure: `Get-FreePondLane` returned null for the exact path owned by the stream until that worktree existed.
+
+### Five whys
+
+1. No restored plan was claimed because lane reservation returned no matching lane.
+2. Reservation returned no lane because the requested planned-worktree key differed from the stream base-repository Git key.
+3. The keys differed because the planned worktree did not exist, so Git could not resolve its common directory and the identity resolver correctly fell back to a path key.
+4. The planned worktree did not exist because initialization occurs only after lane reservation.
+5. The deadlock was possible because stream ownership and repository identity were collapsed into one comparison: an exact configured stream path was not recognized as authoritative before Git identity was available.
+
+### Sibling search
+
+The same ordering affects every non-local agentic pond (`Code`, `Review`, `Audit`, `QA`, `Intake`, `ProjectReview`, and `Investigate`) when its namespace worktree has not been created. Existing canary worktrees masked the defect. The correction belongs in the shared lane allocator so every pond receives the same bootstrap behavior while canonical Git identity remains the writer-exclusion mechanism once a repository exists.
