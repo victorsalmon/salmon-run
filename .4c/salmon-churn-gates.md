@@ -84,3 +84,5 @@ The serialized outbox evaluated retry backoff before checking whether the queued
 ## Result
 
 The churn defect class is closed by typed attempt results, coordinator-owned state transitions, canonical repository locks, fail-closed recovery, bounded retry/cycle budgets, serialized Git synchronization, and progress-based health. The public documentation now describes the same stream/pond architecture enforced by the implementation.
+### Performance sibling cause — repeated Git identity probes
+Normal-concurrency startup resolved the same existing base repositories and worktrees repeatedly while grouping and assigning dozens of namespaces. `Get-PondRepositoryKey` spawned `git rev-parse --git-common-dir` on every comparison, so scheduling cost scaled with groups times lanes instead of unique repository paths. Existing paths have stable common-directory identity for the lifetime of one coordinator and can be memoized; nonexistent future worktree paths must remain uncached until creation.
