@@ -84,14 +84,14 @@ A plan advances through the default pipeline:
 
 `Intake → Code → Review → Audit → QA → Complete → Archive`
 
-Failures at `Review`, `Audit`, or `QA` return the plan to `Code` for bounded rework. Non-retryable failures, parser/transition exceptions, and exhausted retry budgets move the plan to `Paused` (or to `Investigate` for recurring feedback cycles), with `Failed` as the final fallback. The full lifecycle, rework loops, and the per-pond task pipeline are shown as Mermaid diagrams in `docs/orchestrator-architecture.md`.
+Semantic failures receive one targeted repair after the initial attempt, then escalate to `Investigate`. Transport receives two retries before `Paused`; identical repeated failures escalate immediately. Invalid configuration, missing mutation tooling, and other human choices route directly to `Intake`. The full lifecycle is shown in `docs/orchestrator-architecture.md`.
 
 Each step emits a structured gate result. For compatibility and human inspection, the coordinator maintains bounded current evidence on the plan:
 
 - `Code` adds an `**Implementation**:` header and a `PondLog` `implement` event.
 - `Review` checks for implementation evidence and adds `**Reviewed**:`.
-- `Audit` checks for review evidence, runs a lightweight secret-scan regex, and adds `**Audit**:`.
-- `QA` checks implementation, review, and audit evidence and adds `**QA**:`.
+- `Audit` runs secrets/docs, lint/static, build, focused regression, then AQE; 4C is invoked only for a discovered defect.
+- `QA` builds the complete applicable test pipeline and must name a validated JSON proof with at least 95% raw changed-code mutation coverage.
 
 `PublicLocal.ps1` (the in-process PowerShell smoke-test executor) writes the legacy evidence markers and canonical `PondLog` entries. External executors write `spawn`, `external-complete`, and `external-fail` events.
 
@@ -119,7 +119,7 @@ See `Modules/SalmonRun.PondEngine/Private/PondAttemptState.ps1`, `PondFeedbackSi
 
 ## 5. Model routing and executor adapters
 
-When a plan reaches the `Spawn` task, `Resolve-PondExecutionProfile` picks the model and runtime based on the plan's `Challenge` tier and the model catalog.
+Before `Spawn`, the router resolves every execution field independently from confirmed plan overrides, pond configuration, global configuration, and finally the provider catalog. Invalid or over-budget combinations route to Intake without spawning.
 
 ### Execution profile
 
@@ -285,7 +285,7 @@ GitHub and Worktree workflows:
 - `.github/workflows/docker.yml` builds the Docker image on `ubuntu-latest`.
 - `.worktree/workflows/validate.yml` mirrors the GitHub test flow.
 
-`scripts/Sync-FromCanonical.ps1` copies canonical `salmon-orchestrator` source into the public repo. It accepts `SALMON_CANONICAL_REPO`, applies a runtime scrub for private hostnames/paths/credentials, and runs `Invoke-LeakCheck.ps1`. It intentionally does **not** copy `Tasks/`, `docs/`, or private configuration.
+This public repository is canonical. `scripts/Sync-ToPrivate.ps1` copies only entries in `scripts/public-to-private.manifest.json` to a private consumer; `Test-PrivateParity.ps1` fails on drift. Runtime queues, credentials, deployment extensions, plugins, and internal docs are protected. `Sync-FromCanonical.ps1` is retired, and the public leak check remains a release gate.
 
 ---
 
@@ -360,16 +360,17 @@ See `docs/PUBLIC_PACKAGE.md` for the full path table.
 - Pond definitions, the core engine loop, and plan transitions (Intake → Code → Review → Audit → QA → Complete → Archive) with the `Local` tier in a clean `~/.salmon` home.
 - `PublicLocal.ps1` end-to-end smoke runs.
 - Model profile resolution and executor command construction for OpenCode Go/Zen, Devin, DeepSeek/DSH (OpenRouter and DeepInfra as inference-provider configurations), and Codex.
-- Live provider contract tests for OpenCode, Devin, and DeepSeek/DSH (OpenRouter) with real credentials.
+- Provider contract tests for OpenCode, Devin, and DeepSeek/DSH; OpenCode Go is the supported external golden path and the others are beta.
 - Module loading, config, credentials, audit, locking, agent lifecycle, workflow events, Mermaid chunking, and the Pester suites.
 - `install.ps1` and Docker build/dry-run.
 - GitHub and Worktree live pushes via `SalmonRun.GitCloud` and `SalmonRun.Credentials` resolvers.
-- Sync-from-canonical with runtime scrub and leak check.
+- Manifest-driven public-to-private sync, parity checks, and public leak check.
 - GitHub Actions CI: Pester suite + leak check + release archive creation, plus Docker build/push to public GHCR.
 
 ### Not yet validated against live systems
 
 - A full `Start-SalmonRun.ps1 -Run` with an external-provider plan has not been exercised end-to-end in a clean environment. The `PublicLocal` smoke-test path is validated; external-provider dispatch is unit- and contract-tested but remains a manual live gate.
+- The required representative OpenCode Go lifecycle/failure canaries and four-hour unattended soak have not yet been recorded for the MVP release commit.
 - Docker Swarm orchestration has not been deployed live.
 - PowerShell Gallery publish has not been performed (the `SalmonRun` nupkg builds locally and `Publish-SalmonRunModule.ps1` is ready).
 

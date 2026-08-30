@@ -21,6 +21,9 @@ flowchart TD
     Audit -->|engine-error| Paused
     QA -->|failure| Code
     QA -->|engine-error| Paused
+    Code -->|decision-required| Intake
+    Audit -->|decision-required| Intake
+    QA -->|decision-required| Intake
 
     Paused --> Investigate
     Paused --> Failed
@@ -29,7 +32,7 @@ flowchart TD
     ProjectReview --> Complete
 ```
 
-The default plan pipeline moves a plan through `Intake`, `Code`, `Review`, `Audit`, `QA`, `Complete`, and finally `Archive`. Semantic failures at `Review`, `Audit`, or `QA` return the plan to `Code` for bounded rework. `Project` plans decompose into child `Code` plans and a parent `ProjectReview` plan; once all children are `Complete`, the parent advances to `Complete`. Non-retryable or repeated failures, parser/transition exceptions, and exhausted retry budgets move the plan to `Paused` (or `Investigate` for recurring feedback cycles), with a final `Failed` fallback.
+The default plan pipeline moves a plan through `Intake`, `Code`, read-only `Review`, ordered deterministic `Audit`, proof-building `QA`, `Complete`, and finally `Archive`. Semantic failures get one targeted repair after the initial attempt, then escalate to `Investigate`; two transport retries end in `Paused`, and repeated identical failures escalate immediately. Human decisions go directly to `Intake`.
 
 ```mermaid
 sequenceDiagram
@@ -59,7 +62,7 @@ sequenceDiagram
     Outbox->>Outbox: Sync checkpoint + Git push
 ```
 
-For each pond (except `Project`, `Complete`, and specialized stations), the engine runs the `Claim -> Prepare -> ModelRoute -> Spawn -> Monitor -> Transition` task pipeline. `Claim` reserves a working lane; `Prepare` copies plan files and checks evidence headers; `ModelRoute` resolves the `PondExecutionProfile`; `Spawn` starts the provider or local executor; `Monitor` polls the lane until the agent writes a sentinel, the process exits, or a timeout fires; and `Transition` atomically moves the plan, updates metadata, appends `PondLog` evidence, and enqueues a sync checkpoint.
+For each pond (except `Project`, `Complete`, and specialized stations), the engine runs the `Claim -> Prepare -> ModelRoute -> Spawn -> Monitor -> Transition` task pipeline. `Claim` reserves a working lane; `Prepare` copies plan files and checks evidence headers; `ModelRoute` resolves each execution field independently and can return `decision-required` without spawning; `Spawn` starts the provider or local executor; `Monitor` polls the lane until the coordinator observes a sentinel, process exit, or timeout; and `Transition` validates evidence, writes the typed result, moves the plan, updates metadata, and enqueues a sync checkpoint.
 
 ```mermaid
 stateDiagram-v2
@@ -87,7 +90,7 @@ A plan is the data packet. A pond is a stage with the same conceptual interface:
 4. emit a typed result;
 5. let the coordinator choose the next pond.
 
-Ponds do not own Git synchronization, recovery policy, or queue routing. That separation keeps stages replaceable: a local smoke-test executor, OpenCode, Devin, DSH, or Codex can implement a role without changing the orchestration protocol.
+Ponds do not own Git synchronization, recovery policy, or queue routing. That separation keeps stages replaceable. OpenCode Go is the supported external path; PublicLocal is a deterministic canary; Devin, DSH, Codex, and other adapters remain beta until they pass equivalent release evidence.
 
 The coordinator is the only control-plane writer. It validates results, updates bounded current evidence, moves queue artifacts, renews/reaps leases, writes health events, and serializes Git synchronization.
 
@@ -96,7 +99,7 @@ The coordinator is the only control-plane writer. It validates results, updates 
 | State | Location | Owner |
 | --- | --- | --- |
 | Plan specification and current semantic headers | `~/.salmon/Tasks/<Pond>/*.md` | Coordinator |
-| Attempt result | `~/.salmon/Results/<PlanId>/<Gate>/<AttemptId>.json` | Executor writes; coordinator validates |
+| Attempt result | `~/.salmon/Results/<PlanId>/<Gate>/<AttemptId>.json` | Coordinator materializes from provider outcome and validated artifacts |
 | Current gate result pointer | `~/.salmon/Results/<PlanId>/<Gate>/current.json` | Coordinator |
 | Lane lease | `~/.salmon/Tasks/Working/<Lane>/.lease.json` | Coordinator/executor heartbeat |
 | Retry and circuit-breaker state | `~/.salmon/State/plan-*.json` | Coordinator |
@@ -114,8 +117,8 @@ Default ponds are defined in `Modules/SalmonRun.PondEngine/Public/Get-SalmonRunP
 | `Intake` | `planner` | — | `Code` | `Paused` | 3 | Interactive intake; invalid plans go to `Paused`. |
 | `Code` | `coder` | `ready` (`Status`, `Scope`) | `Review` | `Code` | 3 | Dependency-ready gate; semantic-failure loops back for rework. |
 | `Review` | `reviewer` | `implemented` | `Audit` | `Code` | 3 | Read-only verification; failures return to `Code`. |
-| `Audit` | `auditor` | `reviewed` | `QA` | `Code` | 3 | Best-practice and code-smell review. |
-| `QA` | `qa` | `project-qa-ready` (`Status`, `Scope`) | `Complete` | `Code` | 3 | Batched property/mutation test maturation. |
+| `Audit` | `auditor` | `reviewed` | `QA` | `Code` | bounded | Secrets/docs, lint/static, build, focused regression, AQE; 4C only for a discovered defect. |
+| `QA` | `qa` | `project-qa-ready` (`Status`, `Scope`) | `Complete` | `Code` | bounded | Full test-pipeline hardening and typed >=95% changed-code mutation proof. |
 | `Project` | `project-planner` | — | `ProjectReview` | — | 3 | Splits a large plan into child `Code` plans plus a parent `ProjectReview` plan. |
 | `ProjectReview` | `project-reviewer` | `children-complete` | `Complete` | — | 3 | Waits for all child plans to reach `Complete`. |
 | `Investigate` | `investigator` | `ready` (`Status`, `Scope`) | `Complete` | `Intake` | 3 | Spawns on recurring feedback failures; final fallback is `Intake`. |
@@ -126,6 +129,19 @@ Default ponds are defined in `Modules/SalmonRun.PondEngine/Public/Get-SalmonRunP
 ## Attempt and result protocol
 
 Every gate attempt has stable `PlanId`, `AttemptId`, and `GateAttempt` values. A result record contains the gate, verdict, failure kind, timestamps, evidence summary, failed checks, fix actions, and changed-file scope.
+
+For QA, Markdown `**QA**: passed` is insufficient. The plan must name a repository-relative `**QAEvidence**` JSON artifact conforming to `schemas/qa-evidence.schema.json`. The coordinator binds its SHA-256 to the typed attempt only after validating command exits, behavior mapping, raw mutation arithmetic, zero unresolved outcomes, equivalent-mutant proof, and zero waivers. Missing mutation tooling produces `decision-required` and Intake routing.
+
+## Execution profile precedence
+
+Every agentic pond owns a complete execution profile: `Challenge`, `Harness`, `Provider`, `Model`, `Effort`, `TimeoutMinutes`, and `CostCeiling`. Values resolve independently in this order:
+
+1. a pond-qualified plan override plus `**Overrides confirmation**: confirmed by user`;
+2. `execution.ponds.<PondName>` in `~/.salmon/config.json`;
+3. `execution.defaults` in that file;
+4. the provider catalog.
+
+Invalid combinations, unknown values, non-positive timeouts, unconfirmed overrides, and cost-ceiling violations fail closed to Intake.
 
 Verdict precedence is attempt-scoped: the latest valid result is authoritative. Historical failures remain auditable but cannot override a later pass. Failure classification is total and uses these values:
 

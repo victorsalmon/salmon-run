@@ -13,7 +13,7 @@ The whole system is built around a few simple ideas:
 1. **Plans are files.** Every unit of work is a markdown file in a queue folder under `~/.salmon/Tasks`. Headers like `Status`, `Scope`, `Challenge`, and `DependsOn` drive behavior.
 2. **Ponds are interchangeable workflow stages.** Each pond declares eligibility, a bounded role, and destinations. The coordinator alone claims, leases, validates, and routes plans between ponds.
 3. **Executors are provider adapters.** A *harness* is a backend family, a *provider* is the CLI/API it talks to, and an *executor* performs one role and emits an attempt-scoped result. Executors do not own queue routing or Git synchronization.
-4. **The catalog is override-friendly.** Drop JSON files in `~/.salmon/providers/*.json` to add or override harnesses, providers, models, and cost data without touching the repo.
+4. **Execution is independently replaceable per pond.** `~/.salmon/config.json` sets global and per-pond challenge, harness, provider, model, effort, timeout, and cost ceiling; confirmed plan overrides can replace any individual field.
 
 That separation means you can add a new model or provider without touching the engine, and you can run the entire pipeline locally with the `PublicLocal` smoke-test executor before you connect a real external API.
 
@@ -26,7 +26,7 @@ Most agentic workflow tools either lock you into a vendor, hide state in a datab
 - **Human-inspectable:** queue state is just files and folders.
 - **Provider-agnostic:** one engine, many adapters.
 - **Safe to share:** all runtime state lives in `~/.salmon`; the repo contains no secrets, hostnames, or client paths.
-- **Rebuilt for efficacy:** this public package is the result of months of iteration, experimentation, and hard-won lessons from the private `salmon-orchestrator` project. It was rewritten from scratch to be generalized, installable, and genuinely useful as public infrastructure.
+- **Public and canonical:** this repository owns the shared engine and contracts; private deployments consume manifest-listed core files one way without exporting deployment state.
 
 `salmon-run` is free and open source under the [MIT License](./LICENSE).
 
@@ -38,18 +38,18 @@ Most agentic workflow tools either lock you into a vendor, hide state in a datab
 | --- | --- |
 | **File-based Kanban queues** | Plans are markdown files in `~/.salmon/Tasks/{Intake,Code,Review,Audit,QA,Complete,Archive,Failed,Working,Investigate,Project,ProjectReview,Manual,Handoffs,Temp,Schedules,Logs}`. |
 | **Pond engine** | `Start-PondEngine` runs a configurable loop of ponds, each with entry gates, task pipelines, parallelism limits, and success/failure transitions. |
-| **Model routing** | `Resolve-PondExecutionProfile` selects a `Harness` × `Provider` × `Model` × `Effort` based on the plan's `Challenge` tier and a JSON catalog. |
+| **Per-pond execution profiles** | Every pond resolves `Challenge` × `Harness` × `Provider` × `Model` × `Effort` × timeout × cost ceiling using confirmed plan override → pond config → global config → provider catalog. |
 | **Runtime provider overlays** | Drop JSON files in `~/.salmon/providers/*.json` to extend or override `harness-defaults.json` and `model-router-catalog.json` at runtime. |
 | **Cost-aware routing** | Execution profiles carry `CostRule`, `ApiCostPer1KTokens`, and `EffectiveCostPer1KTokens` so the engine can reason about free, discounted, and normal-cost models. |
 | **Executor adapters** | `PublicLocal.ps1` runs in-process smoke tests; `Opencode.ps1`, `Devin.ps1`, `Dsh.ps1`, and `Codex.ps1` build real CLI commands for external providers. OpenRouter and DeepInfra are inference-provider key/endpoint configurations consumed by the `Dsh.ps1` executor, not separate executors. Codex uses the `codex exec` CLI and the GPT-5.6 family (Luna/Terra/Sol). |
-| **Typed quality gates** | Stable plan/attempt IDs and structured result sidecars make the latest valid gate attempt authoritative. `DependsOn` and `children-complete` gates handle dependencies and projects. |
+| **Typed quality gates** | Stable plan/attempt IDs and structured result sidecars make the latest valid gate attempt authoritative. QA additionally validates a repository-bound artifact and requires at least 95% raw changed-code mutation coverage with no unresolved outcomes or waivers. |
 | **Lease-based recovery** | Only proven orphaned lanes are recovered. Missing leases and engine errors fail closed to `Paused`; persistent retry budgets and circuit breakers prevent churn. |
 | **Bounded rework and Investigator** | Transport and semantic retry budgets persist across restarts; repeated signatures and no-progress cycles escalate to `Investigate` or `Paused`. |
 | **Audit and credentials** | `SalmonRun.Audit` writes hash-chain JSONL logs with redaction; `SalmonRun.Credentials` resolves redirects from `~/.salmon/.env` and `~/.salmon/git/` and is wired into `SalmonRun.GitCloud` token/host resolution. |
 | **Mermaid chunking** | `SalmonRun.Mermaid` extracts Mermaid diagrams from markdown and splits them into model-ingestible chunks. |
-| **AQE / testing** | `SalmonRun.AQE` runs Pester, documentation lint, property tests, and mutation-focused suites. The current flattened suite has **676 passing, 0 failed, 10 skipped**. |
+| **Audit then QA** | Audit runs secrets/docs, lint/static, build, focused regression, then AQE; 4C is defect-triggered. QA builds the complete test pipeline, reruns deterministic checks and full regression, then enforces mutation proof. |
 | **Docker & Swarm packaging** | `Dockerfile`, `docker-compose.yml`, `docker-compose.swarm.yml`, and `deploy.ps1` support local container and Swarm deploys. |
-| **Projection and leak checks** | Repository projection tooling scrubs runtime-specific data, while `scripts/Invoke-LeakCheck.ps1` prevents private paths, hosts, and credentials from entering commits. |
+| **Canonical sync and leak checks** | A manifest-driven public-to-private command copies only shared core and verifies parity; `scripts/Invoke-LeakCheck.ps1` prevents private paths, hosts, and credentials from entering commits. |
 
 For a deeper feature walkthrough, see [`docs/FEATURES.md`](./docs/FEATURES.md).
 
@@ -129,9 +129,9 @@ The repo itself only contains code, docs, and tooling. No personal task data, lo
 
 ## Project status
 
-The core control plane is implemented and regression-tested on PowerShell 7. The current suite covers typed verdict precedence, dependency parsing, retry persistence, lease recovery, repository writer isolation, Git move checkpoints, sync-outbox replay, churn-aware health, property invariants, and mutation-focused behavior.
+The core control plane and MVP gate contracts are implemented and regression-tested on PowerShell 7. The suite covers profile precedence, typed verdicts, dependency parsing, retry persistence, lease recovery, repository writer isolation, Git move checkpoints, sync-outbox replay, churn-aware health, property invariants, and mutation-focused behavior.
 
-A local canary has completed `Code → Review → Audit → QA → Complete` with exactly four forward transitions, no cycles, no transition errors, no residual working lanes, and a clean synchronized task repository. Real-provider execution remains opt-in and environment-dependent; live tests are guarded by `SALMON_RUN_<PROVIDER>_LIVE=1`.
+PublicLocal is the credential-free deterministic canary. OpenCode Go is the supported external golden path. Other adapters are beta. Publication remains gated on fresh OpenCode lifecycle/failure canaries, strict changed-code mutation proof, private-consumer parity, and a monitored four-hour unattended soak; guarded tests are not counted as passes when their environment is unavailable.
 
 The strongest operational guarantees are documented in [orchestrator architecture](./docs/orchestrator-architecture.md). Release readiness and remaining environment-specific validation are tracked in [roadmap](./docs/roadmap.md) and [implementation evidence](./docs/implementation.md).
 
@@ -139,6 +139,7 @@ The strongest operational guarantees are documented in [orchestrator architectur
 
 ## Documentation
 
+- [`vision.md`](./vision.md) — canonical product purpose, pipeline, and release standard
 - [`docs/orchestrator-architecture.md`](./docs/orchestrator-architecture.md) — control/data-plane boundaries and invariants
 - [`docs/FEATURES.md`](./docs/FEATURES.md) — detailed feature guide
 - [`docs/PUBLIC_PACKAGE.md`](./docs/PUBLIC_PACKAGE.md) — repo-vs-runtime state layout
@@ -147,7 +148,7 @@ The strongest operational guarantees are documented in [orchestrator architectur
 - [`docs/roadmap.md`](./docs/roadmap.md) — vision, phases, and release blockers
 - [`docs/implementation.md`](./docs/implementation.md) — evidence ledger and readiness scores
 - [`docs/RELEASE.md`](./docs/RELEASE.md) — release guide, artifact set, and checklist
-- [`docs/SYNC.md`](./docs/SYNC.md) — canonical sync cadence and leak reporting
+- [`docs/SYNC.md`](./docs/SYNC.md) — public-to-private manifest sync and parity policy
 
 ---
 

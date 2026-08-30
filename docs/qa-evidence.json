@@ -196,8 +196,8 @@
       },
       "sync": {
         "file": "docs/SYNC.md",
-        "canonicalSource": "salmon-orchestrator (private)",
-        "scrubRules": "user paths, hostnames, credential strings, private URLs",
+        "canonicalSource": "salmon-run (public); private consumers synchronize manifest-listed core one way",
+        "scrubRules": "public leak scan plus protected private targets and hash parity",
         "lintResult": "pass - 0 broken refs (Invoke-DocLint.ps1, 11 files scanned)"
       },
       "lintFix": {

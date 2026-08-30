@@ -213,6 +213,11 @@ See `dot-salmon.example/.env.example` for resolver syntax.
 
 ## Canonical-source sync
 
-`salmon-run` is a scrubbed public mirror of the private `salmon-orchestrator`
-repo. See `docs/SYNC.md` for the sync cadence, scrub rules, and leak-check
-procedure.
+`salmon-run` is canonical. Before release, run the public leak check, synchronize
+the manifest-listed shared core to a private consumer with
+`scripts/Sync-ToPrivate.ps1 -Verify`, and prove the consumer imports and runs it.
+See `docs/SYNC.md` for the one-way contract.
+
+Do not publish an MVP release until the typed >=95% mutation gate, representative
+OpenCode Go lifecycle and failure canaries, private-consumer parity/integration,
+and monitored four-hour unattended soak all pass on the release commit.

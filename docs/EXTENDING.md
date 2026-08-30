@@ -7,16 +7,23 @@ register it; you do not edit the pond engine loop.
 
 ## Concepts
 
-A run is resolved to a single `PondExecutionProfile` selecting three dimensions:
+A pond attempt resolves a complete `PondExecutionProfile`:
 
 | Term | Meaning | Example |
 | :--- | :------ | :------ |
 | **Harness** | Backend family | `local`, `opencode`, `devin`, `deepseek`, `codex` |
 | **Provider** | CLI/API that talks to the model | `local`, `opencode-go`, `opencode`, `devin`, `dsh`, `openrouter`, `deepinfra`, `codex` |
 | **Model** | Provider-specific slug | `opencode-go/deepseek-v4-flash` |
+| **Challenge** | Capability tier | `Daily`, `Complex`, `Frontier` |
+| **Effort** | Provider-supported reasoning setting | `default`, `max` |
+| **TimeoutMinutes** | Hard attempt deadline | `60` |
+| **CostCeiling** | Maximum resolved model cost | `25.0` |
 
 Defaults live in
 `Modules/SalmonRun.PondEngine/Config/model-router-catalog.json`.
+Runtime defaults and pond-specific values live under `execution.defaults` and
+`execution.ponds.<PondName>` in `~/.salmon/config.json`. Confirmed plan overrides
+win field by field; adapters must not implement their own precedence rules.
 
 ## Adding a harness adapter
 
@@ -33,9 +40,11 @@ An *adapter* is the executor that actually launches a session on a backend.
    corresponding model entry to
    `Modules/SalmonRun.PondEngine/Config/model-router-catalog.json`.
 
-3. **Verify.** Run `Start-PondEngine -PondFilter Code`. The dispatcher resolves
-   the harness, loads the executor, and dispatches the same plan an existing
-   adapter would.
+3. **Verify interchangeability.** Run the same deterministic plan through
+   PublicLocal and the new adapter. Add contract tests for command construction,
+   redaction, success/failure sentinels, timeout, human-decision routing, typed
+   result binding, and the full pond lifecycle. An adapter remains beta until
+   its live canary and soak evidence meet the release standard.
 
 > The harness-neutral control plane makes executors fully interchangeable: no
 > harness may own task state, and credentials are resolved only through broker
@@ -59,9 +68,17 @@ A *pond* is a station that watches a queue folder and runs a task sequence.
 ## Adding a skill
 
 The canonical content for any skill lives in exactly one place
-(`Skills/<name>/SKILL.md` or the canonical path in `salmon-orchestrator`).
+(`Skills/<name>/SKILL.md` in its owning public or product repository).
 Harness pointers in `.devin/skills/`, `.agents/skills/`, `.claude/skills/` are
 thin redirects — never duplicate the skill body.
+
+## Adding or changing a quality gate
+
+Agent-written Markdown is descriptive, not authoritative. New gates must define
+a versioned typed artifact or sidecar, bind it to the current plan/attempt/gate,
+validate it in coordinator code, reject stale or forged evidence, and add tests
+for success, semantic failure, transport failure, timeout, decision-required,
+Investigate, and Paused routing. Gate logic belongs outside provider adapters.
 
 ## Secrets & credentials
 

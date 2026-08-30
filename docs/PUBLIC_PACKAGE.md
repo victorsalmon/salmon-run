@@ -47,12 +47,13 @@ The installer (`install.ps1`) creates and owns these directories:
 - `~/.salmon/Logs` - agent and orchestrator logs
 - `~/.salmon/Logs/feedback-failure-counter.json` - persistent feedback-failure counter and `investigatorPending` flag
 
-## Copying from the canonical repo
+## Synchronizing private consumers
 
-Use `scripts/Sync-FromCanonical.ps1` to copy canonical source into this repo.
-After copying, run `scripts/Invoke-LeakCheck.ps1` and fix every hit before
-committing. The sync script intentionally does **not** copy the `Tasks/`,
-`docs/`, or private configuration trees.
+This public repository is canonical. Use `scripts/Sync-ToPrivate.ps1` to copy
+only manifest-listed shared source into a private consumer, then run
+`scripts/Test-PrivateParity.ps1`. The command does not delete or overwrite
+deployment-specific extensions, credentials, runtime queues, plugins, or
+internal documentation. `Sync-FromCanonical.ps1` is retired.
 
 ## Module catalog
 
