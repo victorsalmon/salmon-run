@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "direction": "public-to-private",
+  "entries": [
+    {
+      "source": "Modules/SalmonRun.Paths",
+      "target": "Orchestrator/Modules/SalmonRun.Paths"
+    },
+    {
+      "source": "Modules/SalmonRun.Diagnostics",
+      "target": "Orchestrator/Modules/SalmonRun.Diagnostics"
+    },
+    {
+      "source": "Modules/SalmonRun.Locking",
+      "target": "Orchestrator/Modules/SalmonRun.Locking"
+    },
+    {
+      "source": "Modules/SalmonRun.Ports",
+      "target": "Orchestrator/Modules/SalmonRun.Ports"
+    },
+    {
+      "source": "Modules/SalmonRun.Core",
+      "target": "Orchestrator/Modules/SalmonRun.Core"
+    },
+    {
+      "source": "Modules/SalmonRun.Config",
+      "target": "Orchestrator/Modules/SalmonRun.Config"
+    },
+    {
+      "source": "Modules/SalmonRun.Constants",
+      "target": "Orchestrator/Modules/SalmonRun.Constants"
+    },
+    {
+      "source": "Modules/SalmonRun.PondEngine",
+      "target": "Orchestrator/Modules/SalmonRun.PondEngine"
+    },
+    {
+      "source": "schemas",
+      "target": "Orchestrator/schemas/salmon-run"
+    }
+  ],
+  "protectedPrivatePaths": [
+    "Tasks",
+    "docs",
+    "Plugins",
+    "Infrastructure",
+    ".env",
+    "credentials"
+  ]
+}
