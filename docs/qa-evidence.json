@@ -213,5 +213,49 @@
       "qa_evidence_recorded": "recorded"
     },
     "notes": "The full Pester suite now runs with 587 passed, 0 failed, 8 skipped. The doc-lint script produced 73 false-positive broken references when -RepoRoot . was passed because it compared full candidate paths against a relative $RepoRoot; normalizing $RepoRoot at the start of the script fixed this and the public docs now lint clean."
+  },
+  {
+    "id": "2026.08.30-sr-hardening-pass-docs-and-transitions",
+    "plan": "2026.08.30-sr-hardening-pass-docs-and-transitions.md",
+    "challenge": "Daily",
+    "pass": true,
+    "timestamp": "2026-08-30T23:59:00-07:00",
+    "tasks": {
+      "Task1_decision_header": "fixed: PondGateResult.ps1 checks the explicit decision-required header instead of scanning the whole plan body",
+      "Task2_locked_file_retry": "fixed: Move-PondLaneToEngineError.ps1 retries on locked files and falls back to a copy",
+      "Task3_lane_removal_guard": "fixed: Start-PondEngine.ps1 does not remove a working lane while .md plan files remain",
+      "Task4_timeout_process_tree": "fixed: Invoke-PondTaskMonitorStream.ps1 kills the tracked child process tree on timeout",
+      "Task5_transition_persistence": "fixed: Invoke-PondTaskTransition.ps1 guards plan persistence before deleting a lane and recomputes Complete/<projectId> after ProjectReview bundles",
+      "Task6_mermaid_diagrams": "added: Mermaid plan lifecycle, per-pond task pipeline, and lane lifecycle diagrams to docs/orchestrator-architecture.md",
+      "Task7_pond_table": "added: markdown pond catalog table to docs/orchestrator-architecture.md",
+      "Task8_feature_updates": "updated: docs/FEATURES.md queue list (Paused), harness/provider list, Run-SalmonRun.ps1 supervisor note, test counts, and PublicLocal wording",
+      "Task9_public_package": "updated: docs/PUBLIC_PACKAGE.md queue list (Paused) and removed legacy Tasks/Logs note",
+      "Task10_extending_paths": "updated: docs/EXTENDING.md harness/provider list and corrected executor/pond registration paths",
+      "Task11_roadmap_impl": "updated: docs/roadmap.md and docs/implementation.md with 2026-08-30 hardening section, test counts, and orchestrator maintenance status",
+      "Task12_full_pester": "verified: full Tests/ suite 686 passed, 0 failed, 10 skipped; leak check clean; doc lint clean",
+      "Task13_qa_evidence": "recorded"
+    },
+    "hardening": {
+      "decisionRegexFix": "PondGateResult.ps1 now matches only the explicit decision-required header",
+      "lockedFileFallback": "Move-PondLaneToEngineError.ps1 retries and copies on locked-file failures",
+      "laneFileGuard": "Start-PondEngine.ps1 preserves lanes while .md plan files remain",
+      "timeoutKillTree": "Invoke-PondTaskMonitorStream.ps1 kills the tracked child process tree on timeout",
+      "transitionPersistence": "Invoke-PondTaskTransition.ps1 persists plan files before lane deletion and recomputes project completion destination"
+    },
+    "testRun": {
+      "passed": 686,
+      "failed": 0,
+      "skipped": 10,
+      "leakCheck": "clean",
+      "docLint": "0 broken refs"
+    },
+    "acceptance": {
+      "all_hardening_fixes_documented": "verified: all five 2026-08-30 fixes listed in docs/roadmap.md and docs/implementation.md",
+      "mermaid_diagrams_embedded": "verified: docs/orchestrator-architecture.md contains three Mermaid diagrams and a pond catalog table",
+      "test_count_updated": "verified: 686/0/10 reflected in docs/FEATURES.md, docs/roadmap.md, and docs/implementation.md",
+      "orchestrator_status_accurate": "verified: docs/roadmap.md and docs/implementation.md state the live orchestrator is stopped for maintenance and the queue state is locally committed but not pushed",
+      "qa_evidence_recorded": "recorded"
+    },
+    "notes": "The 2026-08-30 pass is a docs-and-transition hardening pass. No source-code changes were committed outside docs/qa-evidence.json. The full Pester suite passed with 686 tests, 0 failures, and 10 skipped. Doc lint and leak check passed. The live orchestrator is stopped for maintenance and the local ~/.salmon queue state has not been pushed due to a network outage."
   }
 ]

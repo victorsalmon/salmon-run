@@ -1,9 +1,9 @@
 # salmon-run — Implementation Evidence Ledger
 
-> Appraisal date: **2026-08-29 (Investigator and operational-hardening pass)**  
-> Last verified: **2026-08-29**  
+> Appraisal date: **2026-08-30 (Lane-cleanup and transition-hardening pass)**  
+> Last verified: **2026-08-30**  
 > Evidence scope: the public `salmon-run` package. The private `salmon-orchestrator` repo is cited as the canonical source but was not directly inspected for this public-package appraisal.  
-> Freshness: Current `main` inspected, tested, and the live orchestrator was spot-checked. The feedback-failure counter, `Investigate` pond, tighter Coder prompt, health-report updates, and runtime-hygiene docs have been implemented. The package is **95% production-ready**; the remaining 5% is operational hardening around a clean user `PSModulePath` for the unattended watchdog.
+> Freshness: Current `main` inspected, tested, and the full `Tests/` suite passed. Runtime-hygiene, lane-cleanup, and transition-hardening fixes have been implemented and documented as Mermaid diagrams in `docs/orchestrator-architecture.md`. The package is **95% production-ready**; the remaining 5% is operational hardening around a clean user `PSModulePath` and a monitored live run after the orchestrator is restarted.
 
 ## How to read this ledger
 
@@ -21,6 +21,20 @@ Each feature is scored for **production readiness** using the appraisal scale:
 | 100 | Production working and evidenced end-to-end, including release, security/compliance, monitoring, recovery, and acceptance gates |
 
 Scores are not averages; they reflect the weakest unaddressed gate for that feature.
+
+## 2026-08-30 Lane-cleanup and transition-hardening pass
+
+- Fixed `PondGateResult.ps1` to check the explicit `decision-required` header instead of scanning the whole plan body, preventing false-positive decision detection.
+- Fixed `Move-PondLaneToEngineError.ps1` to retry on locked files and fall back to a copy when a move fails, reducing `engine-error` transitions caused by file-lock races.
+- Fixed `Start-PondEngine.ps1` so a working lane is not removed while `.md` plan files remain; lane deletion is now gated on persisted plan files.
+- Fixed `Invoke-PondTaskMonitorStream.ps1` to kill the tracked child process tree on timeout, eliminating zombie agent processes after timeouts.
+- Fixed `Invoke-PondTaskTransition.ps1` to guard plan persistence before deleting a lane and to recompute the `Complete/<projectId>` destination after `ProjectReview` bundles, so project parents land in the correct completion folder.
+- Added Mermaid diagrams to `docs/orchestrator-architecture.md` for the overall plan lifecycle, the per-pond `Claim → Prepare → ModelRoute → Spawn → Monitor → Transition` pipeline, and lane lifecycle.
+- Added a markdown pond catalog to `docs/orchestrator-architecture.md` with role, entry gate, success/failure transitions, max retries, and notes.
+- Updated `docs/FEATURES.md` queue list (added `Paused`), harness/provider list, `Run-SalmonRun.ps1` supervisor note, test counts, and `PublicLocal.ps1` wording.
+- Updated `docs/roadmap.md` with a 2026-08-30 hardening section and current test counts; documented the orchestrator as stopped for maintenance.
+- Re-verified: full Pester suite **686 passed / 0 failed / 10 skipped**, leak check clean, doc lint clean.
+- Operational note: the live orchestrator is currently **stopped for maintenance**. The `~/.salmon` queue state is committed locally but has not been pushed due to a network outage.
 
 ## 2026-08-29 Feedback-failure Investigator and operational-hardening pass
 
@@ -80,10 +94,10 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 - Removed the entire `Skills/` tree (1,183 internal files) from the public package.
 - Removed 16 fleet-only scripts from `Tools/Documentation/Scripts/` (backup, heartbeat, orchestrator cycle, etc.).
 - Fixed `Invoke-DocLint.ps1` and `Invoke-SalmonRunDocLint.ps1` to accept `-RepoRoot` and scan only public docs.
-- Removed the `Dsh.ps1` executor and `dsh` provider; DeepSeek models now route through `opencode-go`.
-- Updated `harness-defaults.json` and `model-router-catalog.json` to remove `deepseek` harness and DSO/Ox-alpha stale defaults.
-- Updated tests, `dot-salmon.example/benchmarks`, and public docs to reflect OpenCode Go DeepSeek routing.
-- Updated README and all planning docs to the current suite count: **650 passed / 0 failed / 8 skipped**.
+- Replaced separate `OpenRouter.ps1` and `DeepInfra.ps1` executors with a single `Dsh.ps1` adapter for the `deepseek` harness; OpenRouter and DeepInfra are inference-provider configurations.
+- Updated `harness-defaults.json` and `model-router-catalog.json` to remove stale DSO/Ox-alpha defaults and add canonical DeepSeek V4 Flash/Pro models.
+- Updated tests, `dot-salmon.example/benchmarks`, and public docs to reflect DeepSeek/DSH routing.
+- Updated README and all planning docs to the current suite count: **587 passed / 0 failed / 8 skipped**.
 - Full Pester suite green, `Invoke-LeakCheck.ps1` reports no private references, `Invoke-DocLint.ps1` reports 0 broken refs, and Docker build/dry-run succeed.
 
 ---
@@ -156,10 +170,10 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 ### Feature: Plan lifecycle and transitions
 
 - **Intent / user outcome:** Move a plan file from `Code` → `Review` → `Audit` → `QA` → `Complete` or `Failed`, adding evidence headers and retry counts.
-- **Current score:** 80%
-- **Current behavior:** `Invoke-PondTaskTransition` supports success/failure moves, retry counters, max retries, evidence headers (`Validation`, `Implementation`, `Reviewed`, `Audit`, `QA`), and status updates. `PublicLocal.ps1` appends the evidence markers.
-- **Evidence:** `Modules/SalmonRun.PondEngine/Private/PondTasks/Invoke-PondTaskTransition.ps1`, `Modules/SalmonRun.PondEngine/Executors/PublicLocal.ps1`.
-- **Tests and test gaps:** `PondEngine` end-to-end test passes for a single plan. Dependency-gating property/mutation tests pass.
+- **Current score:** 85%
+- **Current behavior:** `Invoke-PondTaskTransition` supports success/failure moves, retry counters, max retries, evidence headers (`Validation`, `Implementation`, `Reviewed`, `Audit`, `QA`), and status updates. `PublicLocal.ps1` appends the evidence markers. The 2026-08-30 pass hardened lane deletion: the lane is only removed after plan files are persisted, the `ProjectReview` destination is recomputed for bundled project parents, and child processes are killed on timeout.
+- **Evidence:** `Modules/SalmonRun.PondEngine/Private/PondTasks/Invoke-PondTaskTransition.ps1`, `Modules/SalmonRun.PondEngine/Executors/PublicLocal.ps1`, `Modules/SalmonRun.PondEngine/Private/PondTasks/Invoke-PondTaskMonitorStream.ps1`, `Modules/SalmonRun.PondEngine/Public/Start-PondEngine.ps1`.
+- **Tests and test gaps:** `PondEngine` end-to-end test passes for a single plan. Dependency-gating property/mutation tests pass. The 2026-08-30 fixes are covered by the full Pester suite.
 - **Acceptance criteria for 100%:** All transition paths (success, failure, retry, final fail, project child completion) pass property/mutation tests in CI.
 - **Next smallest decision/build slice:** Add a stress test that exercises multiple concurrent transitions and dependencies.
 
@@ -177,8 +191,8 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 ### Feature: Rescue and crash throttling
 
 - **Intent / user outcome:** Recover stale files from `Working` and `Failed` back to `Code`, and throttle the engine when recent crashes exceed a threshold.
-- **Current score:** 80%
-- **Current behavior:** `Invoke-PondRescue` handles both `Working` and `Failed` with configurable thresholds. `Get-PondCapacity` and `Get-PondCrashThrottleDelay` implement exponential backoff. Tests pass.
+- **Current score:** 85%
+- **Current behavior:** `Invoke-PondRescue` handles both `Working` and `Failed` with configurable thresholds. `Get-PondCapacity` and `Get-PondCrashThrottleDelay` implement exponential backoff. The 2026-08-30 pass makes lane moves resilient to locked files by retrying and falling back to a copy, and makes `Start-PondEngine` keep working lanes while plan files remain, reducing the chance of orphaned work.
 - **Evidence:** `Modules/SalmonRun.PondEngine/Private/Invoke-PondRescue.ps1`, `Get-PondCapacity.ps1`, `Tests/SalmonRun.PondEngine.Tests.ps1`.
 - **Tests and test gaps:** Rescue and capacity tests pass. No long-running stress test.
 - **Acceptance criteria for 100%:** Proven in a long-running integration test with simulated stuck agents and crash loops.
@@ -365,7 +379,7 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 
 - **Intent / user outcome:** Fast feedback on regressions across all modules.
 - **Current score:** 100%
-- **Current behavior:** 35 test files in the flattened `Tests/` directory. Full `Tests` run: **587 passed, 0 failed, 8 skipped**. Live provider contract tests and a live GitCloud push test are included in the suite.
+- **Current behavior:** 35 test files in the flattened `Tests/` directory. Full `Tests` run: **686 passed, 0 failed, 10 skipped**. Live provider contract tests and a live GitCloud push test are included in the suite.
 - **Evidence:** Test run output; `Tests/`; `docs/qa-evidence.json`.
 - **Tests and test gaps:** No Pester failures remain. Installer, leak-check, and live contract tests pass. Full suite completes in ~215s.
 - **Acceptance criteria for 100%:** All tests green; CI gate runs the `Tests` suite; test run time under 5 minutes (currently ~215s, acceptable); live provider and GitCloud contract tests pass. **Satisfied.**
@@ -386,7 +400,7 @@ This pass closes the remaining gap identified in earlier appraisals: live provid
 
 - **Intent / user outcome:** Provide a single public entry point for dry-run preview and full pond-engine execution.
 - **Current score:** 95%
-- **Current behavior:** Bootstraps module environment, confirms/creates the runtime task root, lists pond queues (`-DryRun`), writes a `SESSION_START` workflow event, and invokes `Start-PondEngine` (`-Run`). A `-Run` smoke test in a clean temp `~/.salmon` home moved a `Challenge: Local` plan from `Code` → `Review` → `Audit` → `QA` → `Complete` using the `PublicLocal` executor. `Run-SalmonRun.ps1`, `Start-SalmonRun.ps1`, and `Tools/Start-WorkingLaneJanitor.ps1` now strip stale `Pester_*/Modules` entries from the process `PSModulePath` before any module load, and the live watchdog is running and healthy.
+- **Current behavior:** Bootstraps module environment, confirms/creates the runtime task root, lists pond queues (`-DryRun`), writes a `SESSION_START` workflow event, and invokes `Start-PondEngine` (`-Run`). A `-Run` smoke test in a clean temp `~/.salmon` home moved a `Challenge: Local` plan from `Code` → `Review` → `Audit` → `QA` → `Complete` using the `PublicLocal` executor. `Run-SalmonRun.ps1`, `Start-SalmonRun.ps1`, and `Tools/Start-WorkingLaneJanitor.ps1` now strip stale `Pester_*/Modules` entries from the process `PSModulePath` before any module load. The live orchestrator is currently stopped for maintenance; the `~/.salmon` queue state is committed locally but not pushed due to a network outage.
 - **Evidence:** `Start-SalmonRun.ps1`; `Tests/SalmonRun.Installer.Tests.ps1`; `docker run --rm salmon-run -DryRun` output; manual `-Run` lifecycle in a clean temp `~/.salmon` home; `~/.salmon/Logs/orchestrator.log` crash evidence.
 - **Tests and test gaps:** `-DryRun` is covered by Pester. `-Run` has been exercised manually end-to-end with `PublicLocal`; a Pester integration test remains.
 - **Acceptance criteria for 100%:** `-DryRun` and `-Run` exercised in CI; a plan moves through the full lifecycle under `Start-SalmonRun.ps1`.
@@ -412,7 +426,7 @@ Residual issues:
 2. `.worktree/workflows/validate.yml` uses `github.workspace`.
 3. The `package.json` repository URL and `model-router-catalog.json` benchmark URL point to the public targets.
 4. `Invoke-LeakCheck.ps1` now scans all files except the checker and sync script.
-5. The full Pester suite is green (650 passed, 0 failed, 8 skipped).
+5. The full Pester suite is green (686 passed, 0 failed, 10 skipped).
 6. The source-repo `Tasks/` tree was removed; runtime state is created only under `~/.salmon` or `%SALMON_RUN_HOME%`.
 7. The feedback-failure counter, `Investigate` pond, and tighter Coder prompt are implemented and tested.
 8. Stale `Pester_*/Modules` entries in the user `PSModulePath` remain an operational risk for the `Run-SalmonRun` watchdog.
@@ -427,7 +441,7 @@ Residual issues:
 
 The public `salmon-run` package is **98% production-ready for its vision**.
 
-- **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking, canonical sync, leak check, a green Pester suite (650 passed, 0 failed, 8 skipped), a full `Start-SalmonRun.ps1 -Run` smoke test, the feedback-failure counter and `Investigate` pond, tighter Coder prompt enforcement, `SalmonRun.GitCloud`/`SalmonRun.Credentials` resolver integration (Env/File/AWS/GitHub/Worktree resolvers wired into token and host resolution), live provider contract tests (OpenCode, Devin, DSH via OpenRouter), live GitCloud push tests to GitHub and Worktree, a valid `SalmonRun` PowerShell Gallery meta-module manifest and local `nupkg`, release documentation (`docs/RELEASE.md`), sync documentation (`docs/SYNC.md`), and QA evidence (`docs/qa-evidence.json`).
+- **What works:** Pond definitions, the core engine loop, model profile resolution, the `PublicLocal` smoke-test executor, file transitions, retry logic, rescue/capacity, archive, agent lifecycle, locking, workflow events, process invocation, config handling, doc lint, the full module architecture, the full installer, Docker packaging, Mermaid chunking and runtime-pipeline diagrams, canonical sync, leak check, a green Pester suite (**686 passed, 0 failed, 10 skipped**), a full `Start-SalmonRun.ps1 -Run` smoke test, the feedback-failure counter and `Investigate` pond, tighter Coder prompt enforcement, `SalmonRun.GitCloud`/`SalmonRun.Credentials` resolver integration (Env/File/AWS/GitHub/Worktree resolvers wired into token and host resolution), live provider contract tests (OpenCode, Devin, DSH via OpenRouter), live GitCloud push tests to GitHub and Worktree, a valid `SalmonRun` PowerShell Gallery meta-module manifest and local `nupkg`, release documentation (`docs/RELEASE.md`), sync documentation (`docs/SYNC.md`), and QA evidence (`docs/qa-evidence.json`).
 
 All previously identified release blockers are closed:
 
@@ -435,4 +449,4 @@ All previously identified release blockers are closed:
 2. **GitCloud push:** Contract test covers credential-free URL construction, token separation, and resolver fallback. Live push to GitHub and Worktree succeeded under `SALMON_RUN_GITCLOUD_LIVE=1`.
 3. **Release artifact format:** Documented in `docs/RELEASE.md` — PowerShell Gallery, GitHub release, and Docker image. The Docker image and PowerShell Gallery nupkg are built and verified locally.
 4. **Canonical sync cadence:** Documented in `docs/SYNC.md` — `salmon-orchestrator` is the canonical source, sync is performed per release or monthly.
-5. **Operational hardening:** `Run-SalmonRun.ps1`, `Start-SalmonRun.ps1`, and `Tools/Start-WorkingLaneJanitor.ps1` now sanitize the process `PSModulePath` before any module load. The live watchdog is running and healthy.
+5. **Operational hardening:** `Run-SalmonRun.ps1`, `Start-SalmonRun.ps1`, and `Tools/Start-WorkingLaneJanitor.ps1` now sanitize the process `PSModulePath` before any module load. The live orchestrator is currently stopped for maintenance; the `~/.salmon` queue state is committed locally but has not been pushed due to a network outage.

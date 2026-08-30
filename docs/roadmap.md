@@ -1,10 +1,10 @@
 # salmon-run — Roadmap & Appraisal
 
-> Appraisal date: **2026-08-29**  
-> Last verified: **2026-08-29**  
+> Appraisal date: **2026-08-30**  
+> Last verified: **2026-08-30**  
 > Evidence scope: the public `salmon-run` package. The canonical source-of-truth remains the private `salmon-orchestrator` implementation; `salmon-run` is the scrubbed, generalized mirror projected via `scripts/Sync-FromCanonical.ps1`.  
-> Freshness: Current `main` was inspected, tested, and the live orchestrator was exercised. The `Investigate` pond, feedback-failure counter, and related runtime-hygiene safeguards have been implemented and are passing tests. `Run-SalmonRun.ps1`, `Start-SalmonRun.ps1`, and `Tools/Start-WorkingLaneJanitor.ps1` now strip stale `Pester_*/Modules` entries from the process `PSModulePath` before any module load; the live watchdog is running and healthy.  
-> Status: **98% production-ready**. Core engine, quality gates, provider adapters, installer, sync/leak checks, the new Investigator safeguard, and the `PSModulePath` runtime guard are implemented and passing. The live orchestrator is running and healthy. Residual work is a CI integration test for `Run-SalmonRun.ps1` and a longer monitored run.
+> Freshness: Current `main` was inspected, tested, and the full `Tests/` suite passed. Runtime-hygiene and transition fixes have been implemented. `Run-SalmonRun.ps1`, `Start-SalmonRun.ps1`, and `Tools/Start-WorkingLaneJanitor.ps1` sanitize the process `PSModulePath` before any module load. The live orchestrator is currently **stopped for maintenance**; the `~/.salmon` queue state is committed locally but has not been pushed due to a network outage.  
+> Status: **98% production-ready**. Core engine, quality gates, provider adapters, installer, sync/leak checks, the new Investigator safeguard, and the `PSModulePath` runtime guard are implemented and passing. The live orchestrator is not currently running; it was stopped for maintenance and the local queue state is pending a network restore. Residual work is a CI integration test for `Run-SalmonRun.ps1` and a longer monitored run after the orchestrator is restarted.
 
 ## Vision
 
@@ -41,18 +41,18 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 | Feature | Production readiness | Notes |
 | --- | ---: | --- |
 | File-based task queues (`~/.salmon/Tasks/*`) | 90% | Directories and config defined; runtime path logic present and tested. Installer creates `~/.salmon/Tasks` and wires module paths. `Start-SalmonRun.ps1 -DryRun` lists queues correctly. |
-| Pond engine (`Start-PondEngine`) | 80% | Core loop, lanes, streams, rescue, capacity, transitions, archive are implemented and tested. Dependency-gating has one known edge (child plan selected but not moved in a specific property test; see `implementation.md`). OpenCode, Devin, and DeepSeek/DSH executors implemented for MVP. |
+| Pond engine (`Start-PondEngine`) | 90% | Core loop, lanes, streams, rescue, capacity, transitions, archive are implemented and tested. Dependency gating, project decomposition, and lane-cleanup hardening are green under the full Pester suite. OpenCode, Devin, and DeepSeek/DSH executors implemented for MVP. |
 | Model router / execution profiles | 95% | Catalog and harness-defaults exist; profile resolution is tested. `~/.salmon/providers` JSON overlay directory lets users add/override providers, models, and cost data. `~/.salmon/benchmarks` carries an LLM-Bench-Data-compatible `models.json` with official source URLs, pricing, benchmark scores, tokenizer efficiency, speed, and `thinking_token_ratio`. `PondExecutionProfile` carries cost and benchmark fields including `CostWithThinking`. Dry-run confirmed base routing (OpenCode Go) and overlay routing (DeepSeek/DSH with OpenRouter/DeepInfra provider configurations) with benchmark and cost. OpenCode Go/Zen, Devin, and DeepSeek/DSH (with OpenRouter and DeepInfra as provider configurations) build real CLI commands; live contract tests passed with real credentials. |
 | Local executor (`PublicLocal.ps1`) | 75% | Works end-to-end for smoke tests, appends evidence markers and PondLog events. Not a real agent. Legacy `Local.ps1` is a stub that delegates to `ExternalPublicSafe.ps1`. |
 | Queue quality gates (Lock, Validation, Audit, QA headers) | 80% | Evidence gates in `Get-PondCandidates` and `PublicLocal.ps1`; property/mutation tests exist. Failure path from Code → Review → Audit → QA → Complete is exercised. |
-| Dependency gating (`DependsOn`) | 60% | Implementation exists; one Pester property test fails for a child plan depending on a parent in `Complete` (the child is selected but the expected `Complete` file does not appear). |
-| Project plan decomposition and child gating | 70% | `Invoke-PondTaskPlanProject` and `children-complete` gate exist and are tested. |
+| Dependency gating (`DependsOn`) | 90% | Implementation and property/mutation tests pass; child plans stay in `Code` until all named parents are in `Complete`, `Archive`, or `ProjectReview`, then advance. |
+| Project plan decomposition and child gating | 85% | `Invoke-PondTaskPlanProject` and `children-complete` gate exist and are tested. The 2026-08-30 pass fixes the ProjectReview bundle destination so parents land in `Complete/<projectId>`. |
 | Agent lifecycle (PID, heartbeat, stale cleanup) | 85% | AgentLifecycle module is implemented and has passing property/unit tests. |
 | Credential resolution (`SalmonRun.Credentials`) | 100% | Resolver design and tests pass; wired into `SalmonRun.GitCloud` token and host resolution and provider executors so `~/.salmon/.env` resolvers (Env/File/AWS/GitHub/Worktree) drive GitHub/Worktree tokens and provider API keys. Live AWS Secrets Manager, GitHub, and Worktree resolver calls succeeded during contract tests. |
 | Audit logging (`SalmonRun.Audit`) | 80% | Hash-chain, redaction, API-call wrapper, and integrity tests all pass. |
 | Configuration / `install.json` handling | 80% | Config module is broad and mostly passes tests. Some property tests produce warnings about missing `install.json` or `DroneMode` defaults. |
 | Constants and port/path registries | 85% | Constants, Paths, Ports modules pass tests and match registry files. |
-| AQE (Pester runner, doc lint, optional bridge) | 95% | `Invoke-SalmonRunAQE`, `Invoke-SalmonRunDocLint`, `Invoke-SalmonRunPesterSuite` exist. Doc lint passes on current docs (0 broken refs after fixing relative-path normalization). Full Pester suite 587 passed, 0 failed, 8 skipped. Bridge is optional. |
+| AQE (Pester runner, doc lint, optional bridge) | 95% | `Invoke-SalmonRunAQE`, `Invoke-SalmonRunDocLint`, `Invoke-SalmonRunPesterSuite` exist. Doc lint passes on current docs (0 broken refs after fixing relative-path normalization). Full Pester suite **686 passed, 0 failed, 10 skipped**. Bridge is optional. |
 | GitCloud push helpers | 100% | GitHub and Worktree token/push abstractions exist and resolve tokens/hosts through `SalmonRun.Credentials` resolvers. Live contract test pushed `salmon-run/gitcloud-contract` to both `https://github.com/victorsalmon/salmon-run.git` and `https://worktree.ca/clocklobster/salmon-run.git`. Token was passed separately from the URL and not logged. |
 | Display / Diagnostics / DeployState | 80% | Utility modules present and tested. |
 | Documentation lint (`Invoke-DocLint`) | 100% | Working; 0 broken refs across 11 public docs. Relative `-RepoRoot` paths are normalized to full paths so the script no longer produces false positives. |
@@ -70,9 +70,10 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 ## 2026-08-27 DeepSeek/DSH executor redesign
 
 - Removed `opencode-go/ox-alpha-free` from all public configs, catalogs, and docs.
-- Replaced the `codex` harness and the `OpenRouter.ps1`/`DeepInfra.ps1` executors with a single `deepseek` harness routed through `Dsh.ps1`.
-- OpenRouter and DeepInfra are now inference-provider key/endpoint configurations consumed by DSH, not separate executors.
-- Added `dsh`, `openrouter`, and `deepinfra` providers to `harness-defaults.json` and `model-router-catalog.json` with canonical DeepSeek V4 Flash/Pro models.
+- Replaced separate `OpenRouter.ps1` and `DeepInfra.ps1` executors with a single `Dsh.ps1` adapter for the `deepseek` harness.
+- OpenRouter and DeepInfra are now inference-provider key/endpoint configurations consumed by `Dsh.ps1`, not separate executors.
+- Added `deepseek` harness and `dsh`, `openrouter`, and `deepinfra` providers to `harness-defaults.json` and `model-router-catalog.json` with canonical DeepSeek V4 Flash/Pro models.
+- Added `codex` harness and `Codex.ps1` executor for OpenAI Codex CLI with GPT-5.6 Luna/Terra/Sol models.
 - Added per-provider model allowlists and credential mapping in `Dsh.ps1`.
 - Updated `Opencode.ps1` and `Devin.ps1` allowlists and command syntax.
 - Updated Pester tests for the new executor/provider architecture.
@@ -92,6 +93,18 @@ The package must be clone-and-run for a new user: `install.ps1` creates `~/.salm
 - Updated `AGENTS.md` with `SALMON_RUN_HOME` and `PSModulePath` runtime-hygiene notes.
 - Re-verified: full Pester suite **650 passed / 0 failed / 8 skipped**, leak check clean, doc lint clean.
 - Operational note: the live `Run-SalmonRun` watchdog previously crashed 10 times with `Unable to find type [PondGroup]` because the user `PSModulePath` was polluted with stale temp `Pester_*` module paths. A process-level guard was added to `Run-SalmonRun.ps1`, `Start-SalmonRun.ps1`, and `Tools/Start-WorkingLaneJanitor.ps1` to strip those entries before any module load, and the watchdog was restarted successfully.
+
+## 2026-08-30 Transition and lane-cleanup hardening pass
+
+- Fixed `PondGateResult.ps1` to check the explicit `decision-required` header instead of scanning the whole plan body.
+- Fixed `Move-PondLaneToEngineError.ps1` to retry on locked files and fall back to a copy when a move fails.
+- Fixed `Start-PondEngine.ps1` so a working lane is not removed while `.md` plan files remain.
+- Fixed `Invoke-PondTaskMonitorStream.ps1` to kill the tracked child process tree on timeout.
+- Fixed `Invoke-PondTaskTransition.ps1` to guard plan persistence before deleting a lane and to recompute the `Complete/<projectId>` destination after `ProjectReview` bundles.
+- Added Mermaid diagrams to `docs/orchestrator-architecture.md` for the overall plan lifecycle, the per-pond task pipeline, and lane lifecycle.
+- Updated `docs/FEATURES.md` queue list, harness/provider list, `Run-SalmonRun.ps1` supervisor note, and test counts.
+- Re-verified: full Pester suite **686 passed / 0 failed / 10 skipped**, leak check clean, doc lint clean.
+- Operational note: the live orchestrator is currently **stopped for maintenance**. The `~/.salmon` queue state is committed locally but has not been pushed due to a network outage; restart is pending network restoration.
 
 ## Highest-confidence release blockers
 
@@ -130,7 +143,7 @@ All previously identified unknowns have been addressed in the 2026-08-27 pass; t
 
 The public `salmon-run` package is **95% production-ready for its stated vision**. Functionality is implemented, all Pester tests pass, and the package is installable and runnable. The remaining 5% is operational hardening: ensuring `Run-SalmonRun` starts reliably in an environment that may carry stale `Pester_*` `PSModulePath` entries, and completing a monitored live run.
 
-It installs, loads, and runs in a fresh PowerShell session and in a Docker container; the core `Tests` suite passes (650 passed, 0 failed, 8 skipped) with the new installer, dry-run, leak-check, benchmark coverage, live provider contract tests, the new `Investigate` safeguard, and live GitCloud push tests; CI workflows now use a valid expression; PondLog I/O is standardized; OpenCode Go/Zen, Devin, and DeepSeek/DSH (with OpenRouter and DeepInfra as inference-provider configurations) can build real CLI commands and are covered by contract tests; the public tree is now free of the internal `Skills/` tree and fleet-only tooling; Mermaid repository chunking is implemented; `Sync-FromCanonical.ps1` is parameterized and leak-clean; `Invoke-LeakCheck.ps1` scans the full public package; `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through the full lifecycle in a clean `~/.salmon` home; `SalmonRun.GitCloud` token and host resolution now falls back to `SalmonRun.Credentials` resolvers; and the public tree contains no private references in the scanned files.
+It installs, loads, and runs in a fresh PowerShell session and in a Docker container; the core `Tests` suite passes (**686 passed, 0 failed, 10 skipped**) with the new installer, dry-run, leak-check, benchmark coverage, live provider contract tests, the new `Investigate` safeguard, and live GitCloud push tests; CI workflows now use a valid expression; PondLog I/O is standardized; OpenCode Go/Zen, Devin, and DeepSeek/DSH (with OpenRouter and DeepInfra as inference-provider configurations) can build real CLI commands and are covered by contract tests; the public tree is now free of the internal `Skills/` tree and fleet-only tooling; Mermaid repository chunking is implemented and diagrams now document the runtime pipeline in `docs/orchestrator-architecture.md`; `Sync-FromCanonical.ps1` is parameterized and leak-clean; `Invoke-LeakCheck.ps1` scans the full public package; `Start-SalmonRun.ps1 -Run` has moved a `Local`-tier plan through the full lifecycle in a clean `~/.salmon` home; `SalmonRun.GitCloud` token and host resolution now falls back to `SalmonRun.Credentials` resolvers; and the public tree contains no private references in the scanned files. The live orchestrator is currently stopped for maintenance and the local queue state is pending a network push.
 
 **Release blockers resolved in code.** Contract tests cover OpenCode, Devin, DSH, and GitCloud adapters (mocked unit tests pass, live paths guarded by environment variable). `docs/RELEASE.md` documents the artifact set, versioning policy, and release checklist. `docs/SYNC.md` documents the canonical-source sync cadence, scrub rules, and leak-check procedure. QA evidence is recorded in `docs/qa-evidence.json`. The remaining operational gate is a clean user `PSModulePath` for the unattended watchdog.
 

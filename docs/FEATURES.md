@@ -37,6 +37,7 @@ This repository is the public source of truth for the packaged engine. Projectio
 | `Working` | Plans currently in progress (with lock files) |
 | `Project` / `ProjectReview` | Large plans split into child plans |
 | `Investigate` | Plans that diagnose recurring feedback failures and improve the engine/prompts |
+| `Paused` | Plans held for human triage after a non-retryable or engine failure |
 | `Manual` / `Handoffs` / `Temp` / `Schedules` / `Logs` | Human action stubs, handoffs, drafts, schedules, and runtime logs |
 
 Plan files are markdown with YAML-ish front-matter headers (`Status`, `Scope`, `Challenge`, `DependsOn`, etc.). The engine reads and rewrites these files as it advances them through the pipeline.
@@ -83,6 +84,8 @@ A plan advances through the default pipeline:
 
 `Intake → Code → Review → Audit → QA → Complete → Archive`
 
+Failures at `Review`, `Audit`, or `QA` return the plan to `Code` for bounded rework. Non-retryable failures, parser/transition exceptions, and exhausted retry budgets move the plan to `Paused` (or to `Investigate` for recurring feedback cycles), with `Failed` as the final fallback. The full lifecycle, rework loops, and the per-pond task pipeline are shown as Mermaid diagrams in `docs/orchestrator-architecture.md`.
+
 Each step emits a structured gate result. For compatibility and human inspection, the coordinator maintains bounded current evidence on the plan:
 
 - `Code` adds an `**Implementation**:` header and a `PondLog` `implement` event.
@@ -90,7 +93,7 @@ Each step emits a structured gate result. For compatibility and human inspection
 - `Audit` checks for review evidence, runs a lightweight secret-scan regex, and adds `**Audit**:`.
 - `QA` checks implementation, review, and audit evidence and adds `**QA**:`.
 
-`PublicLocal.ps1` (the in-process local executor) writes these legacy evidence markers and canonical `PondLog` entries. External executors write `spawn`, `external-complete`, and `external-fail` events.
+`PublicLocal.ps1` (the in-process PowerShell smoke-test executor) writes the legacy evidence markers and canonical `PondLog` entries. External executors write `spawn`, `external-complete`, and `external-fail` events.
 
 ### Quality gates
 
@@ -125,8 +128,8 @@ A `PondExecutionProfile` has these dimensions:
 | Field | Meaning | Example |
 | --- | --- | --- |
 | `Tier` | Plan difficulty / cost tier | `Flash`, `Daily`, `Complex`, `Frontier`, `Local` |
-| `Harness` | Backend family | `opencode`, `devin`, `deepseek`, `codex`, `local` |
-| `Provider` | CLI/API that talks to the model | `opencode-go`, `devin`, `dsh`, `openrouter`, `deepinfra`, `codex`, `local` |
+| `Harness` | Backend family | `local`, `opencode`, `devin`, `deepseek`, `codex` |
+| `Provider` | CLI/API that talks to the model | `local`, `opencode-go`, `opencode`, `devin`, `dsh`, `openrouter`, `deepinfra`, `codex` |
 | `Model` | Provider-specific model slug | `opencode-go/mimo-v2.5`, `opencode-go/deepseek-v4-flash`, `swe-1-7`, `deepseek-v4-flash`, `gpt-5.6-luna` |
 | `Effort` | Model effort/depth hint | `max`, `medium`, `default`, `low`, `high` |
 | `Cli` | The actual executable name | `opencode`, `devin`, `dsh`, `codex`, `powershell` |
@@ -146,7 +149,7 @@ See `Modules/SalmonRun.PondEngine/Classes/Pond.ps1`, `Resolve-PondExecutionProfi
 
 | Executor | What it does | Real-provider status |
 | --- | --- | --- |
-| `PublicLocal.ps1` | In-process PowerShell executor. Appends role evidence, writes `.complete`, and logs events. No real agent is called. | Fully working for smoke tests. |
+| `PublicLocal.ps1` | In-process PowerShell smoke-test executor. Appends role evidence, writes `.complete`, and logs events. No real agent is called. | Fully working for smoke tests. |
 | `Opencode.ps1` | Runs `opencode run --command <prompt> --model ... --variant ... --auto -f ...` | Builds real commands; live CLI/API not validated in this appraisal. |
 | `Devin.ps1` | Runs the `devin` CLI with `DEVIN_API_KEY`. | Builds real commands; live API not validated. |
 
@@ -239,7 +242,7 @@ The repo has a single flattened test suite under `Tests/`:
 - Module and engine tests for the control-plane modules.
 - Cross-cutting utility-module tests for helpers, setup, display, and git/CI.
 
-All tests pass in the latest appraisal (587 passed, 0 failed, 8 skipped).
+All tests pass in the latest appraisal (**686 passed, 0 failed, 10 skipped**).
 
 ---
 
@@ -294,6 +297,8 @@ GitHub and Worktree workflows:
 - Confirms or creates `~/.salmon` runtime directories.
 - `-DryRun` lists ponds, stream count, and current queue counts without spawning agents.
 - `-Run` invokes `Start-PondEngine` to process plans.
+
+`Run-SalmonRun.ps1` is the unattended supervisor/watchdog. It runs `Start-PondEngine` in a loop, manages the process `PSModulePath` hygiene, and restarts the engine on failure. It is intended for long-running orchestration, not for interactive use.
 
 `install.ps1` is the single-command installer:
 

@@ -11,8 +11,8 @@ A run is resolved to a single `PondExecutionProfile` selecting three dimensions:
 
 | Term | Meaning | Example |
 | :--- | :------ | :------ |
-| **Harness** | Backend family | `opencode`, `devin`, `deepseek` |
-| **Provider** | CLI/API that talks to the model | `opencode-go`, `dsh`, `openrouter`, `deepinfra` |
+| **Harness** | Backend family | `local`, `opencode`, `devin`, `deepseek`, `codex` |
+| **Provider** | CLI/API that talks to the model | `local`, `opencode-go`, `opencode`, `devin`, `dsh`, `openrouter`, `deepinfra`, `codex` |
 | **Model** | Provider-specific slug | `opencode-go/deepseek-v4-flash` |
 
 Defaults live in
@@ -22,14 +22,15 @@ Defaults live in
 
 An *adapter* is the executor that actually launches a session on a backend.
 
-1. **Create the executor.** Add a PowerShell script under the executor
-   registry, e.g.
-   `Modules/SalmonRun.PondEngine/Private/Executor/MyBackend.ps1`.
-   It must accept a `PondExecutionProfile` and expose a consistent result
-   record. Model the boundary on the existing `Local.ps1` / `Opencode.ps1`
-   executor files.
+1. **Create the executor.** Add a PowerShell script to
+   `Modules/SalmonRun.PondEngine/Executors/MyBackend.ps1`. It must accept
+   a `PondExecutionProfile` and expose a consistent result record. Model the
+   boundary on the existing `PublicLocal.ps1`, `Opencode.ps1`, `Devin.ps1`,
+   `Dsh.ps1`, or `Codex.ps1` executor files.
 
-2. **Register it.** Add an entry to
+2. **Register it.** Add a harness and provider to
+   `Modules/SalmonRun.PondEngine/Config/harness-defaults.json` and add a
+   corresponding model entry to
    `Modules/SalmonRun.PondEngine/Config/model-router-catalog.json`.
 
 3. **Verify.** Run `Start-PondEngine -PondFilter Code`. The dispatcher resolves
@@ -47,10 +48,10 @@ A *pond* is a station that watches a queue folder and runs a task sequence.
 
 1. **Add the folder.** Create a directory under `~/.salmon/Tasks/<PondName>/`
    (or register a source folder).
-2. **Add the pond definition.** Edit
-   `Modules/SalmonRun.PondEngine/Classes/Pond.ps1` and the
-   `Get-SalmonRunPonds` function to define the pond's folder, role, operators,
-   tasks, and transitions.
+2. **Add the pond definition.** Add the class definitions in
+   `Modules/SalmonRun.PondEngine/Classes/Pond.ps1` if needed, then edit
+   `Modules/SalmonRun.PondEngine/Public/Get-SalmonRunPonds.ps1` to define the
+   pond's folder, role, operators, tasks, and transitions.
 3. **Add task functions.** Create `Invoke-PondTask<MyTask>` scripts under
    `Modules/SalmonRun.PondEngine/Private/PondTasks/` and register
    them in the pond definition.

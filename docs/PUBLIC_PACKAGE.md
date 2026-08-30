@@ -13,7 +13,7 @@ mutable, user-specific, and potentially sensitive state lives.
 |------|-----------|-------------------|
 | Source modules, skills, docs, tools | `Modules/`, `Tools/`, `docs/` | - |
 | Task queue files | - | `~/.salmon/Tasks/*` |
-| Session logs | - | `~/.salmon/Tasks/Logs` |
+| Session logs | - | `~/.salmon/Logs` |
 | User configuration | `dot-salmon.example/config.example.json` | `~/.salmon/config.json` |
 | Credential redirects | `dot-salmon.example/.env.example` | `~/.salmon/.env` |
 | Git hosting credentials | `dot-salmon.example/git/` | `~/.salmon/git/` |
@@ -34,11 +34,11 @@ The installer (`install.ps1`) creates and owns these directories:
 - `~/.salmon/Tasks/Complete` - completed plans awaiting archival
 - `~/.salmon/Tasks/Archive` - archived plans
 - `~/.salmon/Tasks/Failed` - failed or blocked plans
+- `~/.salmon/Tasks/Paused` - plans held for human triage after non-retryable or engine failures
 - `~/.salmon/Tasks/Manual` - human-action instructions
 - `~/.salmon/Tasks/Handoffs` - handoff stubs
 - `~/.salmon/Tasks/Temp` - temporary plan drafts
 - `~/.salmon/Tasks/Investigate` - meta-level plans that inspect recurring failures
-- `~/.salmon/Tasks/Logs` - agent and orchestrator logs (legacy; current logs live under `~/.salmon/Logs`)
 - `~/.salmon/Tasks/Project` - project plans
 - `~/.salmon/Tasks/ProjectReview` - project review plans
 - `~/.salmon/Tasks/Schedules` - scheduled plan files
