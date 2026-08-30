@@ -191,4 +191,28 @@ Describe 'Pond scheduling safety' -Tag 'PondEngine','Regression-Only' {
 
         $keys[1] | Should -Be $keys[0]
         Should -Invoke git -ModuleName SalmonRun.PondEngine -Times 1 -Exactly
-    }}
+    }
+
+    It 'reserves a lane for a stream whose planned worktree does not exist yet' {
+        $baseRepo = Join-Path $TestDrive 'bootstrap-base-repo'
+        $plannedWorktree = Join-Path $TestDrive 'bootstrap-planned-worktree'
+        $taskRoot = Join-Path $TestDrive 'bootstrap-tasks'
+        $null = New-Item -ItemType Directory -Path $baseRepo -Force
+
+        $stream = New-PondStream -Id 'bootstrap' -Branch 'salmon-bootstrap' -Path $plannedWorktree -TaskRoot $taskRoot -RoleCounts @{ qa = 1 }
+        $stream | Add-Member -NotePropertyName BaseRepo -NotePropertyValue $baseRepo -Force
+        $context = [PondContext]::new()
+        $context.Streams = [System.Collections.ArrayList]::new()
+        $null = $context.Streams.Add($stream)
+        $pond = Get-SalmonRunPonds | Where-Object Name -eq 'QA'
+
+        $lane = & (Get-Module SalmonRun.PondEngine) {
+            param($p, $c, $repo)
+            Get-FreePondLane -Pond $p -Context $c -RepoPath $repo
+        } $pond $context $plannedWorktree
+
+        $lane | Should -Not -BeNullOrEmpty
+        $lane.StreamId | Should -Be 'bootstrap'
+        $plannedWorktree | Should -Not -Exist
+    }
+}
