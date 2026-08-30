@@ -22,9 +22,9 @@ Describe 'Project planning workload contract' -Tag 'PondEngine','Regression-Only
         $result | Should -Exist
         $result | Should -BeLike "*Tasks*Project*"
         $content = Get-Content -LiteralPath $result -Raw
-        $content | Should -Match '(?im)^\*\*ProjectId\*\*: invoice-importer$'
-        $content | Should -Match '(?im)^## Session Plans$'
-        $content | Should -Match '(?im)^\*\*EstimatedImplementationTokens\*\*: \d+$'
+        $content | Should -Match '(?im)^\*\*ProjectId\*\*: invoice-importer\r?$'
+        $content | Should -Match '(?im)^## Session Plans\r?$'
+        $content | Should -Match '(?im)^\*\*EstimatedImplementationTokens\*\*: \d+\r?$'
     }
 
     It 'decomposes plans into substantive children below the hard token ceiling' {
@@ -57,9 +57,9 @@ Build a reliable invoice importer with validation and operator reporting.
         $children | Should -HaveCount 2
         foreach ($child in $children) {
             $content = Get-Content -LiteralPath $child.FullName -Raw
-            $content | Should -Match '(?im)^## Outcome$'
-            $content | Should -Match '(?im)^## Acceptance Criteria$'
-            $content | Should -Match '(?im)^## Verification$'
+            $content | Should -Match '(?im)^## Outcome\r?$'
+            $content | Should -Match '(?im)^## Acceptance Criteria\r?$'
+            $content | Should -Match '(?im)^## Verification\r?$'
             $estimate = [int]([regex]::Match($content, '(?im)^\*\*EstimatedImplementationTokens\*\*:\s*(\d+)').Groups[1].Value)
             $estimate | Should -BeGreaterThan 0
             $estimate | Should -BeLessOrEqual 100000
