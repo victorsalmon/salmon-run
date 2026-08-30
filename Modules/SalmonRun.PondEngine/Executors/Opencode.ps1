@@ -273,6 +273,13 @@ function Invoke-OpencodeProvider {
     $process = $null
     $exitCode = 1
     $timeoutKilled = $false
+
+    # The opencode CLI may spawn a long-lived OpenCode desktop process.
+    # Record PIDs that exist before this run so we can clean up only the
+    # processes started on behalf of this lane.
+    $runStart = Get-Date
+    $openCodeBefore = @(@(Get-Process -Name OpenCode -ErrorAction SilentlyContinue) | Select-Object Id, StartTime)
+
     try {
         $process = Start-Process -FilePath $cliPath -ArgumentList $argumentList `
             -WorkingDirectory $RepoDir `
@@ -328,6 +335,17 @@ function Invoke-OpencodeProvider {
     }
     $resultAction = if ($exitCode -eq 0) { 'external-complete' } elseif ($timeoutKilled) { 'external-timeout' } else { 'external-fail' }
     Write-PlanLog -Action $resultAction -Detail "exit=$exitCode"
+
+    # Clean up any OpenCode desktop processes spawned during this run.
+    # They can outlive the CLI and hold files open, blocking Pester cleanup.
+    try {
+        foreach ($p in @(Get-Process -Name OpenCode -ErrorAction SilentlyContinue)) {
+            $known = @($openCodeBefore | Where-Object { $_.Id -eq $p.Id })
+            if ($known.Count -eq 0 -and $p.StartTime -and $p.StartTime -ge $runStart) {
+                $null = Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            }
+        }
+    } catch { }
 
     $completeFile = Join-Path $LanePath '.complete'
     $failedFile = Join-Path $LanePath '.failed'

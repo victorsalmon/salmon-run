@@ -26,7 +26,7 @@ Describe 'OpenCode Go full pond lifecycle' -Tag 'PondEngine','OpenCode','Live','
             }
             @{
                 execution=@{
-                    defaults=@{harness='opencode';provider='opencode-go';effort='max';timeoutMinutes=10;costCeiling=50.0}
+                    defaults=@{harness='opencode';provider='opencode-go';effort='max';timeoutMinutes=3;costCeiling=50.0}
                     ponds=@{Code=@{challenge='Flash'};Review=@{challenge='Flash'};Audit=@{challenge='Daily'};QA=@{challenge='Daily'}}
                 }
             } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $runtime 'config.json') -NoNewline
@@ -90,7 +90,7 @@ Describe 'OpenCode Go full pond lifecycle' -Tag 'PondEngine','OpenCode','Live','
 '@ | Set-Content -LiteralPath $plan -NoNewline
 
             $namespace = & (Get-Module SalmonRun.PondEngine) { param($name) Get-PondFileNamespace -FileName $name } $planName
-            Start-PondEngine -RepoDir $script:RepoRoot -TaskRoot $taskRoot -NamespaceRepoMap @{$namespace=$target.FullName} -MaxIterations 12 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 10
+            Start-PondEngine -RepoDir $script:RepoRoot -TaskRoot $taskRoot -NamespaceRepoMap @{$namespace=$target.FullName} -MaxIterations 240 -PollIntervalSeconds 0 -SubprocessTimeoutMinutes 3
 
             $completed = Join-Path $taskRoot "Complete/$planName"
             $completed | Should -Exist
